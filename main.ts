@@ -15,6 +15,7 @@ export default class ObsidianBetterFinder extends Plugin {
 	settings: ObsidianBetterFinderSettings;
 
 	async onload() {
+		console.log("AdvancedSearch loaded 🚀");
 		this.registerView(
 			VIEW_TYPE_EXAMPLE,
 			(leaf) => new ExampleView(leaf)
@@ -70,6 +71,15 @@ export default class ObsidianBetterFinder extends Plugin {
 			}
 		});
 
+
+		this.addCommand({
+			id: 'open-better-finder',
+			name: 'Apri Better Finder',
+			callback: () => {
+				this.activateView();
+			}
+		});
+
 		// This adds a settings tab so the user can configure various aspects of the plugin
 		this.addSettingTab(new SampleSettingTab(this.app, this));
 
@@ -112,11 +122,11 @@ export default class ObsidianBetterFinder extends Plugin {
 			// Our view could not be found in the workspace, create a new leaf
 			// in the right sidebar for it
 			leaf = workspace.getRightLeaf(false);
-			await leaf.setViewState({ type: VIEW_TYPE_EXAMPLE, active: true });
+			await leaf?.setViewState({ type: VIEW_TYPE_EXAMPLE, active: true });
 		}
 
 		// "Reveal" the leaf in case it is in a collapsed sidebar
-		workspace.revealLeaf(leaf);
+		leaf && workspace.revealLeaf(leaf);
 	}
 }
 
