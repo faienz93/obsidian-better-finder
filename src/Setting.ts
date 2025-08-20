@@ -4,7 +4,7 @@ import { App, PluginSettingTab, Setting } from 'obsidian';
 import ObsidianBetterFinder from '../main'
 
 
-class SampleSettingTab extends PluginSettingTab {
+class FinderSetting extends PluginSettingTab {
   plugin: ObsidianBetterFinder;
 
   constructor(app: App, plugin: ObsidianBetterFinder) {
@@ -30,4 +30,4 @@ class SampleSettingTab extends PluginSettingTab {
   }
 }
 
-export default SampleSettingTab;
+export default FinderSetting;

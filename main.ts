@@ -1,7 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin } from 'obsidian';
 import AdvancedSearchModal from './src/BetterFinderModal'
 import { BetterFinderView, VIEW_TYPE_BETTERFINDER } from "./src/BetterFinderView";
-import SampleSettingTab from './src/Setting'
+import FinderSetting from './src/Setting'
 
 // Remember to rename these classes and interfaces!
 
@@ -94,7 +94,7 @@ export default class ObsidianBetterFinder extends Plugin {
     });
 
     // This adds a settings tab so the user can configure various aspects of the plugin
-    this.addSettingTab(new SampleSettingTab(this.app, this));
+    this.addSettingTab(new FinderSetting(this.app, this));
 
     // If the plugin hooks up any global DOM events (on parts of the app that doesn't belong to this plugin)
     // Using this function will automatically remove the event listener when this plugin is disabled.
