@@ -6,3 +6,30 @@ available in the app when your plugin is enabled.
 If your plugin does not need CSS, delete this file.
 
 */
+.example {
+  background-color: red;
+  color: white;
+}
+
+.better-finder-modal {
+  position: absolute;
+  top: var(--header-height); /* parte subito sotto la barra di titolo */
+  left: var(--sidebar-left-width, 15px);
+  width: calc(
+    100% - var(--sidebar-left-width, 0px) - var(--sidebar-right-width, 0px)
+  );
+  height: auto !important;
+  max-height: 40%; /* opzionale, limita altezza */
+}
+
+/* Spazio interno */
+.better-finder-modal .modal-content {
+  padding: 0.75rem 1rem;
+}
+
+/* Input di ricerca grande */
+.better-finder-modal input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1.1rem;
+}

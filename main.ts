@@ -1,5 +1,7 @@
 import { App, Editor, MarkdownView, Modal, Notice, Plugin, PluginSettingTab, Setting, WorkspaceLeaf } from 'obsidian';
 import { ExampleView, VIEW_TYPE_EXAMPLE } from './MyItemView';
+import AdvancedSearchModal from './src/BetterFinderModal'
+import { BetterFinderView, VIEW_TYPE_BETTERFINDER } from "./src/BetterFinderView";
 
 // Remember to rename these classes and interfaces!
 
@@ -17,8 +19,8 @@ export default class ObsidianBetterFinder extends Plugin {
 	async onload() {
 		console.log("AdvancedSearch loaded 🚀");
 		this.registerView(
-			VIEW_TYPE_EXAMPLE,
-			(leaf) => new ExampleView(leaf)
+			VIEW_TYPE_BETTERFINDER,
+			(leaf) => new BetterFinderView(leaf)
 		);
 		await this.loadSettings();
 
@@ -72,6 +74,17 @@ export default class ObsidianBetterFinder extends Plugin {
 		});
 
 
+
+
+		this.addCommand({
+			id: "open-advanced-search",
+			name: "Apri Ricerca Avanzata",
+			callback: () => {
+				new AdvancedSearchModal(this.app).open();
+			}
+		});
+
+
 		this.addCommand({
 			id: 'open-better-finder',
 			name: 'Apri Better Finder',
@@ -101,6 +114,17 @@ export default class ObsidianBetterFinder extends Plugin {
 
 	}
 
+	async activateView() {
+		const { workspace } = this.app;
+		let leaf = workspace.getLeavesOfType(VIEW_TYPE_BETTERFINDER).first();
+		if (!leaf) {
+			// 👇 crea la view nello spazio editor principale
+			leaf = workspace.getLeaf(true);
+			await leaf.setViewState({ type: VIEW_TYPE_BETTERFINDER, active: true });
+		}
+		workspace.revealLeaf(leaf);
+	}
+
 	async loadSettings() {
 		this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
 	}
@@ -109,25 +133,7 @@ export default class ObsidianBetterFinder extends Plugin {
 		await this.saveData(this.settings);
 	}
 
-	async activateView() {
-		const { workspace } = this.app;
 
-		let leaf: WorkspaceLeaf | null = null;
-		const leaves = workspace.getLeavesOfType(VIEW_TYPE_EXAMPLE);
-
-		if (leaves.length > 0) {
-			// A leaf with our view already exists, use that
-			leaf = leaves[0];
-		} else {
-			// Our view could not be found in the workspace, create a new leaf
-			// in the right sidebar for it
-			leaf = workspace.getRightLeaf(false);
-			await leaf?.setViewState({ type: VIEW_TYPE_EXAMPLE, active: true });
-		}
-
-		// "Reveal" the leaf in case it is in a collapsed sidebar
-		leaf && workspace.revealLeaf(leaf);
-	}
 }
 
 class SampleModal extends Modal {
