@@ -1,6 +1,5 @@
-import { MarkdownView, Plugin } from 'obsidian';
+import { Plugin } from 'obsidian';
 import FinderModal from './src/FinderModal'
-import { BetterFinderView, VIEW_TYPE_BETTERFINDER } from "./src/BetterFinderView";
 import FinderSetting from './src/FinderSetting'
 
 interface ObsidianBetterFinderSettings {
@@ -16,10 +15,7 @@ export default class ObsidianBetterFinder extends Plugin {
 
   async onload() {
     console.log("AdvancedSearch loaded 🚀");
-    this.registerView(
-      VIEW_TYPE_BETTERFINDER,
-      (leaf) => new BetterFinderView(leaf)
-    );
+
     await this.loadSettings();
 
     this.addCommand({
@@ -30,13 +26,7 @@ export default class ObsidianBetterFinder extends Plugin {
       }
     });
 
-    this.addCommand({
-      id: 'open-better-finder',
-      name: 'Apri Better Finder',
-      callback: () => {
-        this.activateView();
-      }
-    });
+
 
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new FinderSetting(this.app, this));
@@ -57,16 +47,7 @@ export default class ObsidianBetterFinder extends Plugin {
 
   }
 
-  async activateView() {
-    const { workspace } = this.app;
-    let leaf = workspace.getLeavesOfType(VIEW_TYPE_BETTERFINDER).first();
-    if (!leaf) {
-      // 👇 crea la view nello spazio editor principale
-      leaf = workspace.getLeaf(true);
-      await leaf.setViewState({ type: VIEW_TYPE_BETTERFINDER, active: true });
-    }
-    workspace.revealLeaf(leaf);
-  }
+
 
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
