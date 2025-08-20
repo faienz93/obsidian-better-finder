@@ -1,5 +1,10 @@
 # Obsidian Sample Plugin
 
+```
+node --version
+v22.13.1
+```
+
 This is a sample plugin for Obsidian (https://obsidian.md).
 
 This project uses TypeScript to provide type checking and documentation.
