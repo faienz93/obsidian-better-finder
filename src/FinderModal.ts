@@ -6,6 +6,8 @@ class FinderModal extends SuggestModal<TFile> {
 
   constructor(app: App) {
     super(app);
+    // https://docs.obsidian.md/Plugins/User+interface/HTML+elements
+    // this.modalEl.addClass("better-finder-modal");
   }
 
   onOpen(): void {
@@ -45,7 +47,7 @@ class FinderModal extends SuggestModal<TFile> {
   }
 
   // Perform action on the selected suggestion.
-  onChooseSuggestion(book: TFile, evt: MouseEvent | KeyboardEvent) {
+  onChooseSuggestion(book: TFile) {
     // new Notice(`Selected ${book}`);
     const leaf = this.app.workspace.getLeaf(false); // false = open in the current tab
     leaf.openFile(book);
