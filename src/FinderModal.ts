@@ -20,16 +20,12 @@ class FinderModal extends SuggestModal<TFile> {
 
   // Returns all available suggestions.
   getSuggestions(query: string): TFile[] {
+    const regexp = /(?:^|\s)(#[a-z0-9]\w*)/gi;
 
-    const regexp = /#(\S+)/;
-    const match = query.match(regexp);
-    if (!match) return [];
+    const match = query.match(regexp) ?? [];
+    const searchedTag = match.map(x => x.trim()) || null;
 
-    console.log(match)
-
-    const searchedTag = match[1];
-    // console.log("XXXXXXX")
-    // console.log(searchedTag)
+    if (!searchedTag) return [];
 
 
     const allMdFiles = this.app.vault.getMarkdownFiles();
@@ -38,13 +34,11 @@ class FinderModal extends SuggestModal<TFile> {
       const fileCache = this.app.metadataCache.getFileCache(file);
       if (fileCache) {
         const fileTags = getAllTags(fileCache) || [];
-        return fileTags.includes(`#${searchedTag}`);
+        return searchedTag.every(tag => fileTags.includes(tag));
       }
 
     })
 
-
-    console.log(res)
     return res
 
 
@@ -62,7 +56,9 @@ class FinderModal extends SuggestModal<TFile> {
 
   // Perform action on the selected suggestion.
   onChooseSuggestion(book: TFile, evt: MouseEvent | KeyboardEvent) {
-    new Notice(`Selected ${book}`);
+    // new Notice(`Selected ${book}`);
+    const leaf = this.app.workspace.getLeaf(false); // false = open in the current tab
+    leaf.openFile(book);
   }
 
 
