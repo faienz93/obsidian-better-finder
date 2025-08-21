@@ -20,7 +20,8 @@ class FinderModal extends SuggestModal<TFile> {
 
   // Returns all available suggestions.
   getSuggestions(query: string): TFile[] {
-    const regexp = /(?:^|\s)(#[a-z0-9]\w*)/gi;
+    const regexp = /(?:^|\s)(#[a-z0-9][\w-]*)/gi;
+
 
     const match = query.match(regexp) ?? [];
     const searchedTag = match.map(x => x.trim()) || null;
@@ -38,14 +39,7 @@ class FinderModal extends SuggestModal<TFile> {
       }
 
     })
-
     return res
-
-
-
-
-
-
   }
 
   // Renders each suggestion item.
