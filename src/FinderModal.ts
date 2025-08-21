@@ -37,15 +37,16 @@ class FinderModal extends SuggestModal<TFile> {
         const fileTags = getAllTags(fileCache) || [];
         return searchedTag.every(tag => fileTags.includes(tag));
       }
-
     })
     return res
   }
 
   // Renders each suggestion item.
-  renderSuggestion(book: TFile, el: HTMLElement) {
-    el.createEl('div', { text: book.name });
-    el.createEl('small', { text: book.name });
+  renderSuggestion(file: TFile, el: HTMLElement) {
+    el.createEl('div', { text: file.name });
+    // el.createEl('small', { text: file.basename });
+    el.createEl('small', { text: file.extension });
+    el.createEl('small', { text: file.stat.ctime.toString() });
   }
 
   // Perform action on the selected suggestion.
