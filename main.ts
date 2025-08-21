@@ -19,13 +19,14 @@ export default class ObsidianBetterFinder extends Plugin {
     await this.loadSettings();
 
     this.addCommand({
-      id: 'open-sample-modal-simple',
-      name: 'Open sample modal (simple)',
+      id: 'obsidian-better-finder-open-modal',
+      name: 'Open Better Finder Modal',
+      // Hot key
+      // hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'a' }],
       callback: () => {
         new FinderModal(this.app).open();
       }
     });
-
 
 
     // This adds a settings tab so the user can configure various aspects of the plugin
