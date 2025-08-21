@@ -14,29 +14,44 @@ class FinderModal extends SuggestModal<TFile> {
   }
 
   onOpen(): void {
-    this.selectAllTags(this.app)
+    // this.selectAllTags(this.app)
   }
 
 
   // Returns all available suggestions.
   getSuggestions(query: string): TFile[] {
 
+    const regexp = /#(\S+)/;
+    const match = query.match(regexp);
+    if (!match) return [];
+
+    console.log(match)
+
+    const searchedTag = match[1];
+    // console.log("XXXXXXX")
+    // console.log(searchedTag)
+
 
     const allMdFiles = this.app.vault.getMarkdownFiles();
-    const cache = this.app.metadataCache;
 
-    const test = this.app.metadataCache.getFileCache(allMdFiles[869])
+    const res = allMdFiles.filter((file) => {
+      const fileCache = this.app.metadataCache.getFileCache(file);
+      if (fileCache) {
+        const fileTags = getAllTags(fileCache) || [];
+        return fileTags.includes(`#${searchedTag}`);
+      }
 
-    const result = getAllTags(test)
-    console.log(result)
-    console.log("-------------------")
-    // return ALL_BOOKS.filter((book) =>
-    //   // book.title.toLowerCase().includes(query.toLowerCase())
-    // book
-    // );
+    })
 
-    console.log(allMdFiles)
-    return allMdFiles
+
+    console.log(res)
+    return res
+
+
+
+
+
+
   }
 
   // Renders each suggestion item.
@@ -54,10 +69,10 @@ class FinderModal extends SuggestModal<TFile> {
   selectAllTags(app: App) {
     const allTags: string[] = [];
     const allFiles = app.vault.getMarkdownFiles();
-    const cache = this.app.metadataCache;
+
 
     allFiles.forEach(file => {
-      const fileCache = cache.getFileCache(file);
+      const fileCache = this.app.metadataCache.getFileCache(file);
       if (fileCache != null) {
         const fileTags = getAllTags(fileCache);
         if (fileTags) {
