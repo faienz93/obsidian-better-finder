@@ -1,42 +1,72 @@
-import { Notice, SuggestModal } from "obsidian";
+import { App, CachedMetadata, Notice, Pos, SuggestModal, TFile, TagCache, getAllTags } from "obsidian";
 
 interface Book {
   title: string;
   author: string;
 }
 
-const ALL_BOOKS = [
-  {
-    title: 'How to Take Smart Notes',
-    author: 'Sönke Ahrens',
-  },
-  {
-    title: 'Thinking, Fast and Slow',
-    author: 'Daniel Kahneman',
-  },
-  {
-    title: 'Deep Work',
-    author: 'Cal Newport',
-  },
-];
 
-class FinderModal extends SuggestModal<Book> {
+class FinderModal extends SuggestModal<TFile> {
+
+
+  constructor(app: App) {
+    super(app);
+  }
+
+  onOpen(): void {
+    this.selectAllTags(this.app)
+  }
+
+
   // Returns all available suggestions.
-  getSuggestions(query: string): Book[] {
-    return ALL_BOOKS.filter((book) =>
-      book.title.toLowerCase().includes(query.toLowerCase())
-    );
+  getSuggestions(query: string): TFile[] {
+
+
+    const allMdFiles = this.app.vault.getMarkdownFiles();
+    const cache = this.app.metadataCache;
+
+    const test = this.app.metadataCache.getFileCache(allMdFiles[869])
+
+    const result = getAllTags(test)
+    console.log(result)
+    console.log("-------------------")
+    // return ALL_BOOKS.filter((book) =>
+    //   // book.title.toLowerCase().includes(query.toLowerCase())
+    // book
+    // );
+
+    console.log(allMdFiles)
+    return allMdFiles
   }
 
   // Renders each suggestion item.
-  renderSuggestion(book: Book, el: HTMLElement) {
-    el.createEl('div', { text: book.title });
-    el.createEl('small', { text: book.author });
+  renderSuggestion(book: TFile, el: HTMLElement) {
+    el.createEl('div', { text: book.name });
+    el.createEl('small', { text: book.name });
   }
 
   // Perform action on the selected suggestion.
-  onChooseSuggestion(book: Book, evt: MouseEvent | KeyboardEvent) {
-    new Notice(`Selected ${book.title}`);
+  onChooseSuggestion(book: TFile, evt: MouseEvent | KeyboardEvent) {
+    new Notice(`Selected ${book}`);
+  }
+
+
+  selectAllTags(app: App) {
+    const allTags: string[] = [];
+    const allFiles = app.vault.getMarkdownFiles();
+    const cache = this.app.metadataCache;
+
+    allFiles.forEach(file => {
+      const fileCache = cache.getFileCache(file);
+      if (fileCache != null) {
+        const fileTags = getAllTags(fileCache);
+        if (fileTags) {
+          allTags.push(...fileTags);
+        }
+      }
+    });
+
+    console.log(allTags)
   }
 }
 
