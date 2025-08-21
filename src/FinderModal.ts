@@ -1,9 +1,4 @@
-import { App, CachedMetadata, Notice, Pos, SuggestModal, TFile, TagCache, getAllTags } from "obsidian";
-
-interface Book {
-  title: string;
-  author: string;
-}
+import { App, SuggestModal, TFile, getAllTags } from "obsidian";
 
 
 class FinderModal extends SuggestModal<TFile> {
