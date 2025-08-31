@@ -3,11 +3,13 @@ import { App, SuggestModal, TFile, getAllTags } from "obsidian";
 
 class FinderModal extends SuggestModal<TFile> {
 
+  allMdFiles: TFile[];
 
   constructor(app: App) {
     super(app);
     // https://docs.obsidian.md/Plugins/User+interface/HTML+elements
     // this.modalEl.addClass("better-finder-modal");
+    this.allMdFiles = app.vault.getMarkdownFiles();
   }
 
   onOpen(): void {
@@ -25,10 +27,7 @@ class FinderModal extends SuggestModal<TFile> {
 
     if (!searchedTag) return [];
 
-
-    const allMdFiles = this.app.vault.getMarkdownFiles();
-
-    const res = allMdFiles.filter((file) => {
+    const res = this.allMdFiles.filter((file) => {
       const fileCache = this.app.metadataCache.getFileCache(file);
       if (fileCache) {
         const fileTags = getAllTags(fileCache) || [];
