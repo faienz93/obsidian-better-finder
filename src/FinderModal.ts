@@ -16,16 +16,18 @@ class FinderModal extends SuggestModal<TFile> {
     // this.selectAllTags(this.app)
   }
 
+  private extractTags(query: string): string[] {
+    // Supporta: #tag, #tag-with-dashes, #tag_with_underscores, #tag/nested
+    // /#([a-zA-Z0-9][\w\-\/]*)/g; OLD
+    const tagRegex = /#([a-zA-Z0-9][\w\-\/]*)/g;
+    const matches = query.match(tagRegex);
+    return matches ? matches.map(tag => tag.toLowerCase()) : [];
+  }
+
 
   // Returns all available suggestions.
   getSuggestions(query: string): TFile[] {
-    const regexp = /(?:^|\s)(#[a-z0-9][\w-]*)/gi;
-
-
-    const match = query.match(regexp) ?? [];
-    const searchedTag = match.map(x => x.trim()) || null;
-
-    if (!searchedTag) return [];
+    const searchedTag = this.extractTags(query)
 
     const res = this.allMdFiles.filter((file) => {
       const fileCache = this.app.metadataCache.getFileCache(file);
@@ -42,7 +44,7 @@ class FinderModal extends SuggestModal<TFile> {
     el.createEl('div', { text: file.name });
     // el.createEl('small', { text: file.basename });
     el.createEl('small', { text: file.extension });
-    el.createEl('small', { text: file.stat.ctime.toString() });
+    el.createEl('small', { text: new Date(file.stat.ctime).toLocaleDateString() });
   }
 
   // Perform action on the selected suggestion.
