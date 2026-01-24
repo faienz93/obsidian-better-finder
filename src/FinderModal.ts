@@ -1,8 +1,18 @@
-import { App, SuggestModal, TFile, getAllTags, TFolder } from "obsidian";
+import { App, SuggestModal, TFile, getAllTags, TFolder, Command } from "obsidian";
 import { QueryParser, ParsedQuery } from "./QueryParser";
 import { SearchEngine } from "./SearchEngine";
 
-class FinderModal extends SuggestModal<TFile> {
+type SearchResult = TFile | Command;
+
+function isFile(result: SearchResult): result is TFile {
+  return 'stat' in result;
+}
+
+function isCommand(result: SearchResult): result is Command {
+  return 'id' in result && 'name' in result;
+}
+
+class FinderModal extends SuggestModal<SearchResult> {
 
   allFiles: TFile[];
   searchEngine: SearchEngine;
@@ -17,19 +27,34 @@ class FinderModal extends SuggestModal<TFile> {
     // Modal opened
   }
 
+  private getCommandSuggestions(searchText: string): Command[] {
+    const allCommands = (this.app as any).commands.listCommands() as Command[];
+
+    if (!searchText) {
+      return allCommands;
+    }
+
+    const lowerSearch = searchText.toLowerCase();
+    return allCommands.filter(cmd =>
+      cmd.name.toLowerCase().includes(lowerSearch) ||
+      (cmd.id && cmd.id.toLowerCase().includes(lowerSearch))
+    );
+  }
+
   // Returns all available suggestions based on parsed query
-  async getSuggestions(query: string): Promise<TFile[]> {
+  async getSuggestions(query: string): Promise<SearchResult[]> {
     // Parse the query
     const parsed = QueryParser.parse(query);
 
     // If command mode, return empty (we'll handle commands separately later)
+    // COMMAND MODE: Show commands
     if (parsed.isCommandMode) {
       // TODO: Show commands instead of files
-      return [];
+      return this.getCommandSuggestions(parsed.commandText || '');
     }
 
     // Start with all files
-    let results = this.allFiles;
+    let results: TFile[] = this.allFiles;
 
     // 1. Filter by file types (if specified)
     if (parsed.fileTypes.length > 0) {
@@ -115,10 +140,60 @@ class FinderModal extends SuggestModal<TFile> {
     return results;
   }
 
+
+  private renderCommand(command: Command, el: HTMLElement) {
+    const container = el.createDiv({ cls: 'suggestion-item' });
+
+    // Command name
+    const titleEl = container.createDiv({ cls: 'suggestion-title' });
+    titleEl.createSpan({ text: command.name });
+
+    // Command icon (if exists)
+    if (command.icon) {
+      const iconEl = titleEl.createSpan({ cls: 'suggestion-flair' });
+      iconEl.style.marginLeft = '8px';
+      iconEl.setText(command.icon);
+    }
+
+    // Command ID
+    const metaRow = container.createDiv({ cls: 'suggestion-note' });
+    metaRow.style.fontSize = '11px';
+    metaRow.style.color = 'var(--text-muted)';
+    metaRow.style.marginTop = '4px';
+    metaRow.setText(command.id);
+
+    // Hotkey (if exists)
+    const hotkeys = (this.app as any).hotkeyManager.getHotkeys(command.id);
+    if (hotkeys && hotkeys.length > 0) {
+      const hotkeyEl = container.createDiv();
+      hotkeyEl.style.marginTop = '4px';
+      hotkeyEl.style.fontSize = '11px';
+      hotkeyEl.style.color = 'var(--text-accent)';
+
+      const hotkeyText = hotkeys.map((hk: any) => {
+        const modifiers = [];
+        if (hk.modifiers.includes('Mod')) modifiers.push('Ctrl');
+        if (hk.modifiers.includes('Shift')) modifiers.push('Shift');
+        if (hk.modifiers.includes('Alt')) modifiers.push('Alt');
+        return [...modifiers, hk.key].join('+');
+      }).join(', ');
+
+      hotkeyEl.setText(`⌨️ ${hotkeyText}`);
+    }
+  }
+
   // Renders each suggestion item
-  renderSuggestion(file: TFile, el: HTMLElement) {
+  renderSuggestion(result: SearchResult, el: HTMLElement) {
     // Clear the element
     el.empty();
+
+    if (isCommand(result)) {
+      this.renderCommand(result, el);
+      return;
+    }
+
+    // RENDER FILE (existing code)
+    const file = result as TFile;
 
     // Parse query once at the beginning
     const parsed = QueryParser.parse(this.inputEl.value);
@@ -128,12 +203,12 @@ class FinderModal extends SuggestModal<TFile> {
 
     // File name (title)
     const titleEl = container.createDiv({ cls: 'suggestion-title' });
-    titleEl.createSpan({ text: file.basename });
+    titleEl.createSpan({ text: result.basename });
 
     // File extension badge (if not markdown)
-    if (file.extension !== 'md') {
+    if (result.extension !== 'md') {
       const extBadge = titleEl.createSpan({
-        text: file.extension.toUpperCase(),
+        text: result.extension.toUpperCase(),
         cls: 'suggestion-flair'
       });
       extBadge.style.marginLeft = '8px';
@@ -153,15 +228,15 @@ class FinderModal extends SuggestModal<TFile> {
 
     // Date
     const dateEl = metaRow.createSpan();
-    dateEl.setText(new Date(file.stat.mtime).toLocaleDateString());
+    dateEl.setText(new Date(result.stat.mtime).toLocaleDateString());
 
     // Path
     const pathEl = metaRow.createSpan();
-    pathEl.setText(file.parent?.path || '/');
+    pathEl.setText(result.parent?.path || '/');
 
     // Tags (only for markdown files)
-    if (file.extension === 'md') {
-      const fileCache = this.app.metadataCache.getFileCache(file);
+    if (result.extension === 'md') {
+      const fileCache = this.app.metadataCache.getFileCache(result);
       if (fileCache) {
         const fileTags = getAllTags(fileCache) || [];
 
@@ -215,7 +290,15 @@ class FinderModal extends SuggestModal<TFile> {
   }
 
   // Perform action on the selected suggestion
-  onChooseSuggestion(file: TFile) {
+  onChooseSuggestion(result: SearchResult) {
+    // Execute command
+    if (isCommand(result)) {
+      (this.app as any).commands.executeCommandById(result.id);
+      return;
+    }
+
+    // Open file (existing logic)
+    const file = result as TFile;
     const leaf = this.app.workspace.getLeaf(false);
     leaf.openFile(file);
   }
