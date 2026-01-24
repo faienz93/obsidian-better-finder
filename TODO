@@ -1,4 +1,119 @@
-## TODO
+# TODO - Obsidian Better Finder
 
-- [ ] Aggiungere preview del contenuto nelle card (snippet del testo trovato con highlight)
-- [ ] Not Select correctly card when click
+## 🚧 In Progress
+
+- [ ] Command Mode: Handle `>` to show Command Palette
+
+## 🎯 High Priority
+
+### Modal - Search Features
+
+- [ ] **Content Preview**: Add content snippet in cards with highlighted search terms
+- [ ] **Fuzzy Search**: Implement smart matching (e.g., "mtg" → "meeting")
+- [ ] **Search History**: Track recent searches
+- [ ] **Performance**: Optimize search for large vaults (lazy loading, debouncing)
+
+### Command Mode
+
+- [ ] Show Obsidian commands when typing `>`
+- [ ] Filter commands based on text after `>`
+- [ ] Execute selected command
+- [ ] Show hotkeys associated with commands
+
+### Query Parser Extensions
+
+- [ ] Support absolute dates: `2024-01-15`, `last week`, `yesterday`
+- [ ] Boolean operators: `AND`, `OR`, `NOT`
+- [ ] Folder search: `folder:Projects`
+- [ ] Search by author/creator (if available in metadata)
+- [ ] Date ranges: `from:2024-01-01 to:2024-12-31`
+
+## 🔮 Medium Priority
+
+### Command View (Sidebar)
+
+- [ ] Create `CommandsView.ts` - persistent sidebar view
+- [ ] List all commands with search bar
+- [ ] Categorize commands (File, Edit, View, etc.)
+- [ ] Favorites/pin for frequently used commands
+- [ ] Click to execute command
+
+### BUG
+
+- [ ] Not select correctly the result when click on a Card
+
+### UI/UX Improvements
+
+- [ ] Dark/light theme responsive
+- [ ] Transition animations
+- [ ] Customizable keyboard shortcuts
+- [ ] Empty state when no results found
+- [ ] Loading indicator for long searches
+- [ ] Highlight search term in content
+
+### Settings
+
+- [ ] Configure which file types to search by default
+- [ ] Enable/disable content search
+- [ ] Set maximum number of results
+- [ ] Choose default sorting (date, relevance, alphabetical)
+- [ ] Configure hotkey to open modal
+
+## 💡 Low Priority / Nice to Have
+
+### Advanced Features
+
+- [ ] Save custom searches
+- [ ] Bookmarks/favorites for files
+- [ ] Graph view integration
+- [ ] Usage statistics (most opened files, frequent searches)
+- [ ] Export search results to MD
+- [ ] Search in PDF content (beyond filename)
+- [ ] OCR for images (very complex)
+
+### Mobile Optimization
+
+- [ ] Touch gestures (swipe to close, etc.)
+- [ ] Layout optimized for small screens
+- [ ] Virtual keyboard friendly
+
+### Performance & Tech Debt
+
+- [ ] Unit tests for QueryParser
+- [ ] Unit tests for SearchEngine
+- [ ] Refactoring: separate UI logic from business logic
+- [ ] Complete JSDoc documentation
+- [ ] Internationalization (i18n)
+
+## ✅ Completed
+
+- [x] Base Query Parser (tags, dates, file types, scope, tasks)
+- [x] FinderModal with filtered search
+- [x] Search in markdown content
+- [x] File types support (PDF, images, Word, Excel)
+- [x] Tag highlighting in cards
+- [x] Date filters (today, this week, this month)
+- [x] Task filters (task:, task-todo:, task-done:)
+- [x] Scope filter (title: to search only in titles)
+
+---
+
+## 📝 Notes
+
+### Architecture Decisions
+
+- Use `SuggestModal` instead of custom modal for native keyboard navigation
+- `SearchEngine` uses `cachedRead()` for performance
+- QueryParser is stateless and pure (easy to test)
+
+### Known Issues
+
+- prepareQuery is not public in Obsidian API → using simple string matching
+- Content search can be slow on large vaults (> 1000 files)
+- Tag comparison is case-sensitive (might want case-insensitive)
+
+### Future Considerations
+
+- Evaluate using Web Workers for async search
+- Consider caching results for repeated queries
+- Possible integration with external plugins (Dataview, Tasks, etc.)
