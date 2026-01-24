@@ -1,12 +1,15 @@
 import { App, SuggestModal, TFile, getAllTags, TFolder } from "obsidian";
 import { QueryParser, ParsedQuery } from "./QueryParser";
+import { SearchEngine } from "./SearchEngine";
 
 class FinderModal extends SuggestModal<TFile> {
 
   allFiles: TFile[];
+  searchEngine: SearchEngine;
 
   constructor(app: App) {
     super(app);
+    this.searchEngine = new SearchEngine(app);
     this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
   }
 
@@ -15,7 +18,7 @@ class FinderModal extends SuggestModal<TFile> {
   }
 
   // Returns all available suggestions based on parsed query
-  getSuggestions(query: string): TFile[] {
+  async getSuggestions(query: string): Promise<TFile[]> {
     // Parse the query
     const parsed = QueryParser.parse(query);
 
@@ -70,41 +73,16 @@ class FinderModal extends SuggestModal<TFile> {
 
     // 4. Filter by scope (title or content)
     if (parsed.freeText) {
-      const searchText = parsed.freeText.toLowerCase();
-
       if (parsed.scope === 'title') {
-        // Search only in file names
-        results = results.filter(file =>
-          file.basename.toLowerCase().includes(searchText)
-        );
+        // Search only in titles
+        results = this.searchEngine.searchInTitles(parsed.freeText, results);
       } else {
-        // Search in file names AND content
-        results = results.filter(file => {
-          // Check file name
-          if (file.basename.toLowerCase().includes(searchText)) {
-            return true;
-          }
-
-          // Check content (only for markdown files)
-          if (file.extension === 'md') {
-            const fileCache = this.app.metadataCache.getFileCache(file);
-            if (fileCache) {
-              // Search in headings
-              if (fileCache.headings) {
-                const headingMatch = fileCache.headings.some(h =>
-                  h.heading.toLowerCase().includes(searchText)
-                );
-                if (headingMatch) return true;
-              }
-
-              // Search in sections (full content would require reading file)
-              // For now we keep it simple
-            }
-          }
-
-          return false;
-        });
+        // Search in content (async)
+        results = await this.searchEngine.searchFiles(parsed, results);
       }
+    } else {
+      // No free text search, just sort by date
+      results.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }
 
     // 5. Filter by tasks (if specified)
