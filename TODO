@@ -2,8 +2,6 @@
 
 ## 🚧 In Progress
 
-- [ ] Command Mode: Handle `>` to show Command Palette
-
 ## 🎯 High Priority
 
 ### Modal - Search Features
@@ -95,6 +93,7 @@
 - [x] Date filters (today, this week, this month)
 - [x] Task filters (task:, task-todo:, task-done:)
 - [x] Scope filter (title: to search only in titles)
+- [x] Command Mode: Handle `>` to show Command Palette
 
 ---
 
