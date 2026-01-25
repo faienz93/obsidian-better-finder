@@ -29,3 +29,27 @@ If your plugin does not need CSS, delete this file.
   padding: 0.5rem;
   font-size: 1.1rem;
 }
+
+/* Hint bar */
+.hint-bar {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.hint-chip {
+  background: var(--background-secondary);
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 12px;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.hint-chip:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}

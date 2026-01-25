@@ -24,7 +24,39 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   onOpen(): void {
-    // Modal opened
+    this.renderHints();
+  }
+
+  private renderHints(): void {
+    // Find the input container to insert hints after it
+    const promptEl = this.modalEl.querySelector('.prompt-input-container');
+    if (!promptEl) return;
+
+    // Create hint bar after the input
+    const hintBar = createDiv({ cls: 'hint-bar' });
+    promptEl.insertAdjacentElement('afterend', hintBar);
+
+    const hints = [
+      { label: '#tag', desc: 'tag' },
+      { label: 'today', desc: 'oggi' },
+      { label: 'this week', desc: 'settimana' },
+      { label: '>', desc: 'comandi' },
+      { label: 'title:', desc: 'titolo' },
+      { label: 'task:', desc: 'task' },
+      { label: 'pdf', desc: 'PDF' },
+      { label: 'image', desc: 'immagini' },
+    ];
+
+    hints.forEach(hint => {
+      const chip = hintBar.createSpan({ cls: 'hint-chip' });
+      chip.setText(hint.label);
+      chip.setAttribute('title', hint.desc);
+      chip.addEventListener('click', () => {
+        this.inputEl.value = hint.label + ' ';
+        this.inputEl.focus();
+        this.inputEl.dispatchEvent(new Event('input'));
+      });
+    });
   }
 
   private getCommandSuggestions(searchText: string): Command[] {
