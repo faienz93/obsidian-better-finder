@@ -79,7 +79,7 @@ export class QueryParser {
    * Extract tags from query (#tag, #tag-with-dash, #tag/nested)
    */
   private static extractTags(query: string): string[] {
-    const tagRegex = /#([a-zA-Z0-9][\w\-\/]*)/g;
+    const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
     const matches = query.match(tagRegex);
     return matches ? matches.map(tag => tag.toLowerCase()) : [];
   }
@@ -88,7 +88,7 @@ export class QueryParser {
    * Remove tags from query string
    */
   private static removeTags(query: string): string {
-    return query.replace(/#([a-zA-Z0-9][\w\-\/]*)/g, '').trim();
+    return query.replace(/#([a-zA-Z0-9][\w\-/]*)/g, '').trim();
   }
 
   /**
