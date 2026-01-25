@@ -50,22 +50,6 @@ This starts the development build with auto-reload on changes.
 
 ## Development
 
-### Project Structure
-
-```
-obsidian-better-finder/
-├── src/
-│   ├── main.ts              # Plugin entry point
-│   ├── modal.ts             # Smart Search Modal
-│   ├── view.ts              # Command View
-│   ├── query-parser.ts      # Query parsing logic
-│   └── search-engine.ts     # Obsidian search integration
-├── styles.css               # Plugin styles
-├── manifest.json
-├── package.json
-└── tsconfig.json
-```
-
 ### Available Scripts
 
 ```bash
@@ -77,15 +61,17 @@ npm run version  # Bump version (updates manifest.json and versions.json)
 ### Making Changes
 
 1. Open the project in VS Code: `<YOUR_VAULT>/.obsidian/plugins/obsidian-better-finder`
-2. Make your changes
-3. The plugin auto-reloads in Obsidian (thanks to `npm run dev`)
-4. Test in Obsidian
+2. Install this plugin https://github.com/pjeby/hot-reload
+   > This plugin is usefull to avoid continusly restart when develop the plugin
+3. Make your changes
+4. The plugin auto-reloads in Obsidian (thanks to `npm run dev`)
+5. Test in Obsidian
 
 ## Usage
 
 ### Smart Search Modal
 
-Press `Ctrl/Cmd+O` (or your custom hotkey) to open.
+Press `Ctrl/Cmd+O/Cmd+A` (or your custom hotkey) to open.
 
 **Examples:**
 

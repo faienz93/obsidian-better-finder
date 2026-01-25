@@ -16,7 +16,8 @@
 - [ ] Show Obsidian commands when typing `>`
 - [ ] Filter commands based on text after `>`
 - [ ] Execute selected command
-- [ ] Show hotkeys associated with commands
+- [ ] Show preview of the command that you can use
+- [ ] Highlits command when used for example `#`
 
 ### Query Parser Extensions
 
