@@ -60,8 +60,7 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Selected item styling - uses theme accent color */
-.better-finder-modal .suggestion-item.is-selected,
-.better-finder-modal .is-selected .suggestion-item {
+.better-finder-modal .suggestion-item.is-selected {
   background: var(--interactive-accent);
   color: var(--text-on-accent);
 }

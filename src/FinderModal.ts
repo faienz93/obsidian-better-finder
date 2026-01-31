@@ -194,10 +194,10 @@ class FinderModal extends SuggestModal<SearchResult> {
 
 
   private renderCommand(command: Command, el: HTMLElement) {
-    const container = el.createDiv({ cls: 'suggestion-item' });
+    el.addClass('suggestion-item');
 
     // Command name
-    const titleEl = container.createDiv({ cls: 'suggestion-title' });
+    const titleEl = el.createDiv({ cls: 'suggestion-title' });
     titleEl.createSpan({ text: command.name });
 
     // Command icon (if exists)
@@ -208,7 +208,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     }
 
     // Command ID
-    const metaRow = container.createDiv({ cls: 'suggestion-note' });
+    const metaRow = el.createDiv({ cls: 'suggestion-note' });
     metaRow.style.fontSize = '11px';
     metaRow.style.color = 'var(--text-muted)';
     metaRow.style.marginTop = '4px';
@@ -217,7 +217,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     // Hotkey (if exists)
     const hotkeys = (this.app as any).hotkeyManager.getHotkeys(command.id);
     if (hotkeys && hotkeys.length > 0) {
-      const hotkeyEl = container.createDiv();
+      const hotkeyEl = el.createDiv();
       hotkeyEl.style.marginTop = '4px';
       hotkeyEl.style.fontSize = '11px';
       hotkeyEl.style.color = 'var(--text-accent)';
@@ -250,11 +250,11 @@ class FinderModal extends SuggestModal<SearchResult> {
     // Parse query once at the beginning
     const parsed = QueryParser.parse(this.inputEl.value);
 
-    // Container for the card
-    const container = el.createDiv({ cls: 'suggestion-item' });
+    // Add class to el directly instead of creating nested container
+    el.addClass('suggestion-item');
 
     // File name (title)
-    const titleEl = container.createDiv({ cls: 'suggestion-title' });
+    const titleEl = el.createDiv({ cls: 'suggestion-title' });
     titleEl.createSpan({ text: result.basename });
 
     // File extension badge (if not markdown)
@@ -271,7 +271,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     }
 
     // Metadata row (date + path)
-    const metaRow = container.createDiv({ cls: 'suggestion-note' });
+    const metaRow = el.createDiv({ cls: 'suggestion-note' });
     metaRow.style.display = 'flex';
     metaRow.style.gap = '12px';
     metaRow.style.fontSize = '11px';
@@ -293,7 +293,7 @@ class FinderModal extends SuggestModal<SearchResult> {
         const fileTags = getAllTags(fileCache) || [];
 
         if (fileTags.length > 0) {
-          const tagsContainer = container.createDiv();
+          const tagsContainer = el.createDiv();
           tagsContainer.style.marginTop = '8px';
           tagsContainer.style.display = 'flex';
           tagsContainer.style.gap = '4px';
@@ -330,7 +330,7 @@ class FinderModal extends SuggestModal<SearchResult> {
           const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
 
           if (tasks.length > 0) {
-            const taskBadge = container.createDiv();
+            const taskBadge = el.createDiv();
             taskBadge.style.marginTop = '6px';
             taskBadge.style.fontSize = '11px';
             taskBadge.style.color = 'var(--text-muted)';
