@@ -6,6 +6,7 @@
 
 ### Modal - Search Features
 
+- [ ] create external view to show card
 - [ ] **Content Preview**: Add content snippet in cards with highlighted search terms
 - [ ] **Fuzzy Search**: Implement smart matching (e.g., "mtg" → "meeting")
 - [ ] **Search History**: Track recent searches

@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile, Command, getAllTags } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Command, getAllTags, MarkdownRenderer, Component } from "obsidian";
 import { QueryParser, ParsedQuery } from "./QueryParser";
 import { SearchEngine } from "./SearchEngine";
 
@@ -299,7 +299,11 @@ export class FinderView extends ItemView {
     const pathEl = metaRow.createSpan();
     pathEl.setText(file.parent?.path || '/');
 
+    // Content preview for markdown files
     if (file.extension === 'md') {
+      const previewEl = el.createDiv({ cls: 'finder-view-preview' });
+      this.loadContentPreview(file, previewEl);
+
       const fileCache = this.app.metadataCache.getFileCache(file);
       if (fileCache) {
         const fileTags = getAllTags(fileCache) || [];
@@ -346,6 +350,27 @@ export class FinderView extends ItemView {
           }
         }
       }
+    }
+  }
+
+  private async loadContentPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
+    try {
+      const content = await this.app.vault.cachedRead(file);
+      // Remove frontmatter
+      const contentWithoutFrontmatter = content.replace(/^---[\s\S]*?---\n?/, '');
+      // Get first 500 characters
+      const preview = contentWithoutFrontmatter.slice(0, 500);
+
+      // Render markdown preview
+      await MarkdownRenderer.render(
+        this.app,
+        preview,
+        containerEl,
+        file.path,
+        this
+      );
+    } catch (e) {
+      containerEl.setText('Unable to load preview');
     }
   }
 

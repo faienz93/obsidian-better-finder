@@ -86,20 +86,98 @@ If your plugin does not need CSS, delete this file.
   margin-bottom: 8px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
+  background: var(--background-primary);
 }
 
 .finder-view-results {
   flex: 1;
   overflow-y: auto;
+  padding: 8px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+  align-content: start;
 }
 
+/* Card style for results */
 .finder-view-result {
-  padding: 8px 12px;
+  padding: 12px;
   cursor: pointer;
-  border-radius: 4px;
-  margin-bottom: 4px;
+  border-radius: 8px;
+  background: var(--background-secondary);
+  border: 1px solid var(--background-modifier-border);
+  transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
+  height: fit-content;
 }
 
 .finder-view-result:hover {
-  background: var(--background-modifier-hover);
+  border-color: var(--interactive-accent);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  transform: translateY(-2px);
+}
+
+.finder-view-result .suggestion-title {
+  font-size: 14px;
+  font-weight: 600;
+  margin-bottom: 8px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.finder-view-result .suggestion-note {
+  display: none;
+}
+
+/* Content preview */
+.finder-view-preview {
+  padding: 8px;
+  background: var(--background-primary);
+  border-radius: 6px;
+  font-size: 12px;
+  line-height: 1.4;
+  max-height: 180px;
+  overflow: hidden;
+  position: relative;
+}
+
+.finder-view-preview::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: 30px;
+  background: linear-gradient(transparent, var(--background-primary));
+  pointer-events: none;
+}
+
+.finder-view-preview p {
+  margin: 0 0 6px 0;
+}
+
+.finder-view-preview h1,
+.finder-view-preview h2,
+.finder-view-preview h3,
+.finder-view-preview h4 {
+  margin: 0 0 6px 0;
+  font-size: 13px;
+}
+
+.finder-view-preview ul,
+.finder-view-preview ol {
+  margin: 0 0 6px 0;
+  padding-left: 16px;
+}
+
+.finder-view-preview blockquote {
+  margin: 0 0 6px 0;
+  padding-left: 8px;
+  border-left: 2px solid var(--interactive-accent);
+  color: var(--text-muted);
+}
+
+/* Hide tags in grid view */
+.finder-view-result > div:not(.suggestion-title):not(.finder-view-preview):not(.suggestion-note) {
+  display: none;
 }
