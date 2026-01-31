@@ -70,3 +70,36 @@ If your plugin does not need CSS, delete this file.
 .better-finder-modal .is-selected .suggestion-note {
   color: var(--text-on-accent);
 }
+
+/* Finder View styles */
+.finder-view-container {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.finder-view-input {
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 14px;
+  margin-bottom: 8px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+}
+
+.finder-view-results {
+  flex: 1;
+  overflow-y: auto;
+}
+
+.finder-view-result {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  margin-bottom: 4px;
+}
+
+.finder-view-result:hover {
+  background: var(--background-modifier-hover);
+}
