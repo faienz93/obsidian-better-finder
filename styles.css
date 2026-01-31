@@ -188,50 +188,11 @@ If your plugin does not need CSS, delete this file.
   display: none;
 }
 
-/* Content preview (grid view only) */
+/* Content preview - native Obsidian style */
 .finder-view-preview {
-  padding: 8px;
+  max-height: 250px;
+  overflow-y: auto;
   background: var(--background-primary);
   border-radius: 6px;
-  font-size: 12px;
-  line-height: 1.4;
-  max-height: 180px;
-  overflow: hidden;
-  position: relative;
-}
-
-.finder-view-preview::after {
-  content: '';
-  position: absolute;
-  bottom: 0;
-  left: 0;
-  right: 0;
-  height: 30px;
-  background: linear-gradient(transparent, var(--background-primary));
-  pointer-events: none;
-}
-
-.finder-view-preview p {
-  margin: 0 0 6px 0;
-}
-
-.finder-view-preview h1,
-.finder-view-preview h2,
-.finder-view-preview h3,
-.finder-view-preview h4 {
-  margin: 0 0 6px 0;
-  font-size: 13px;
-}
-
-.finder-view-preview ul,
-.finder-view-preview ol {
-  margin: 0 0 6px 0;
-  padding-left: 16px;
-}
-
-.finder-view-preview blockquote {
-  margin: 0 0 6px 0;
-  padding-left: 8px;
-  border-left: 2px solid var(--interactive-accent);
-  color: var(--text-muted);
+  border: 1px solid var(--background-modifier-border);
 }

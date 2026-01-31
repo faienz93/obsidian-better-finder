@@ -321,7 +321,7 @@ export class FinderView extends ItemView {
 
     // Content preview (visible only in grid view for markdown)
     if (file.extension === 'md') {
-      const previewEl = el.createDiv({ cls: 'finder-view-preview' });
+      const previewEl = el.createDiv({ cls: 'finder-view-preview markdown-preview-view' });
       this.loadContentPreview(file, previewEl);
     }
   }
@@ -331,13 +331,11 @@ export class FinderView extends ItemView {
       const content = await this.app.vault.cachedRead(file);
       // Remove frontmatter
       const contentWithoutFrontmatter = content.replace(/^---[\s\S]*?---\n?/, '');
-      // Get first 500 characters
-      const preview = contentWithoutFrontmatter.slice(0, 500);
 
-      // Render markdown preview
+      // Render full markdown preview (native Obsidian style)
       await MarkdownRenderer.render(
         this.app,
-        preview,
+        contentWithoutFrontmatter,
         containerEl,
         file.path,
         this
