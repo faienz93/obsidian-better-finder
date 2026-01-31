@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile, Command, getAllTags, MarkdownRenderer, Component } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Command, getAllTags, MarkdownRenderer } from "obsidian";
 import { QueryParser, ParsedQuery } from "./QueryParser";
 import { SearchEngine } from "./SearchEngine";
 
@@ -20,6 +20,7 @@ export class FinderView extends ItemView {
   private resultsEl: HTMLElement;
   private hintChips: Map<string, HTMLElement> = new Map();
   private allFiles: TFile[];
+  private isGridView = true;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -50,18 +51,32 @@ export class FinderView extends ItemView {
   private buildUI(): void {
     const container = this.contentEl.createDiv({ cls: "finder-view-container" });
 
+    // Header con input e toggle
+    const headerEl = container.createDiv({ cls: "finder-view-header" });
+
     // Input di ricerca
-    this.inputEl = container.createEl("input", {
+    this.inputEl = headerEl.createEl("input", {
       type: "text",
       placeholder: "Search files...",
       cls: "finder-view-input"
+    });
+
+    // Toggle view button
+    const toggleBtn = headerEl.createEl("button", { cls: "finder-view-toggle" });
+    toggleBtn.setAttribute("aria-label", "Toggle view");
+    this.updateToggleIcon(toggleBtn);
+    toggleBtn.addEventListener("click", () => {
+      this.isGridView = !this.isGridView;
+      this.updateToggleIcon(toggleBtn);
+      this.resultsEl.toggleClass("grid-view", this.isGridView);
+      this.resultsEl.toggleClass("list-view", !this.isGridView);
     });
 
     // Hint bar (copiato da FinderModal)
     this.renderHints(container);
 
     // Container risultati
-    this.resultsEl = container.createDiv({ cls: "finder-view-results" });
+    this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
 
     // Event listener per input con debounce
     let debounceTimer: number;
@@ -71,6 +86,17 @@ export class FinderView extends ItemView {
     });
 
     this.inputEl.focus();
+  }
+
+  private updateToggleIcon(btn: HTMLElement): void {
+    btn.empty();
+    if (this.isGridView) {
+      btn.setText("☰"); // List icon
+      btn.setAttribute("title", "Switch to list view");
+    } else {
+      btn.setText("⊞"); // Grid icon
+      btn.setAttribute("title", "Switch to grid view");
+    }
   }
 
   // COPIATO DA FinderModal.renderHints() - adattato per usare container invece di modalEl
@@ -266,11 +292,11 @@ export class FinderView extends ItemView {
     }
   }
 
-  // COPIATO DA FinderModal.renderSuggestion() - parte file
+  // Render file card
   private renderFile(file: TFile, el: HTMLElement): void {
-    const parsed = QueryParser.parse(this.inputEl.value);
     el.addClass('suggestion-item');
 
+    // Title
     const titleEl = el.createDiv({ cls: 'suggestion-title' });
     titleEl.createSpan({ text: file.basename });
 
@@ -286,70 +312,17 @@ export class FinderView extends ItemView {
       extBadge.style.borderRadius = '3px';
     }
 
+    // Metadata (visible only in list view)
     const metaRow = el.createDiv({ cls: 'suggestion-note' });
-    metaRow.style.display = 'flex';
-    metaRow.style.gap = '12px';
-    metaRow.style.fontSize = '11px';
-    metaRow.style.color = 'var(--text-muted)';
-    metaRow.style.marginTop = '4px';
-
     const dateEl = metaRow.createSpan();
     dateEl.setText(new Date(file.stat.mtime).toLocaleDateString());
-
     const pathEl = metaRow.createSpan();
     pathEl.setText(file.parent?.path || '/');
 
-    // Content preview for markdown files
+    // Content preview (visible only in grid view for markdown)
     if (file.extension === 'md') {
       const previewEl = el.createDiv({ cls: 'finder-view-preview' });
       this.loadContentPreview(file, previewEl);
-
-      const fileCache = this.app.metadataCache.getFileCache(file);
-      if (fileCache) {
-        const fileTags = getAllTags(fileCache) || [];
-
-        if (fileTags.length > 0) {
-          const tagsContainer = el.createDiv();
-          tagsContainer.style.marginTop = '8px';
-          tagsContainer.style.display = 'flex';
-          tagsContainer.style.gap = '4px';
-          tagsContainer.style.flexWrap = 'wrap';
-
-          const searchedTags = parsed.tags;
-
-          fileTags.forEach(tag => {
-            const tagEl = tagsContainer.createSpan({ text: tag });
-            tagEl.style.background = 'var(--tag-background)';
-            tagEl.style.color = 'var(--tag-color)';
-            tagEl.style.padding = '2px 6px';
-            tagEl.style.borderRadius = '4px';
-            tagEl.style.fontSize = '11px';
-
-            const isMatched = searchedTags.some(searchTag =>
-              tag.toLowerCase() === searchTag.toLowerCase()
-            );
-
-            if (isMatched) {
-              tagEl.style.background = 'var(--interactive-accent)';
-              tagEl.style.color = 'var(--text-on-accent)';
-              tagEl.style.fontWeight = '600';
-            }
-          });
-        }
-
-        if (parsed.taskFilter && fileCache.listItems) {
-          const tasks = fileCache.listItems.filter(item => item.task);
-          const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
-
-          if (tasks.length > 0) {
-            const taskBadge = el.createDiv();
-            taskBadge.style.marginTop = '6px';
-            taskBadge.style.fontSize = '11px';
-            taskBadge.style.color = 'var(--text-muted)';
-            taskBadge.setText(`✓ ${doneCount}/${tasks.length} tasks completed`);
-          }
-        }
-      }
     }
   }
 

@@ -79,28 +79,50 @@ If your plugin does not need CSS, delete this file.
   height: 100%;
 }
 
+.finder-view-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
 .finder-view-input {
-  width: 100%;
+  flex: 1;
   padding: 8px 12px;
   font-size: 14px;
-  margin-bottom: 8px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
   background: var(--background-primary);
 }
 
+.finder-view-toggle {
+  padding: 8px 12px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-secondary);
+  cursor: pointer;
+  font-size: 16px;
+}
+
+.finder-view-toggle:hover {
+  background: var(--background-modifier-hover);
+}
+
+/* Results container */
 .finder-view-results {
   flex: 1;
   overflow-y: auto;
   padding: 8px;
+}
+
+/* GRID VIEW */
+.finder-view-results.grid-view {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
   gap: 12px;
   align-content: start;
 }
 
-/* Card style for results */
-.finder-view-result {
+.finder-view-results.grid-view .finder-view-result {
   padding: 12px;
   cursor: pointer;
   border-radius: 8px;
@@ -110,13 +132,13 @@ If your plugin does not need CSS, delete this file.
   height: fit-content;
 }
 
-.finder-view-result:hover {
+.finder-view-results.grid-view .finder-view-result:hover {
   border-color: var(--interactive-accent);
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   transform: translateY(-2px);
 }
 
-.finder-view-result .suggestion-title {
+.finder-view-results.grid-view .suggestion-title {
   font-size: 14px;
   font-weight: 600;
   margin-bottom: 8px;
@@ -125,11 +147,48 @@ If your plugin does not need CSS, delete this file.
   text-overflow: ellipsis;
 }
 
-.finder-view-result .suggestion-note {
+.finder-view-results.grid-view .suggestion-note {
   display: none;
 }
 
-/* Content preview */
+/* LIST VIEW */
+.finder-view-results.list-view {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.finder-view-results.list-view .finder-view-result {
+  padding: 8px 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  background: transparent;
+  border: none;
+  transition: background 0.15s ease;
+}
+
+.finder-view-results.list-view .finder-view-result:hover {
+  background: var(--background-modifier-hover);
+}
+
+.finder-view-results.list-view .suggestion-title {
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.finder-view-results.list-view .suggestion-note {
+  display: flex;
+  gap: 12px;
+  font-size: 11px;
+  color: var(--text-muted);
+  margin-top: 2px;
+}
+
+.finder-view-results.list-view .finder-view-preview {
+  display: none;
+}
+
+/* Content preview (grid view only) */
 .finder-view-preview {
   padding: 8px;
   background: var(--background-primary);
@@ -175,9 +234,4 @@ If your plugin does not need CSS, delete this file.
   padding-left: 8px;
   border-left: 2px solid var(--interactive-accent);
   color: var(--text-muted);
-}
-
-/* Hide tags in grid view */
-.finder-view-result > div:not(.suggestion-title):not(.finder-view-preview):not(.suggestion-note) {
-  display: none;
 }
