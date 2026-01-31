@@ -27,6 +27,8 @@ class FinderModal extends SuggestModal<SearchResult> {
     this.renderHints();
   }
 
+  private hintChips: Map<string, HTMLElement> = new Map();
+
   private renderHints(): void {
     // Find the input container to insert hints after it
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
@@ -51,11 +53,27 @@ class FinderModal extends SuggestModal<SearchResult> {
       const chip = hintBar.createSpan({ cls: 'hint-chip' });
       chip.setText(hint.label);
       chip.setAttribute('title', hint.desc);
+      this.hintChips.set(hint.label.toLowerCase(), chip);
       chip.addEventListener('click', () => {
         this.inputEl.value = hint.label + ' ';
         this.inputEl.focus();
         this.inputEl.dispatchEvent(new Event('input'));
       });
+    });
+
+    // Listen for input changes to update hint highlighting
+    this.inputEl.addEventListener('input', () => this.updateHintHighlights());
+  }
+
+  private updateHintHighlights(): void {
+    const query = this.inputEl.value.toLowerCase();
+
+    this.hintChips.forEach((chip, label) => {
+      const isActive = query.includes(label) ||
+        (label === '#tag' && !!query.match(/#\w+/)) ||
+        (label === 'task:' && query.includes('task:'));
+
+      chip.toggleClass('hint-chip-active', isActive);
     });
   }
 

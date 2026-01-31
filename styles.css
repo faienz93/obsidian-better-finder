@@ -9,13 +9,13 @@ If your plugin does not need CSS, delete this file.
 
 .better-finder-modal {
   position: absolute;
-  top: var(--header-height); /* parte subito sotto la barra di titolo */
+  top: var(--header-height);
+  /* parte subito sotto la barra di titolo */
   left: var(--sidebar-left-width, 15px);
-  width: calc(
-    100% - var(--sidebar-left-width, 0px) - var(--sidebar-right-width, 0px)
-  );
+  width: calc(100% - var(--sidebar-left-width, 0px) - var(--sidebar-right-width, 0px));
   height: auto !important;
-  max-height: 40%; /* opzionale, limita altezza */
+  max-height: 40%;
+  /* opzionale, limita altezza */
 }
 
 /* Spazio interno */
@@ -51,5 +51,23 @@ If your plugin does not need CSS, delete this file.
 
 .hint-chip:hover {
   background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+.hint-chip-active {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+/* Selected item styling - uses theme accent color */
+.better-finder-modal .suggestion-item.is-selected,
+.better-finder-modal .is-selected .suggestion-item {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+/* Ensure child elements inherit the accent text color */
+.better-finder-modal .is-selected .suggestion-title,
+.better-finder-modal .is-selected .suggestion-note {
   color: var(--text-on-accent);
 }
