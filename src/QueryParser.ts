@@ -150,6 +150,11 @@ export class QueryParser {
       types.push('.xlsx', '.xls');
     }
 
+    // Canvas files
+    if (/\bcanvas\b/.test(lowerQuery)) {
+      types.push('.canvas');
+    }
+
     // Remove duplicates
     return [...new Set(types)];
   }
@@ -163,6 +168,7 @@ export class QueryParser {
       .replace(/\bpdf\b/gi, '')
       .replace(/\b(word|docx|doc)\b/gi, '')
       .replace(/\b(excel|xlsx|xls)\b/gi, '')
+      .replace(/\bcanvas\b/gi, '')
       .trim();
   }
 

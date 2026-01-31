@@ -13,7 +13,6 @@
 
 ### Command Mode
 
-- [ ] Show Obsidian commands when typing `>`
 - [ ] Filter commands based on text after `>`
 - [ ] Execute selected command
 - [ ] Show preview of the command that you can use
@@ -95,6 +94,7 @@
 - [x] Task filters (task:, task-todo:, task-done:)
 - [x] Scope filter (title: to search only in titles)
 - [x] Command Mode: Handle `>` to show Command Palette
+- [x] Show Obsidian commands when typing `>`
 
 ---
 

@@ -42,11 +42,13 @@ class FinderModal extends SuggestModal<SearchResult> {
       { label: '#tag', desc: 'tag' },
       { label: 'today', desc: 'oggi' },
       { label: 'this week', desc: 'settimana' },
+      { label: 'this month', desc: 'mese' },
       { label: '>', desc: 'comandi' },
       { label: 'title:', desc: 'titolo' },
       { label: 'task:', desc: 'task' },
       { label: 'pdf', desc: 'PDF' },
       { label: 'image', desc: 'immagini' },
+      { label: 'canvas', desc: 'canvas' },
     ];
 
     hints.forEach(hint => {
