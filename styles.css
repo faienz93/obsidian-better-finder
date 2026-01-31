@@ -123,13 +123,14 @@ If your plugin does not need CSS, delete this file.
 }
 
 .finder-view-results.grid-view .finder-view-result {
-  padding: 12px;
+  padding: 0;
   cursor: pointer;
   border-radius: 8px;
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
   height: fit-content;
+  overflow: hidden;
 }
 
 .finder-view-results.grid-view .finder-view-result:hover {
@@ -141,10 +142,13 @@ If your plugin does not need CSS, delete this file.
 .finder-view-results.grid-view .suggestion-title {
   font-size: 14px;
   font-weight: 600;
-  margin-bottom: 8px;
+  padding: 10px 12px;
+  margin: 0;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  background: var(--background-secondary);
+  border-bottom: 1px solid var(--background-modifier-border);
 }
 
 .finder-view-results.grid-view .suggestion-note {
@@ -190,9 +194,8 @@ If your plugin does not need CSS, delete this file.
 
 /* Content preview - native Obsidian style */
 .finder-view-preview {
-  max-height: 250px;
+  max-height: 200px;
   overflow-y: auto;
   background: var(--background-primary);
-  border-radius: 6px;
-  border: 1px solid var(--background-modifier-border);
+  padding: 8px 12px;
 }
