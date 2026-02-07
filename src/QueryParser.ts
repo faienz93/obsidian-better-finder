@@ -155,6 +155,16 @@ export class QueryParser {
       types.push('.canvas');
     }
 
+    // JSON files
+    if (/\bjson\b/.test(lowerQuery)) {
+      types.push('.json');
+    }
+
+    // BASE files
+    if (/\bbase\b/.test(lowerQuery)) {
+      types.push('.base');
+    }
+
     // Remove duplicates
     return [...new Set(types)];
   }
@@ -169,6 +179,8 @@ export class QueryParser {
       .replace(/\b(word|docx|doc)\b/gi, '')
       .replace(/\b(excel|xlsx|xls)\b/gi, '')
       .replace(/\bcanvas\b/gi, '')
+      .replace(/\bjson\b/gi, '')
+      .replace(/\bbase\b/gi, '')
       .trim();
   }
 

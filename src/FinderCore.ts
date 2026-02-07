@@ -39,6 +39,8 @@ export class FinderCore {
       { label: 'pdf', desc: 'PDF' },
       { label: 'image', desc: 'immagini' },
       { label: 'canvas', desc: 'canvas' },
+      { label: 'json', desc: 'json' },
+      { label: 'base', desc: 'base' },
     ];
 
     hints.forEach(hint => {
