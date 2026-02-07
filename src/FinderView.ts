@@ -24,6 +24,8 @@ export class FinderView extends ItemView {
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
+    this.searchEngine = new SearchEngine(this.app);
+    this.allFiles = this.app.vault.getFiles();
   }
 
   getViewType(): string {
@@ -39,8 +41,6 @@ export class FinderView extends ItemView {
   }
 
   async onOpen(): Promise<void> {
-    this.searchEngine = new SearchEngine(this.app);
-    this.allFiles = this.app.vault.getFiles();
     this.buildUI();
   }
 
@@ -235,7 +235,7 @@ export class FinderView extends ItemView {
     }
 
     results.sort((a, b) => b.stat.mtime - a.stat.mtime);
-    return results;
+    return results.slice(0, 50); // Limit results to prevent freeze
   }
 
   private renderResults(results: SearchResult[]): void {
@@ -332,10 +332,13 @@ export class FinderView extends ItemView {
       // Remove frontmatter
       const contentWithoutFrontmatter = content.replace(/^---[\s\S]*?---\n?/, '');
 
-      // Render full markdown preview (native Obsidian style)
+      // Truncate content for preview (first 300 chars)
+      const truncated = contentWithoutFrontmatter.slice(0, 300);
+
+      // Render truncated markdown preview
       await MarkdownRenderer.render(
         this.app,
-        contentWithoutFrontmatter,
+        truncated,
         containerEl,
         file.path,
         this

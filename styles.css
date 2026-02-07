@@ -129,8 +129,10 @@ If your plugin does not need CSS, delete this file.
   background: var(--background-secondary);
   border: 1px solid var(--background-modifier-border);
   transition: box-shadow 0.15s ease, border-color 0.15s ease, transform 0.15s ease;
-  height: fit-content;
+  height: 280px;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
 }
 
 .finder-view-results.grid-view .finder-view-result:hover {
@@ -194,8 +196,8 @@ If your plugin does not need CSS, delete this file.
 
 /* Content preview - native Obsidian style */
 .finder-view-preview {
-  max-height: 200px;
-  overflow-y: auto;
+  flex: 1;
+  overflow: hidden;
   background: var(--background-primary);
   padding: 8px 12px;
 }
