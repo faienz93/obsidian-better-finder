@@ -145,30 +145,28 @@ export class FinderView extends ItemView {
     const pathEl = metaRow.createSpan();
     pathEl.setText(file.parent?.path || '/');
 
-    // Content preview (visible only in grid view for markdown)
-    if (file.extension === 'md') {
-      const previewEl = el.createDiv({ cls: 'finder-view-preview markdown-preview-view' });
-      this.loadContentPreview(file, previewEl);
-    }
+    // Content preview
+    const previewEl = el.createDiv({ cls: 'finder-view-preview markdown-preview-view' });
+    this.loadPreview(file, previewEl);
   }
 
-  private async loadContentPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
+  private async loadPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
     try {
-      const content = await this.app.vault.cachedRead(file);
-      // Remove frontmatter
-      const contentWithoutFrontmatter = content.replace(/^---[\s\S]*?---\n?/, '');
+      const ext = file.extension.toLowerCase();
 
-      // Truncate content for preview (first 300 chars)
-      const truncated = contentWithoutFrontmatter.slice(0, 300);
-
-      // Render truncated markdown preview
-      await MarkdownRenderer.render(
-        this.app,
-        truncated,
-        containerEl,
-        file.path,
-        this
-      );
+      if (ext === 'md') {
+        // Markdown: mostra contenuto testuale
+        const rawContent = await this.app.vault.cachedRead(file);
+        const contentWithoutFrontmatter = rawContent.replace(/^---[\s\S]*?---\n?/, '');
+        const content = contentWithoutFrontmatter.slice(0, 300);
+        await MarkdownRenderer.render(this.app, content, containerEl, file.path, this);
+      } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
+        // Immagini: embed nativo
+        await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, file.path, this);
+      } else if (ext === 'pdf') {
+        // PDF: embed nativo come per le immagini
+        await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, file.path, this);
+      }
     } catch (e) {
       containerEl.setText('Unable to load preview');
     }

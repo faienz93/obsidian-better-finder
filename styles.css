@@ -201,3 +201,28 @@ If your plugin does not need CSS, delete this file.
   background: var(--background-primary);
   padding: 8px 12px;
 }
+
+/* Embed images/PDF in preview */
+.finder-view-preview img,
+.finder-view-preview .internal-embed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.finder-view-results.grid-view .finder-view-preview:has(img),
+.finder-view-results.grid-view .finder-view-preview:has(.internal-embed) {
+  padding: 0;
+}
+
+/* PDF embed styling */
+.finder-view-preview .pdf-embed {
+  width: 100%;
+  height: 100%;
+}
+
+.finder-view-preview .pdf-embed iframe,
+.finder-view-preview .pdf-embed canvas {
+  width: 100%;
+  height: 100%;
+}
