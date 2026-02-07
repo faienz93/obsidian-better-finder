@@ -9,7 +9,6 @@ quindi io cerco qualcosa per fare in mdoo che possa trovarlo dovunque, anche nei
 
 ### Modal - Search Features
 
-- [ ] **Preview** Added support for Word, Excel
 - [ ] **Preview** Add support for Bases with preview
 - [ ] **Preview** Support preview of PNG / PDF
 - [ ] **Preview** Search highliths. i.e `==Example==`
@@ -27,6 +26,7 @@ quindi io cerco qualcosa per fare in mdoo che possa trovarlo dovunque, anche nei
 - [ ] Execute selected command
 - [ ] Show preview of the command that you can use
 - [ ] Highlits command when used for example `#`
+- [ ] **Preview** Added support for Word, Excel
 
 ### Query Parser Extensions
 
