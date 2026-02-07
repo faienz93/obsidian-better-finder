@@ -38,6 +38,11 @@ export default class ObsidianBetterFinder extends Plugin {
       callback: () => this.activateFinderView()
     });
 
+    // Add ribbon icon in the left sidebar
+    this.addRibbonIcon('search', 'Open Better Finder', () => {
+      this.activateFinderView();
+    });
+
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new FinderSetting(this.app, this));
 
