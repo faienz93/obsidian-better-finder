@@ -197,7 +197,116 @@ export class FinderView extends ItemView {
           }).promise;
         }
       }
+      else if (ext === 'canvas') {
+        // Canvas di Obsidian - mostra miniatura dei nodi
+        containerEl.addClass('canvas-thumbnail');
+        const rawContent = await this.app.vault.cachedRead(file);
+        const canvasData = JSON.parse(rawContent);
+
+        // Crea una miniatura SVG del canvas
+        const svg = containerEl.createSvg('svg', {
+          attr: { viewBox: '0 0 100 100', style: 'width: 100%; height: 100%;' }
+        });
+
+        // Background
+        svg.createSvg('rect', {
+          attr: { x: '0', y: '0', width: '100', height: '100', fill: 'var(--background-secondary)' }
+        });
+
+        if (canvasData.nodes && canvasData.nodes.length > 0) {
+          // Calcola bounds per normalizzare le posizioni
+          const nodes = canvasData.nodes;
+          const minX = Math.min(...nodes.map((n: any) => n.x));
+          const maxX = Math.max(...nodes.map((n: any) => n.x + (n.width || 100)));
+          const minY = Math.min(...nodes.map((n: any) => n.y));
+          const maxY = Math.max(...nodes.map((n: any) => n.y + (n.height || 100)));
+          const rangeX = maxX - minX || 1;
+          const rangeY = maxY - minY || 1;
+
+          // Disegna i nodi come rettangoli
+          nodes.slice(0, 20).forEach((node: any) => {
+            const x = ((node.x - minX) / rangeX) * 90 + 5;
+            const y = ((node.y - minY) / rangeY) * 90 + 5;
+            const w = Math.max(((node.width || 100) / rangeX) * 90, 3);
+            const h = Math.max(((node.height || 100) / rangeY) * 90, 3);
+
+            svg.createSvg('rect', {
+              attr: {
+                x: String(x), y: String(y), width: String(w), height: String(h),
+                fill: node.color ? `var(--color-${node.color})` : 'var(--interactive-accent)',
+                opacity: '0.7', rx: '2'
+              }
+            });
+          });
+        }
+      }
+      else if (ext === 'base') {
+        containerEl.addClass('base-thumbnail');
+        const rawContent = await this.app.vault.cachedRead(file);
+        const baseData = JSON.parse(rawContent);
+
+        // Invece di un solo SVG, creiamo un mini-container HTML per avere più controllo
+        const previewWrapper = containerEl.createDiv({ cls: 'base-preview-wrapper' });
+
+        // Titolo o intestazione del database
+        const header = previewWrapper.createDiv({ cls: 'base-preview-header' });
+        header.setText(file.basename);
+
+        // Creiamo una tabella HTML ultra-leggera (più facile da gestire dell'SVG per i testi)
+        const table = previewWrapper.createEl('table', { cls: 'base-preview-table' });
+
+        // Estrai colonne e righe reali
+        const columns = baseData.columns || Object.keys(baseData.schema || {}).slice(0, 3);
+        const rows = baseData.rows || baseData.data || [];
+
+        // Renderizza intestazioni (max 3)
+        const thead = table.createTHead();
+        const headerRow = thead.insertRow();
+        columns.slice(0, 3).forEach(col => {
+          const th = headerRow.insertCell();
+          th.setText(typeof col === 'string' ? col : (col.name || 'Property'));
+        });
+
+        // Renderizza dati reali (max 5 righe)
+        const tbody = table.createTBody();
+        rows.slice(0, 5).forEach(rowData => {
+          const tr = tbody.insertRow();
+          columns.slice(0, 3).forEach(col => {
+            const td = tr.insertCell();
+            const colId = col.id || col;
+            const value = rowData[colId] || '';
+            td.setText(String(value).substring(0, 20)); // Tronca per non rompere il layout
+          });
+        });
+
+        // Info footer
+        previewWrapper.createDiv({
+          cls: 'base-preview-footer',
+          text: `${rows.length} entries`
+        });
+      }
+      else if (ext === 'json') {
+        // JSON - mostra preview del codice
+        containerEl.addClass('code-thumbnail');
+        const rawContent = await this.app.vault.cachedRead(file);
+        const preview = rawContent.slice(0, 300);
+
+        const codeEl = containerEl.createEl('pre', { cls: 'code-preview' });
+        codeEl.createEl('code', { text: preview });
+        codeEl.setCssStyles({
+          fontSize: '9px',
+          lineHeight: '1.2',
+          overflow: 'hidden',
+          margin: '0',
+          padding: '8px',
+          background: 'var(--background-secondary)',
+          color: 'var(--text-muted)',
+          whiteSpace: 'pre-wrap',
+          wordBreak: 'break-all'
+        });
+      }
     } catch (e) {
+      console.error(e)
       containerEl.setText('Preview error');
     }
   }
