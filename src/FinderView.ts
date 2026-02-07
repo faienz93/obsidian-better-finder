@@ -1,4 +1,4 @@
-import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
@@ -114,6 +114,16 @@ export class FinderView extends ItemView {
       }
 
       el.addEventListener('click', () => this.core.handleSelection(result));
+
+      // Context menu (right-click) - same as file explorer
+      if (!isCommand(result)) {
+        el.addEventListener('contextmenu', (event) => {
+          event.preventDefault();
+          const menu = new Menu();
+          this.app.workspace.trigger('file-menu', menu, result as TFile, 'file-explorer-context-menu');
+          menu.showAtMouseEvent(event);
+        });
+      }
     });
   }
 
