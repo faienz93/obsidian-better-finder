@@ -18,13 +18,17 @@ class FinderSetting extends PluginSettingTab {
     containerEl.empty();
 
     new Setting(containerEl)
-      .setName('Setting #1')
-      .setDesc('It\'s a secret')
-      .addText(text => text
-        .setPlaceholder('Enter your secret')
-        .setValue(this.plugin.settings.mySetting)
+      .setName('Show ribbon icon')
+      .setDesc('Show the Better Finder icon in the left sidebar')
+      .addToggle(toggle => toggle
+        .setValue(this.plugin.settings.showRibbonIcon)
         .onChange(async (value) => {
-          this.plugin.settings.mySetting = value;
+          this.plugin.settings.showRibbonIcon = value;
+          if (value) {
+            this.plugin.addRibbonIconEl();
+          } else {
+            this.plugin.removeRibbonIconEl();
+          }
           await this.plugin.saveSettings();
         }));
   }

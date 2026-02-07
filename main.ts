@@ -5,14 +5,17 @@ import { FinderView, FINDER_VIEW_TYPE } from './src/FinderView'
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
+  showRibbonIcon: boolean;
 }
 
 const DEFAULT_SETTINGS: ObsidianBetterFinderSettings = {
-  mySetting: 'default'
+  mySetting: 'default',
+  showRibbonIcon: true
 }
 
 export default class ObsidianBetterFinder extends Plugin {
   settings: ObsidianBetterFinderSettings;
+  private ribbonIconEl: HTMLElement | null = null;
 
   async onload() {
     console.log("AdvancedSearch loaded 🚀");
@@ -38,10 +41,10 @@ export default class ObsidianBetterFinder extends Plugin {
       callback: () => this.activateFinderView()
     });
 
-    // Add ribbon icon in the left sidebar
-    this.addRibbonIcon('search', 'Open Better Finder', () => {
-      this.activateFinderView();
-    });
+    // Add ribbon icon in the left sidebar (if enabled in settings)
+    if (this.settings.showRibbonIcon) {
+      this.addRibbonIconEl();
+    }
 
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new FinderSetting(this.app, this));
@@ -58,6 +61,19 @@ export default class ObsidianBetterFinder extends Plugin {
     }
 
     workspace.revealLeaf(leaf);
+  }
+
+  addRibbonIconEl() {
+    this.ribbonIconEl = this.addRibbonIcon('search', 'Open Better Finder', () => {
+      this.activateFinderView();
+    });
+  }
+
+  removeRibbonIconEl() {
+    if (this.ribbonIconEl) {
+      this.ribbonIconEl.remove();
+      this.ribbonIconEl = null;
+    }
   }
 
   onunload() {
