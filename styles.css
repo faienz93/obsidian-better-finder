@@ -146,11 +146,14 @@ If your plugin does not need CSS, delete this file.
   font-weight: 600;
   padding: 10px 12px;
   margin: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
   background: var(--background-secondary);
   border-bottom: 1px solid var(--background-modifier-border);
+  /* Permette a capo, max 2 righe */
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  word-break: break-word;
 }
 
 .finder-view-results.grid-view .suggestion-note {
