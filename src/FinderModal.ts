@@ -1,237 +1,36 @@
-import { App, SuggestModal, TFile, getAllTags, TFolder, Command } from "obsidian";
-import { QueryParser, ParsedQuery } from "./QueryParser";
-import { SearchEngine } from "./SearchEngine";
-
-type SearchResult = TFile | Command;
-
-function isFile(result: SearchResult): result is TFile {
-  return 'stat' in result;
-}
-
-function isCommand(result: SearchResult): result is Command {
-  return 'id' in result && 'name' in result;
-}
+import { App, SuggestModal, TFile, getAllTags } from "obsidian";
+import { QueryParser } from "./QueryParser";
+import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 
 class FinderModal extends SuggestModal<SearchResult> {
-
-  allFiles: TFile[];
-  searchEngine: SearchEngine;
+  private core: FinderCore;
 
   constructor(app: App) {
     super(app);
-    this.searchEngine = new SearchEngine(app);
-    this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
+    this.core = new FinderCore(app);
   }
 
   onOpen(): void {
-    this.renderHints();
-  }
-
-  private hintChips: Map<string, HTMLElement> = new Map();
-
-  private renderHints(): void {
-    // Find the input container to insert hints after it
+    // Hint bar - inserita dopo .prompt-input-container
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
-    if (!promptEl) return;
-
-    // Create hint bar after the input
-    const hintBar = createDiv({ cls: 'hint-bar' });
-    promptEl.insertAdjacentElement('afterend', hintBar);
-
-    const hints = [
-      { label: '#tag', desc: 'tag' },
-      { label: 'today', desc: 'oggi' },
-      { label: 'this week', desc: 'settimana' },
-      { label: 'this month', desc: 'mese' },
-      { label: '>', desc: 'comandi' },
-      { label: 'title:', desc: 'titolo' },
-      { label: 'task:', desc: 'task' },
-      { label: 'pdf', desc: 'PDF' },
-      { label: 'image', desc: 'immagini' },
-      { label: 'canvas', desc: 'canvas' },
-    ];
-
-    hints.forEach(hint => {
-      const chip = hintBar.createSpan({ cls: 'hint-chip' });
-      chip.setText(hint.label);
-      chip.setAttribute('title', hint.desc);
-      this.hintChips.set(hint.label.toLowerCase(), chip);
-      chip.addEventListener('click', () => {
-        this.inputEl.value = hint.label + ' ';
+    if (promptEl) {
+      const hintWrapper = createDiv();
+      promptEl.insertAdjacentElement('afterend', hintWrapper);
+      this.core.renderHints(hintWrapper, (hint) => {
+        this.inputEl.value = hint + ' ';
         this.inputEl.focus();
         this.inputEl.dispatchEvent(new Event('input'));
       });
-    });
-
-    // Listen for input changes to update hint highlighting
-    this.inputEl.addEventListener('input', () => this.updateHintHighlights());
-  }
-
-  private updateHintHighlights(): void {
-    const query = this.inputEl.value.toLowerCase();
-
-    this.hintChips.forEach((chip, label) => {
-      const isActive = query.includes(label) ||
-        (label === '#tag' && !!query.match(/#\w+/)) ||
-        (label === 'task:' && query.includes('task:'));
-
-      chip.toggleClass('hint-chip-active', isActive);
-    });
-  }
-
-  private getCommandSuggestions(searchText: string): Command[] {
-    const allCommands = (this.app as any).commands.listCommands() as Command[];
-
-    if (!searchText) {
-      return allCommands;
     }
 
-    const lowerSearch = searchText.toLowerCase();
-    return allCommands.filter(cmd =>
-      cmd.name.toLowerCase().includes(lowerSearch) ||
-      (cmd.id && cmd.id.toLowerCase().includes(lowerSearch))
-    );
+    // Update hints on input
+    this.inputEl.addEventListener('input', () => {
+      this.core.updateHintHighlights(this.inputEl.value);
+    });
   }
 
-  // Returns all available suggestions based on parsed query
   async getSuggestions(query: string): Promise<SearchResult[]> {
-    // Parse the query
-    const parsed = QueryParser.parse(query);
-
-    // If command mode, return empty (we'll handle commands separately later)
-    // COMMAND MODE: Show commands
-    if (parsed.isCommandMode) {
-      // TODO: Show commands instead of files
-      return this.getCommandSuggestions(parsed.commandText || '');
-    }
-
-    // Start with all files
-    let results: TFile[] = this.allFiles;
-
-    // 1. Filter by file types (if specified)
-    if (parsed.fileTypes.length > 0) {
-      results = results.filter(file =>
-        parsed.fileTypes.some(ext => file.extension === ext.slice(1)) // Remove the dot
-      );
-    } else {
-      // If no file type specified, default to markdown files only
-      results = results.filter(file => file.extension === 'md');
-    }
-
-    // 2. Filter by tags (if specified)
-    if (parsed.tags.length > 0) {
-      results = results.filter(file => {
-        const fileCache = this.app.metadataCache.getFileCache(file);
-        if (!fileCache) return false;
-
-        const fileTags = getAllTags(fileCache) || [];
-        // All tags must be present
-        return parsed.tags.every(tag => fileTags.includes(tag));
-      });
-    }
-
-    // 3. Filter by date (if specified)
-    if (parsed.dateFilter) {
-      results = results.filter(file => {
-        const fileDate = new Date(file.stat.mtime); // Modified time
-
-        switch (parsed.dateFilter) {
-          case 'today':
-            return QueryParser.isToday(fileDate);
-          case 'this-week':
-            return QueryParser.isThisWeek(fileDate);
-          case 'this-month':
-            return QueryParser.isThisMonth(fileDate);
-          default:
-            return true;
-        }
-      });
-    }
-
-    // 4. Filter by scope (title or content)
-    if (parsed.freeText) {
-      if (parsed.scope === 'title') {
-        // Search only in titles
-        results = this.searchEngine.searchInTitles(parsed.freeText, results);
-      } else {
-        // Search in content (async)
-        results = await this.searchEngine.searchFiles(parsed, results);
-      }
-    } else {
-      // No free text search, just sort by date
-      results.sort((a, b) => b.stat.mtime - a.stat.mtime);
-    }
-
-    // 5. Filter by tasks (if specified)
-    if (parsed.taskFilter) {
-      results = results.filter(file => {
-        if (file.extension !== 'md') return false;
-
-        const fileCache = this.app.metadataCache.getFileCache(file);
-        if (!fileCache || !fileCache.listItems) return false;
-
-        const tasks = fileCache.listItems.filter(item => item.task);
-        if (tasks.length === 0) return false;
-
-        switch (parsed.taskFilter) {
-          case 'all':
-            return true; // Has tasks
-          case 'todo':
-            return tasks.some(t => t.task !== 'x' && t.task !== 'X');
-          case 'done':
-            return tasks.some(t => t.task === 'x' || t.task === 'X');
-          default:
-            return true;
-        }
-      });
-    }
-
-    // Sort results by modification time (most recent first)
-    results.sort((a, b) => b.stat.mtime - a.stat.mtime);
-
-    return results;
-  }
-
-
-  private renderCommand(command: Command, el: HTMLElement) {
-    el.addClass('suggestion-item');
-
-    // Command name
-    const titleEl = el.createDiv({ cls: 'suggestion-title' });
-    titleEl.createSpan({ text: command.name });
-
-    // Command icon (if exists)
-    if (command.icon) {
-      const iconEl = titleEl.createSpan({ cls: 'suggestion-flair' });
-      iconEl.style.marginLeft = '8px';
-      iconEl.setText(command.icon);
-    }
-
-    // Command ID
-    const metaRow = el.createDiv({ cls: 'suggestion-note' });
-    metaRow.style.fontSize = '11px';
-    metaRow.style.color = 'var(--text-muted)';
-    metaRow.style.marginTop = '4px';
-    metaRow.setText(command.id);
-
-    // Hotkey (if exists)
-    const hotkeys = (this.app as any).hotkeyManager.getHotkeys(command.id);
-    if (hotkeys && hotkeys.length > 0) {
-      const hotkeyEl = el.createDiv();
-      hotkeyEl.style.marginTop = '4px';
-      hotkeyEl.style.fontSize = '11px';
-      hotkeyEl.style.color = 'var(--text-accent)';
-
-      const hotkeyText = hotkeys.map((hk: any) => {
-        const modifiers = [];
-        if (hk.modifiers.includes('Mod')) modifiers.push('Ctrl');
-        if (hk.modifiers.includes('Shift')) modifiers.push('Shift');
-        if (hk.modifiers.includes('Alt')) modifiers.push('Alt');
-        return [...modifiers, hk.key].join('+');
-      }).join(', ');
-
-      hotkeyEl.setText(`⌨️ ${hotkeyText}`);
-    }
+    return this.core.search(query);
   }
 
   // Renders each suggestion item
@@ -240,7 +39,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     el.empty();
 
     if (isCommand(result)) {
-      this.renderCommand(result, el);
+      this.core.renderCommand(result, el);
       return;
     }
 
@@ -326,7 +125,7 @@ class FinderModal extends SuggestModal<SearchResult> {
         // Show task count if filtering by tasks
         if (parsed.taskFilter && fileCache.listItems) {
           const tasks = fileCache.listItems.filter(item => item.task);
-          const todoCount = tasks.filter(t => t.task !== 'x' && t.task !== 'X').length;
+          // const todoCount = tasks.filter(t => t.task !== 'x' && t.task !== 'X').length;
           const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
 
           if (tasks.length > 0) {
@@ -341,18 +140,8 @@ class FinderModal extends SuggestModal<SearchResult> {
     }
   }
 
-  // Perform action on the selected suggestion
   onChooseSuggestion(result: SearchResult) {
-    // Execute command
-    if (isCommand(result)) {
-      (this.app as any).commands.executeCommandById(result.id);
-      return;
-    }
-
-    // Open file (existing logic)
-    const file = result as TFile;
-    const leaf = this.app.workspace.getLeaf(false);
-    leaf.openFile(file);
+    this.core.handleSelection(result);
   }
 }
 
