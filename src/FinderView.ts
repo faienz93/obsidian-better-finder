@@ -118,11 +118,11 @@ export class FinderView extends ItemView {
   }
 
 
-  // Render file card
+  // 1. Render file card aggiornato
   private renderFile(file: TFile, el: HTMLElement): void {
     el.addClass('suggestion-item');
 
-    // Title
+    // Titolo e Badge (rimangono come li avevi fatti tu)
     const titleEl = el.createDiv({ cls: 'suggestion-title' });
     titleEl.createSpan({ text: file.basename });
 
@@ -131,44 +131,74 @@ export class FinderView extends ItemView {
         text: file.extension.toUpperCase(),
         cls: 'suggestion-flair'
       });
-      extBadge.style.marginLeft = '8px';
-      extBadge.style.fontSize = '10px';
-      extBadge.style.padding = '2px 6px';
-      extBadge.style.background = 'var(--background-modifier-success)';
-      extBadge.style.borderRadius = '3px';
+      extBadge.setCssStyles({
+        marginLeft: '8px',
+        fontSize: '10px',
+        padding: '2px 6px',
+        background: 'var(--background-modifier-success)',
+        borderRadius: '3px'
+      });
     }
 
-    // Metadata (visible only in list view)
-    const metaRow = el.createDiv({ cls: 'suggestion-note' });
-    const dateEl = metaRow.createSpan();
-    dateEl.setText(new Date(file.stat.mtime).toLocaleDateString());
-    const pathEl = metaRow.createSpan();
-    pathEl.setText(file.parent?.path || '/');
-
-    // Content preview
-    const previewEl = el.createDiv({ cls: 'finder-view-preview markdown-preview-view' });
+    // Container per la preview (la "cornice" del contenuto)
+    const previewEl = el.createDiv({ cls: 'finder-view-preview' });
     this.loadPreview(file, previewEl);
+
+    // Metadata (sotto la preview)
+    const metaRow = el.createDiv({ cls: 'suggestion-note' });
+    metaRow.createSpan({ text: new Date(file.stat.mtime).toLocaleDateString() });
+    metaRow.createSpan({ text: file.parent?.path || '/', attr: { style: "margin-left: 10px; opacity: 0.6;" } });
   }
 
+  // 2. L'unico metodo di caricamento che ti serve
   private async loadPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
-    try {
-      const ext = file.extension.toLowerCase();
+    containerEl.empty();
+    const ext = file.extension.toLowerCase();
 
+    try {
       if (ext === 'md') {
-        // Markdown: mostra contenuto testuale
         const rawContent = await this.app.vault.cachedRead(file);
-        const contentWithoutFrontmatter = rawContent.replace(/^---[\s\S]*?---\n?/, '');
-        const content = contentWithoutFrontmatter.slice(0, 300);
+        // Pulizia frontmatter e limite caratteri per non pesare sulla UI
+        const content = rawContent.replace(/^---[\s\S]*?---\n?/, '').slice(0, 250);
         await MarkdownRenderer.render(this.app, content, containerEl, file.path, this);
-      } else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg', 'bmp'].includes(ext)) {
-        // Immagini: embed nativo
-        await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, file.path, this);
-      } else if (ext === 'pdf') {
-        // PDF: embed nativo come per le immagini
-        await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, file.path, this);
+      }
+      else if (['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'].includes(ext)) {
+        const url = this.app.vault.getResourcePath(file);
+        containerEl.createEl('img', {
+          attr: { src: url, style: "width: 100%; height: 100%; object-fit: cover;" }
+        });
+      }
+      else if (ext === 'pdf') {
+        // Usa PDF.js (già incluso in Obsidian) per renderizzare la prima pagina
+        containerEl.addClass('pdf-thumbnail');
+        const pdfjs = (window as any).pdfjsLib;
+        if (pdfjs) {
+          const url = this.app.vault.getResourcePath(file);
+          const pdf = await pdfjs.getDocument(url).promise;
+          const page = await pdf.getPage(1);
+
+          const canvas = containerEl.createEl('canvas');
+          const context = canvas.getContext('2d');
+
+          // Scala per adattarsi al container
+          const containerWidth = containerEl.clientWidth || 260;
+          const viewport = page.getViewport({ scale: 1 });
+          const scale = containerWidth / viewport.width;
+          const scaledViewport = page.getViewport({ scale });
+
+          canvas.width = scaledViewport.width;
+          canvas.height = scaledViewport.height;
+          canvas.style.width = '100%';
+          canvas.style.height = 'auto';
+
+          await page.render({
+            canvasContext: context,
+            viewport: scaledViewport
+          }).promise;
+        }
       }
     } catch (e) {
-      containerEl.setText('Unable to load preview');
+      containerEl.setText('Preview error');
     }
   }
 
