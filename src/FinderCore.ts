@@ -21,6 +21,8 @@ export class FinderCore {
   lastResultCount = 0;
   private app: App;
   private searchIndex?: SearchIndex;
+  private debounceTimer: number | null = null;
+  private static readonly DEBOUNCE_MS = 150;
 
   constructor(app: App, searchIndex?: SearchIndex) {
     this.searchEngine = new SearchEngine(app);
@@ -219,9 +221,18 @@ export class FinderCore {
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    const results = await this.getResults(query)
-    this.lastResultCount = results.length;
-    return results;
+    if (this.debounceTimer !== null) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    return new Promise<SearchResult[]>((resolve) => {
+      this.debounceTimer = window.setTimeout(async () => {
+        this.debounceTimer = null;
+        const results = await this.getResults(query);
+        this.lastResultCount = results.length;
+        resolve(results);
+      }, FinderCore.DEBOUNCE_MS);
+    });
   }
 
   handleSelection(result: SearchResult): void {

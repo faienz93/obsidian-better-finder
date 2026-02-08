@@ -78,12 +78,8 @@ export class FinderView extends ItemView {
     // Container risultati
     this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
 
-    // Event listener per input con debounce
-    let debounceTimer: number;
-    this.inputEl.addEventListener("input", () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(() => this.onSearch(), 150);
-    });
+    // Event listener per input (debounce gestito da FinderCore.search)
+    this.inputEl.addEventListener("input", () => this.onSearch());
 
     this.inputEl.focus();
   }
