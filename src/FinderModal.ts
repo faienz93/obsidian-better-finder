@@ -1,13 +1,14 @@
 import { App, SuggestModal, getAllTags } from "obsidian";
 import { QueryParser } from "./QueryParser";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
+import { SearchIndex } from "./SearchIndex";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: FinderCore;
 
-  constructor(app: App) {
+  constructor(app: App, searchIndex?: SearchIndex) {
     super(app);
-    this.core = new FinderCore(app);
+    this.core = new FinderCore(app, searchIndex);
   }
 
   onOpen(): void {

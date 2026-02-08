@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
+import { SearchIndex } from "./SearchIndex";
 import { emojis, i18n } from "./const";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
@@ -14,10 +15,9 @@ export class FinderView extends ItemView {
   private resultCountEl: HTMLElement;
   private isGridView = true;
 
-  constructor(leaf: WorkspaceLeaf) {
+  constructor(leaf: WorkspaceLeaf, searchIndex?: SearchIndex) {
     super(leaf);
-    this.core = new FinderCore(this.app);
-    // this.resultCountEl.setText(`0 risultati`);
+    this.core = new FinderCore(this.app, searchIndex);
   }
 
   getViewType(): string {
