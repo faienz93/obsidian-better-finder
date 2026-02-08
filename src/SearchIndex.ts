@@ -132,13 +132,11 @@ export class SearchIndex {
     }
 
     try {
-      const results = this.miniSearch.search(query, {
-        filter: maxResults
-      });
+      const results = this.miniSearch.search(query);
 
       // Converti risultati in TFile oggetti
       const files: TFile[] = [];
-      for (const result of results) {
+      for (const result of results.slice(0, maxResults)) {
         const file = this.app.vault.getAbstractFileByPath(result.id);
         if (file instanceof TFile) {
           files.push(file);
