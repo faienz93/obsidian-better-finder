@@ -1,4 +1,4 @@
-import { App, SuggestModal, TFile, getAllTags } from "obsidian";
+import { App, SuggestModal, getAllTags } from "obsidian";
 import { QueryParser } from "./QueryParser";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 
@@ -44,7 +44,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     }
 
     // RENDER FILE (existing code)
-    const file = result as TFile;
+    // const file = result as TFile;
 
     // Parse query once at the beginning
     const parsed = QueryParser.parse(this.inputEl.value);

@@ -1,4 +1,3 @@
-// src/SearchEngine.ts
 import { App, TFile } from "obsidian";
 import { ParsedQuery } from "./QueryParser";
 
