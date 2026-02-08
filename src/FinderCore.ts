@@ -1,6 +1,7 @@
 import { App, TFile, getAllTags, Command } from "obsidian";
 import { QueryParser } from "./QueryParser";
 import { SearchEngine } from "./SearchEngine";
+import { i18n } from "./const";
 
 export type SearchResult = TFile | Command;
 // TODO non usato. cancellare
@@ -31,14 +32,14 @@ export class FinderCore {
 
     const hints = [
       { label: '#tag', desc: 'tag' },
-      { label: 'today', desc: 'oggi' },
-      { label: 'this week', desc: 'settimana' },
-      { label: 'this month', desc: 'mese' },
-      { label: '>', desc: 'comandi' },
-      { label: 'title:', desc: 'titolo' },
+      { label: 'today', desc: i18n.today },
+      { label: 'this week', desc: i18n.thisWeek },
+      { label: 'this month', desc: i18n.thisMonth },
+      { label: '>', desc: i18n.commands },
+      { label: 'title:', desc: i18n.title },
       { label: 'task:', desc: 'task' },
       { label: 'pdf', desc: 'PDF' },
-      { label: 'image', desc: 'immagini' },
+      { label: 'image', desc: i18n.images },
       { label: 'canvas', desc: 'canvas' },
       { label: 'json', desc: 'json' },
       { label: 'base', desc: 'base' },

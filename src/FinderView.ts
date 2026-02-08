@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
+import { emojis, i18n } from "./const";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -8,6 +9,7 @@ export const FINDER_VIEW_TYPE = "better-finder-view";
 export class FinderView extends ItemView {
   private core: FinderCore;
   private inputEl: HTMLInputElement;
+  // Card
   private resultsEl: HTMLElement;
   private resultCountEl: HTMLElement;
   private isGridView = true;
@@ -89,10 +91,10 @@ export class FinderView extends ItemView {
   private updateToggleIcon(btn: HTMLElement): void {
     btn.empty();
     if (this.isGridView) {
-      btn.setText("☰"); // List icon
+      btn.setText(emojis.listIcon); // List icon
       btn.setAttribute("title", "Switch to list view");
     } else {
-      btn.setText("⊞"); // Grid icon
+      btn.setText(emojis.gridIcon); // Grid icon
       btn.setAttribute("title", "Switch to grid view");
     }
   }
@@ -109,7 +111,7 @@ export class FinderView extends ItemView {
 
   private renderResults(results: SearchResult[]): void {
     this.resultsEl.empty();
-    this.resultCountEl.setText(`${this.core.lastResultCount} risultati`);
+    this.resultCountEl.setText(`${this.core.lastResultCount} ${i18n.results}`);
 
     results.forEach(result => {
       const el = this.resultsEl.createDiv({ cls: 'finder-view-result' });
