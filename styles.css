@@ -85,13 +85,28 @@ If your plugin does not need CSS, delete this file.
   margin-bottom: 8px;
 }
 
-.finder-view-input {
+.finder-view-input-wrapper {
+  position: relative;
   flex: 1;
-  padding: 8px 12px;
+  display: flex;
+  align-items: center;
+}
+
+.finder-view-input {
+  width: 100%;
+  padding: 8px 80px 8px 12px;
   font-size: 14px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
   background: var(--background-primary);
+}
+
+.finder-view-count {
+  position: absolute;
+  right: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
 }
 
 .finder-view-toggle {

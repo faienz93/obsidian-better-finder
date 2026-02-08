@@ -3,7 +3,7 @@ import { QueryParser } from "./QueryParser";
 import { SearchEngine } from "./SearchEngine";
 
 export type SearchResult = TFile | Command;
-
+// TODO non usato. cancellare
 export function isFile(result: SearchResult): result is TFile {
   return 'stat' in result;
 }
@@ -16,6 +16,7 @@ export class FinderCore {
   allFiles: TFile[];
   searchEngine: SearchEngine;
   hintChips: Map<string, HTMLElement> = new Map();
+  lastResultCount = 0;
   private app: App;
 
   constructor(app: App) {
@@ -200,7 +201,9 @@ export class FinderCore {
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    return this.getResults(query);
+    const results = await this.getResults(query)
+    this.lastResultCount = results.length;
+    return results;
   }
 
   handleSelection(result: SearchResult): void {

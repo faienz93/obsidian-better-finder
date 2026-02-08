@@ -9,11 +9,13 @@ export class FinderView extends ItemView {
   private core: FinderCore;
   private inputEl: HTMLInputElement;
   private resultsEl: HTMLElement;
+  private resultCountEl: HTMLElement;
   private isGridView = true;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
     this.core = new FinderCore(this.app);
+    // this.resultCountEl.setText(`0 risultati`);
   }
 
   getViewType(): string {
@@ -42,12 +44,16 @@ export class FinderView extends ItemView {
     // Header con input e toggle
     const headerEl = container.createDiv({ cls: "finder-view-header" });
 
-    // Input di ricerca
-    this.inputEl = headerEl.createEl("input", {
+    // Input wrapper (contiene input + contatore)
+    const inputWrapper = headerEl.createDiv({ cls: "finder-view-input-wrapper" });
+
+    this.inputEl = inputWrapper.createEl("input", {
       type: "text",
       placeholder: "Search files...",
       cls: "finder-view-input"
     });
+
+    this.resultCountEl = inputWrapper.createSpan({ cls: "finder-view-count" });
 
     // Toggle view button
     const toggleBtn = headerEl.createEl("button", { cls: "finder-view-toggle" });
@@ -103,6 +109,7 @@ export class FinderView extends ItemView {
 
   private renderResults(results: SearchResult[]): void {
     this.resultsEl.empty();
+    this.resultCountEl.setText(`${this.core.lastResultCount} risultati`);
 
     results.forEach(result => {
       const el = this.resultsEl.createDiv({ cls: 'finder-view-result' });
