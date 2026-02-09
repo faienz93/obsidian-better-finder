@@ -1,0 +1,130 @@
+# TODO - Obsidian Better Finder
+
+il mio obiettivo è quello di fare una ricerca snella nei file:
+quindi io cerco qualcosa per fare in mdoo che possa trovarlo dovunque, anche nei pdf
+
+## 🚧 In Progress
+
+## 🎯 High Priority
+
+### Modal - Search Features
+
+- [ ] **Preview** Add support for Bases with preview
+- [x] **Preview** Support preview of PNG / PDF
+- [ ] **Preview** Search highliths. i.e `==Example==`
+- [ ] **Preview** Date ranges: `created:2024-01-01 2024-12-31` or `modified:2024-01-01 2024-12-31`. If not upper limit are not specified, then consider `today`
+  - Supported data range
+    - `today`
+    - `yesterday`
+    - `this-month`
+  - Remove actual behaviour "today" and "modified"
+  - Support absolute dates: `2024-01-15`, `last week`, `yesterday`
+- [ ] **Content Preview**: Add content snippet in cards with highlighted search terms
+- [ ] **Fuzzy Search**: Implement smart matching (e.g., "mtg" → "meeting")
+- [ ] **Search History**: Track recent searches
+- [ ] **Performance**: Optimize search for large vaults (lazy loading, debouncing)
+- [ ] Filter commands based on text after `>`
+- [ ] Execute selected command
+- [ ] Show preview of the command that you can use
+- [ ] Highlits command when used for example `#`
+- [ ] **Preview** Added support for Word, Excel
+
+### Query Parser Extensions
+
+- [ ] Boolean operators: `AND`, `OR`, `NOT`
+- [ ] Folder search: `folder:Projects`
+- [ ] Search by author/creator (if available in metadata)
+- [ ]
+
+## 🔮 Medium Priority
+
+### Command View (Sidebar)
+
+- [ ] List all commands with search bar
+- [ ] Categorize commands (File, Edit, View, etc.)
+- [ ] Favorites/pin for frequently used commands
+- [ ] Click to execute command
+
+### UI/UX Improvements
+
+- [ ] Dark/light theme responsive
+- [ ] Transition animations
+- [ ] Customizable keyboard shortcuts
+- [ ] Empty state when no results found
+- [ ] Loading indicator for long searches
+- [ ] Highlight search term in content
+
+### Settings
+
+- [ ] Configure which file types to search by default
+- [ ] Enable/disable content search
+- [ ] Set maximum number of results
+- [ ] Choose default sorting (date, relevance, alphabetical)
+- [x] Configure hotkey to open modal
+
+## 💡 Low Priority / Nice to Have
+
+### Advanced Features
+
+- [ ] Save custom searches
+- [ ] Bookmarks/favorites for files
+- [ ] Graph view integration
+- [ ] Usage statistics (most opened files, frequent searches)
+- [ ] Export search results to MD
+- [ ] Search in PDF content (beyond filename)
+- [ ] OCR for images (very complex)
+
+### Mobile Optimization
+
+- [ ] Touch gestures (swipe to close, etc.)
+- [ ] Layout optimized for small screens
+- [ ] Virtual keyboard friendly
+
+### Performance & Tech Debt
+
+- [ ] Unit tests for QueryParser
+- [ ] Unit tests for SearchEngine
+- [ ] Refactoring: separate UI logic from business logic
+- [ ] Complete JSDoc documentation
+- [ ] Internationalization (i18n)
+
+## ✅ Completed
+
+- [x] Base Query Parser (tags, dates, file types, scope, tasks)
+- [x] FinderModal with filtered search
+- [x] Search in markdown content
+- [x] File types support (PDF, images, Word, Excel)
+- [x] Tag highlighting in cards
+- [x] Date filters (today, this week, this month)
+- [x] Task filters (task:, task-todo:, task-done:)
+- [x] Scope filter (title: to search only in titles)
+- [x] Command Mode: Handle `>` to show Command Palette
+- [x] Show Obsidian commands when typing `>`
+- [x] create external view to show card
+- [x] Create `CommandsView.ts` - persistent sidebar view
+
+### BUG
+
+- [x] Not select correctly the result when click on a Card
+
+---
+
+## 📝 Notes
+
+### Architecture Decisions
+
+- Use `SuggestModal` instead of custom modal for native keyboard navigation
+- `SearchEngine` uses `cachedRead()` for performance
+- QueryParser is stateless and pure (easy to test)
+
+### Known Issues
+
+- prepareQuery is not public in Obsidian API → using simple string matching
+- Content search can be slow on large vaults (> 1000 files)
+- Tag comparison is case-sensitive (might want case-insensitive)
+
+### Future Considerations
+
+- Evaluate using Web Workers for async search
+- Consider caching results for repeated queries
+- Possible integration with external plugins (Dataview, Tasks, etc.)

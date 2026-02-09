@@ -1,0 +1,14 @@
+{
+
+  "editorconfig": true,
+
+  "semi": true,
+
+  "singleQuote": true,
+
+  "trailingComma": "es5",
+
+  "printWidth": 80,
+
+  "bracketSameLine": true
+}

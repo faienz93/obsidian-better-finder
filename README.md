@@ -1,90 +1,106 @@
-# Obsidian Sample Plugin
+# Obsidian Better Finder
 
-This is a sample plugin for Obsidian (https://obsidian.md).
+Advanced search modal and command view for Obsidian with smart query parsing.
 
-This project uses TypeScript to provide type checking and documentation.
-The repo depends on the latest plugin API (obsidian.d.ts) in TypeScript Definition format, which contains TSDoc comments describing what it does.
+## Installation
 
-This sample plugin demonstrates some of the basic functionality the plugin API can do.
-- Adds a ribbon icon, which shows a Notice when clicked.
-- Adds a command "Open modal (simple)" which opens a Modal.
-- Adds a plugin setting tab to the settings page.
-- Registers a global click event and output 'click' to the console.
-- Registers a global interval which logs 'setInterval' to the console.
+### Prerequisites
 
-## First time developing plugins?
-
-Quick starting guide for new plugin devs:
-
-- Check if [someone already developed a plugin for what you want](https://obsidian.md/plugins)! There might be an existing plugin similar enough that you can partner up with.
-- Make a copy of this repo as a template with the "Use this template" button (login to GitHub if you don't see it).
-- Clone your repo to a local development folder. For convenience, you can place this folder in your `.obsidian/plugins/your-plugin-name` folder.
-- Install NodeJS, then run `npm i` in the command line under your repo folder.
-- Run `npm run dev` to compile your plugin from `main.ts` to `main.js`.
-- Make changes to `main.ts` (or create new `.ts` files). Those changes should be automatically compiled into `main.js`.
-- Reload Obsidian to load the new version of your plugin.
-- Enable plugin in settings window.
-- For updates to the Obsidian API run `npm update` in the command line under your repo folder.
-
-## Releasing new releases
-
-- Update your `manifest.json` with your new version number, such as `1.0.1`, and the minimum Obsidian version required for your latest release.
-- Update your `versions.json` file with `"new-plugin-version": "minimum-obsidian-version"` so older versions of Obsidian can download an older version of your plugin that's compatible.
-- Create new GitHub release using your new version number as the "Tag version". Use the exact version number, don't include a prefix `v`. See here for an example: https://github.com/obsidianmd/obsidian-sample-plugin/releases
-- Upload the files `manifest.json`, `main.js`, `styles.css` as binary attachments. Note: The manifest.json file must be in two places, first the root path of your repository and also in the release.
-- Publish the release.
-
-> You can simplify the version bump process by running `npm version patch`, `npm version minor` or `npm version major` after updating `minAppVersion` manually in `manifest.json`.
-> The command will bump version in `manifest.json` and `package.json`, and add the entry for the new version to `versions.json`
-
-## Adding your plugin to the community plugin list
-
-- Check the [plugin guidelines](https://docs.obsidian.md/Plugins/Releasing/Plugin+guidelines).
-- Publish an initial version.
-- Make sure you have a `README.md` file in the root of your repo.
-- Make a pull request at https://github.com/obsidianmd/obsidian-releases to add your plugin.
-
-## How to use
-
-- Clone this repo.
-- Make sure your NodeJS is at least v16 (`node --version`).
-- `npm i` or `yarn` to install dependencies.
-- `npm run dev` to start compilation in watch mode.
-
-## Manually installing the plugin
-
-- Copy over `main.js`, `styles.css`, `manifest.json` to your vault `VaultFolder/.obsidian/plugins/your-plugin-id/`.
-
-## Improve code quality with eslint
-- [ESLint](https://eslint.org/) is a tool that analyzes your code to quickly find problems. You can run ESLint against your plugin to find common bugs and ways to improve your code. 
-- This project already has eslint preconfigured, you can invoke a check by running`npm run lint`
-- Together with a custom eslint [plugin](https://github.com/obsidianmd/eslint-plugin) for Obsidan specific code guidelines.
-- A GitHub action is preconfigured to automatically lint every commit on all branches.
-
-## Funding URL
-
-You can include funding URLs where people who use your plugin can financially support it.
-
-The simple way is to set the `fundingUrl` field to your link in your `manifest.json` file:
-
-```json
-{
-    "fundingUrl": "https://buymeacoffee.com"
-}
+```bash
+node --version  # Should be v18 or higher (tested with v22.13.1)
+npm --version
 ```
 
-If you have multiple URLs, you can also do:
+### Development Setup
 
-```json
-{
-    "fundingUrl": {
-        "Buy Me a Coffee": "https://buymeacoffee.com",
-        "GitHub Sponsor": "https://github.com/sponsors",
-        "Patreon": "https://www.patreon.com/"
-    }
-}
+1. **Clone the repository into your vault's plugins folder**
+
+```bash
+   cd <YOUR_VAULT>/.obsidian/plugins/
+   git clone https://github.com/YOUR_USERNAME/obsidian-better-finder
+   cd obsidian-better-finder
 ```
 
-## API Documentation
+2. **Install dependencies**
 
-See https://docs.obsidian.md
+```bash
+   npm install
+```
+
+3. **Build the plugin**
+
+```bash
+   npm run dev
+```
+
+This starts the development build with auto-reload on changes.
+
+4. **Enable the plugin in Obsidian**
+   - Open Obsidian Settings
+   - Go to Community Plugins
+   - Disable Safe Mode (if needed)
+   - Enable "Better Finder"
+
+5. **Set up hotkeys (optional)**
+   - Settings → Hotkeys
+   - Search for "Better Finder"
+   - Assign your preferred shortcuts:
+     - `Better Finder: Open Smart Search` (suggested: Ctrl/Cmd+O to replace Quick Switcher)
+     - `Better Finder: Open Command View`
+
+## Development
+
+### Available Scripts
+
+```bash
+npm run dev      # Development build with watch mode
+npm run build    # Production build
+npm run version  # Bump version (updates manifest.json and versions.json)
+```
+
+### Making Changes
+
+1. Open the project in VS Code: `<YOUR_VAULT>/.obsidian/plugins/obsidian-better-finder`
+2. Install this plugin https://github.com/pjeby/hot-reload
+   > This plugin is usefull to avoid continusly restart when develop the plugin
+3. Make your changes
+4. The plugin auto-reloads in Obsidian (thanks to `npm run dev`)
+5. Test in Obsidian
+
+## Usage
+
+### Smart Search Modal
+
+Press `Ctrl/Cmd+O/Cmd+A` (or your custom hotkey) to open.
+
+**Examples:**
+
+- `today #react` - Files modified today with #react tag
+- `this week task-todo:` - Incomplete tasks from this week
+- `immagine.png` - Find images
+- `title:meeting` - Files with "meeting" in the title
+- `>theme` - Search commands (Command Palette mode)
+
+### Command View
+
+Open from ribbon icon or via command palette.
+
+- Browse all available commands
+- Search/filter commands
+- Click to execute
+
+## Roadmap
+
+- [ ] Fuzzy search scoring
+- [ ] Recent files history
+- [ ] Custom saved searches
+- [ ] Bookmarks integration
+- [ ] Graph view integration
+
+## Contributing
+
+Issues and PRs welcome!
+
+## License
+
+MIT
