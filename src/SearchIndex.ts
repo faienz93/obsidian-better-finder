@@ -15,8 +15,9 @@ export class SearchIndex {
   private app: App;
   private indexedPaths = new Set<string>();
   private isReady = false;
+  private static _instance: SearchIndex | null;
 
-  constructor(app: App) {
+  private constructor(app: App) {
     this.app = app;
 
     // Configurazione MiniSearch
@@ -30,6 +31,14 @@ export class SearchIndex {
         combineWith: 'AND'              // Tutte le parole devono essere presenti
       }
     });
+  }
+
+  public static getInstance(app: App): SearchIndex {
+    if (!SearchIndex._instance) {
+      SearchIndex._instance = new SearchIndex(app);
+    }
+
+    return SearchIndex._instance;
   }
 
   /**
@@ -139,6 +148,7 @@ export class SearchIndex {
       const files: TFile[] = [];
       for (const result of results.slice(0, maxResults)) {
         const file = this.app.vault.getAbstractFileByPath(result.id);
+        // files[0].stat.ctime
         if (file instanceof TFile) {
           files.push(file);
         }

@@ -1,6 +1,5 @@
 import { App, TFile, getAllTags, Command } from "obsidian";
 import { QueryParser } from "./QueryParser";
-import { SearchEngine } from "./SearchEngine";
 import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
 
@@ -26,7 +25,7 @@ export class FinderCore {
   constructor(app: App) {
     this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
     this.app = app;
-    this.searchIndex = new SearchIndex(app);
+    this.searchIndex = SearchIndex.getInstance(this.app);
   }
 
   // COPIATO DA FinderModal.renderHints() - adattato per usare container invece di modalEl

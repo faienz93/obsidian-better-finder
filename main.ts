@@ -57,7 +57,7 @@ export default class ObsidianBetterFinder extends Plugin {
     this.addSettingTab(new FinderSetting(this.app, this));
 
     this.app.workspace.onLayoutReady(async () => {
-      this.searchIndex = new SearchIndex(this.app);
+      this.searchIndex = SearchIndex.getInstance(this.app);
       await this.searchIndex.buildIndex();
 
       this.registerEvent(
