@@ -6,9 +6,9 @@ import { SearchIndex } from "./SearchIndex";
 class FinderModal extends SuggestModal<SearchResult> {
   private core: FinderCore;
 
-  constructor(app: App, searchIndex?: SearchIndex) {
+  constructor(app: App) {
     super(app);
-    this.core = new FinderCore(app, searchIndex);
+    this.core = new FinderCore(app);
   }
 
   onOpen(): void {

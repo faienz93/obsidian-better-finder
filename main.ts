@@ -30,7 +30,7 @@ export default class ObsidianBetterFinder extends Plugin {
     await this.loadSettings();
 
     // Register the FinderView
-    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderView(leaf, this.searchIndex));
+    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderView(leaf));
 
     this.addCommand({
       id: 'obsidian-better-finder-open-modal',
@@ -38,7 +38,7 @@ export default class ObsidianBetterFinder extends Plugin {
       // Hot key
       // hotkeys: [{ modifiers: ['Mod', 'Shift'], key: 'a' }],
       callback: () => {
-        new FinderModal(this.app, this.searchIndex).open();
+        new FinderModal(this.app).open();
       }
     });
 

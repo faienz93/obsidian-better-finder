@@ -16,19 +16,17 @@ export function isCommand(result: SearchResult): result is Command {
 
 export class FinderCore {
   allFiles: TFile[];
-  searchEngine: SearchEngine;
   hintChips: Map<string, HTMLElement> = new Map();
   lastResultCount = 0;
   private app: App;
-  private searchIndex?: SearchIndex;
+  private searchIndex: SearchIndex;
   private debounceTimer: number | null = null;
   private static readonly DEBOUNCE_MS = 150;
 
-  constructor(app: App, searchIndex?: SearchIndex) {
-    this.searchEngine = new SearchEngine(app);
+  constructor(app: App) {
     this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
     this.app = app;
-    this.searchIndex = searchIndex;
+    this.searchIndex = new SearchIndex(app);
   }
 
   // COPIATO DA FinderModal.renderHints() - adattato per usare container invece di modalEl
@@ -140,7 +138,7 @@ export class FinderCore {
     // 4. Filter by scope / free text search
     if (parsed.freeText) {
       if (parsed.scope === 'title') {
-        results = this.searchEngine.searchInTitles(parsed.freeText, results);
+        results = this.searchIndex.searchInTitlesWithoutIndex(parsed.freeText, results);
       } else {
         const isMarkdownOnly = parsed.fileTypes.length === 0 ||
           parsed.fileTypes.every(ext => ext === '.md');
@@ -153,7 +151,7 @@ export class FinderCore {
           results = indexResults.filter(f => resultPaths.has(f.path));
         } else {
           // Fallback per non-markdown o indice non pronto
-          results = await this.searchEngine.searchFiles(parsed, results);
+          results = await this.searchIndex.searchFilesWithoutIndex(parsed, results);
         }
       }
     } else {

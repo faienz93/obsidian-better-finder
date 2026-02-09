@@ -15,9 +15,9 @@ export class FinderView extends ItemView {
   private resultCountEl: HTMLElement;
   private isGridView = true;
 
-  constructor(leaf: WorkspaceLeaf, searchIndex?: SearchIndex) {
+  constructor(leaf: WorkspaceLeaf) {
     super(leaf);
-    this.core = new FinderCore(this.app, searchIndex);
+    this.core = new FinderCore(this.app);
   }
 
   getViewType(): string {
