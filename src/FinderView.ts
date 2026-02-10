@@ -1,5 +1,6 @@
 import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
+import { SearchIndex } from "./SearchIndex";
 import { emojis, i18n } from "./const";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
@@ -17,7 +18,6 @@ export class FinderView extends ItemView {
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
     this.core = new FinderCore(this.app);
-    // this.resultCountEl.setText(`0 risultati`);
   }
 
   getViewType(): string {
@@ -78,12 +78,8 @@ export class FinderView extends ItemView {
     // Container risultati
     this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
 
-    // Event listener per input con debounce
-    let debounceTimer: number;
-    this.inputEl.addEventListener("input", () => {
-      clearTimeout(debounceTimer);
-      debounceTimer = window.setTimeout(() => this.onSearch(), 150);
-    });
+    // Event listener per input (debounce gestito da FinderCore.search)
+    this.inputEl.addEventListener("input", () => this.onSearch());
 
     this.inputEl.focus();
   }

@@ -72,7 +72,7 @@ quindi io cerco qualcosa per fare in mdoo che possa trovarlo dovunque, anche nei
 - [ ] Usage statistics (most opened files, frequent searches)
 - [ ] Export search results to MD
 - [ ] Search in PDF content (beyond filename)
-- [ ] OCR for images (very complex)
+- [ ] OCR for images (very complex) https://github.com/kreuzberg-dev/kreuzberg
 
 ### Mobile Optimization
 

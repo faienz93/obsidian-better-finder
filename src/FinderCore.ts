@@ -1,6 +1,6 @@
 import { App, TFile, getAllTags, Command } from "obsidian";
 import { QueryParser } from "./QueryParser";
-import { SearchEngine } from "./SearchEngine";
+import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
 
 export type SearchResult = TFile | Command;
@@ -15,15 +15,17 @@ export function isCommand(result: SearchResult): result is Command {
 
 export class FinderCore {
   allFiles: TFile[];
-  searchEngine: SearchEngine;
   hintChips: Map<string, HTMLElement> = new Map();
   lastResultCount = 0;
   private app: App;
+  private searchIndex: SearchIndex;
+  private debounceTimer: number | null = null;
+  private static readonly DEBOUNCE_MS = 150;
 
   constructor(app: App) {
-    this.searchEngine = new SearchEngine(app);
     this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
     this.app = app;
+    this.searchIndex = SearchIndex.getInstance(this.app);
   }
 
   // COPIATO DA FinderModal.renderHints() - adattato per usare container invece di modalEl
@@ -132,12 +134,24 @@ export class FinderCore {
       });
     }
 
-    // 4. Filter by scope
+    // 4. Filter by scope / free text search
     if (parsed.freeText) {
       if (parsed.scope === 'title') {
-        results = this.searchEngine.searchInTitles(parsed.freeText, results);
+        results = this.searchIndex.searchInTitlesWithoutIndex(parsed.freeText, results);
       } else {
-        results = await this.searchEngine.searchFiles(parsed, results);
+        const isMarkdownOnly = parsed.fileTypes.length === 0 ||
+          parsed.fileTypes.every(ext => ext === '.md');
+
+        if (this.searchIndex?.isIndexReady() && isMarkdownOnly) {
+          // MiniSearch: ricerca indicizzata veloce
+          const indexResults = this.searchIndex.search(parsed.freeText, 50);
+          // Intersezione con risultati pre-filtrati (tag, date, task)
+          const resultPaths = new Set(results.map(f => f.path));
+          results = indexResults.filter(f => resultPaths.has(f.path));
+        } else {
+          // Fallback per non-markdown o indice non pronto
+          results = await this.searchIndex.searchFilesWithoutIndex(parsed, results);
+        }
       }
     } else {
       results.sort((a, b) => b.stat.mtime - a.stat.mtime);
@@ -160,8 +174,10 @@ export class FinderCore {
       });
     }
 
-    results.sort((a, b) => b.stat.mtime - a.stat.mtime);
-    return results.slice(0, 50); // Limit results to prevent freeze
+    if (!parsed.freeText) {
+      results.sort((a, b) => b.stat.mtime - a.stat.mtime);
+    }
+    return results.slice(0, 50);
   }
 
   renderCommand(command: Command, el: HTMLElement): void {
@@ -202,9 +218,18 @@ export class FinderCore {
   }
 
   async search(query: string): Promise<SearchResult[]> {
-    const results = await this.getResults(query)
-    this.lastResultCount = results.length;
-    return results;
+    if (this.debounceTimer !== null) {
+      clearTimeout(this.debounceTimer);
+    }
+
+    return new Promise<SearchResult[]>((resolve) => {
+      this.debounceTimer = window.setTimeout(async () => {
+        this.debounceTimer = null;
+        const results = await this.getResults(query);
+        this.lastResultCount = results.length;
+        resolve(results);
+      }, FinderCore.DEBOUNCE_MS);
+    });
   }
 
   handleSelection(result: SearchResult): void {
