@@ -132,22 +132,17 @@ export class FinderView extends ItemView {
   }
 
 
-  // 1. Render file card aggiornato
   private renderFile(file: TFile, card: Card): void {
     card.setSuggestionItem();
 
-    const title = card.addTitle(file.basename)
-
+    const title = card.setTitle(file.basename);
     if (file.extension !== 'md') {
-      title.createCustomSpan(file.extension.toUpperCase())
+      card.setBadge(title, file.extension.toUpperCase());
     }
 
+    this.loadPreview(file, card.getPreviewContainer());
 
-    const previewEl = card.addPreview();
-    this.loadPreview(file, previewEl.getInstance());
-
-    const metaRow = card.addMetadata();
-    metaRow.setContent(
+    card.setMetadata(
       new Date(file.stat.mtime).toLocaleDateString(),
       file.parent?.path || '/'
     );
