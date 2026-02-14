@@ -2,6 +2,7 @@ import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 import { SearchIndex } from "./SearchIndex";
 import { emojis, i18n } from "./const";
+import { Card } from "./component/Card";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -75,7 +76,7 @@ export class FinderView extends ItemView {
       this.onSearch();
     });
 
-    // Container risultati
+    // TODO Container dei risultati
     this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
 
     // Event listener per input (debounce gestito da FinderCore.search)
@@ -110,19 +111,19 @@ export class FinderView extends ItemView {
     this.resultCountEl.setText(`${this.core.lastResultCount} ${i18n.results}`);
 
     results.forEach(result => {
-      const el = this.resultsEl.createDiv({ cls: 'finder-view-result' });
+      const card = new Card(this.resultsEl);
 
       if (isCommand(result)) {
-        this.core.renderCommand(result, el);
+        this.core.renderCommand(result, card.getElement());
       } else {
-        this.renderFile(result as TFile, el);
+        this.renderFile(result as TFile, card.getElement());
       }
 
-      el.addEventListener('click', () => this.core.handleSelection(result));
+      card.getElement().addEventListener('click', () => this.core.handleSelection(result));
 
       // Context menu (right-click) - same as file explorer
       if (!isCommand(result)) {
-        el.addEventListener('contextmenu', (event) => {
+        card.getElement().addEventListener('contextmenu', (event) => {
           event.preventDefault();
           const menu = new Menu();
           this.app.workspace.trigger('file-menu', menu, result as TFile, 'file-explorer-context-menu');
@@ -134,35 +135,39 @@ export class FinderView extends ItemView {
 
 
   // 1. Render file card aggiornato
-  private renderFile(file: TFile, el: HTMLElement): void {
-    el.addClass('suggestion-item');
+  private renderFile(file: TFile, card: Card): void {
+    card.setSuggestionItem();
 
-    // Titolo e Badge (rimangono come li avevi fatti tu)
-    const titleEl = el.createDiv({ cls: 'suggestion-title' });
-    titleEl.createSpan({ text: file.basename });
+
+    // const titleEl = card.createDiv({ cls: 'suggestion-title' });
+    // titleEl.createSpan({ text: file.basename });
+    const title = card.addTitle(file.basename)
 
     if (file.extension !== 'md') {
-      const extBadge = titleEl.createSpan({
-        text: file.extension.toUpperCase(),
-        cls: 'suggestion-flair'
-      });
-      extBadge.setCssStyles({
-        marginLeft: '8px',
-        fontSize: '10px',
-        padding: '2px 6px',
-        background: 'var(--background-modifier-success)',
-        borderRadius: '3px'
-      });
+      // const extBadge = title.createSpan({
+      //   text: file.extension.toUpperCase(),
+      //   cls: 'suggestion-flair'
+      // });
+      // extBadge.setCssStyles({
+      //   marginLeft: '8px',
+      //   fontSize: '10px',
+      //   padding: '2px 6px',
+      //   background: 'var(--background-modifier-success)',
+      //   borderRadius: '3px'
+      // });
+      title.createCustomSpan(file.extension.toUpperCase())
     }
 
     // Container per la preview (la "cornice" del contenuto)
-    const previewEl = el.createDiv({ cls: 'finder-view-preview' });
-    this.loadPreview(file, previewEl);
+    // const previewEl = card.createDiv({ cls: 'finder-view-preview' });
+    const previewEl = card.addPreview();
+    this.loadPreview(file, previewEl.getInstance());
 
     // Metadata (sotto la preview)
-    const metaRow = el.createDiv({ cls: 'suggestion-note' });
-    metaRow.createSpan({ text: new Date(file.stat.mtime).toLocaleDateString() });
-    metaRow.createSpan({ text: file.parent?.path || '/', attr: { style: "margin-left: 10px; opacity: 0.6;" } });
+    const metaRow = card.addMetadata();
+    // metaRow.createSpan({ text: new Date(file.stat.mtime).toLocaleDateString() });
+    // metaRow.createSpan({ text: file.parent?.path || '/', attr: { style: "margin-left: 10px; opacity: 0.6;" } });
+    metaRow.createMetadata(file)
   }
 
   // 2. L'unico metodo di caricamento che ti serve
