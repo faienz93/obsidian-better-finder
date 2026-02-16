@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 import { i18n } from "./const";
-import { Card, ToggleButton } from "./component/Card";
+import { Card, ToggleButton, SearchBar } from "./component/Card";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -9,10 +9,9 @@ export const FINDER_VIEW_TYPE = "better-finder-view";
 
 export class FinderView extends ItemView {
   private core: FinderCore;
-  private inputEl: HTMLInputElement;
   // Card
   private resultsEl: HTMLElement;
-  private resultCountEl: HTMLElement;
+  private searchBar: SearchBar;
 
 
   constructor(leaf: WorkspaceLeaf) {
@@ -45,17 +44,7 @@ export class FinderView extends ItemView {
 
     // Header con input e toggle
     const headerEl = container.createDiv({ cls: "finder-view-header" });
-
-    // Input wrapper (contiene input + contatore)
-    const inputWrapper = headerEl.createDiv({ cls: "finder-view-input-wrapper" });
-
-    this.inputEl = inputWrapper.createEl("input", {
-      type: "text",
-      placeholder: "Search files...",
-      cls: "finder-view-input"
-    });
-
-    this.resultCountEl = inputWrapper.createSpan({ cls: "finder-view-count" });
+    this.searchBar = new SearchBar(headerEl);
 
     // Toggle view button
     const toggle = new ToggleButton(headerEl);
@@ -64,21 +53,17 @@ export class FinderView extends ItemView {
       this.resultsEl.toggleClass("list-view", !isGridView);
     });
 
-
     // Hint bar
     this.core.renderHints(container, (hint) => {
-      this.inputEl.value = hint + ' ';
-      this.inputEl.focus();
+      this.searchBar.setValue(hint + ' ')
+      this.searchBar.onFocus();
       this.onSearch();
     });
 
     // TODO Container dei risultati
     this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
-
-    // Event listener per input (debounce gestito da FinderCore.search)
-    this.inputEl.addEventListener("input", () => this.onSearch());
-
-    this.inputEl.focus();
+    this.searchBar.onInput(() => this.onSearch())
+    this.searchBar.onFocus();
   }
 
 
@@ -86,8 +71,8 @@ export class FinderView extends ItemView {
 
 
   private async onSearch(): Promise<void> {
-    this.core.updateHintHighlights(this.inputEl.value);
-    const results = await this.core.search(this.inputEl.value);
+    this.core.updateHintHighlights(this.searchBar.getValue());
+    const results = await this.core.search(this.searchBar.getValue());
     this.renderResults(results);
   }
 
@@ -95,7 +80,7 @@ export class FinderView extends ItemView {
 
   private renderResults(results: SearchResult[]): void {
     this.resultsEl.empty();
-    this.resultCountEl.setText(`${this.core.lastResultCount} ${i18n.results}`);
+    this.searchBar.setCounterElement(`${this.core.lastResultCount} ${i18n.results}`)
 
     results.forEach(result => {
       const card = new Card(this.resultsEl);
@@ -169,7 +154,7 @@ export class FinderView extends ItemView {
         return;
       }
 
-      // Fallback: embed nativo per tutto il resto
+      // Fallback
       await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, '', this);
     } catch (e) {
       console.error('Preview error:', e);
