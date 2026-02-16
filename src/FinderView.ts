@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
-import { emojis, i18n } from "./const";
-import { Card } from "./component/Card";
+import { i18n } from "./const";
+import { Card, ToggleButton } from "./component/Card";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -13,7 +13,7 @@ export class FinderView extends ItemView {
   // Card
   private resultsEl: HTMLElement;
   private resultCountEl: HTMLElement;
-  private isGridView = true;
+
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -58,15 +58,12 @@ export class FinderView extends ItemView {
     this.resultCountEl = inputWrapper.createSpan({ cls: "finder-view-count" });
 
     // Toggle view button
-    const toggleBtn = headerEl.createEl("button", { cls: "finder-view-toggle" });
-    toggleBtn.setAttribute("aria-label", "Toggle view");
-    this.updateToggleIcon(toggleBtn);
-    toggleBtn.addEventListener("click", () => {
-      this.isGridView = !this.isGridView;
-      this.updateToggleIcon(toggleBtn);
-      this.resultsEl.toggleClass("grid-view", this.isGridView);
-      this.resultsEl.toggleClass("list-view", !this.isGridView);
+    const toggle = new ToggleButton(headerEl);
+    toggle.onClick((isGridView) => {
+      this.resultsEl.toggleClass("grid-view", isGridView);
+      this.resultsEl.toggleClass("list-view", !isGridView);
     });
+
 
     // Hint bar
     this.core.renderHints(container, (hint) => {
@@ -84,16 +81,7 @@ export class FinderView extends ItemView {
     this.inputEl.focus();
   }
 
-  private updateToggleIcon(btn: HTMLElement): void {
-    btn.empty();
-    if (this.isGridView) {
-      btn.setText(emojis.listIcon); // List icon
-      btn.setAttribute("title", "Switch to list view");
-    } else {
-      btn.setText(emojis.gridIcon); // Grid icon
-      btn.setAttribute("title", "Switch to grid view");
-    }
-  }
+
 
 
 
@@ -111,7 +99,7 @@ export class FinderView extends ItemView {
 
     results.forEach(result => {
       const card = new Card(this.resultsEl);
-
+      // TODO refactor
       if (isCommand(result)) {
         this.core.renderCommand(result, card.getElement());
       } else {
@@ -148,7 +136,6 @@ export class FinderView extends ItemView {
     );
   }
 
-  // 2. L'unico metodo di caricamento che ti serve
   private async loadPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
     containerEl.empty();
     containerEl.addClass('finder-view-preview');
