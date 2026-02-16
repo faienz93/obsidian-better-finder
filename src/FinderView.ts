@@ -1,7 +1,7 @@
 import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 import { i18n } from "./const";
-import { Card, ToggleButton, SearchBar } from "./component/Card";
+import { Card, SearchBar } from "./component/Card";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -41,16 +41,7 @@ export class FinderView extends ItemView {
   private buildUI(): void {
     const container = this.contentEl.createDiv({ cls: "finder-view-container" });
 
-    // Header con input e toggle
-    const headerEl = container.createDiv({ cls: "finder-view-header" });
-    this.searchBar = new SearchBar(headerEl);
-
-    // Toggle view button
-    const toggle = new ToggleButton(headerEl);
-    toggle.onClick((isGridView) => {
-      this.resultsEl.toggleClass("grid-view", isGridView);
-      this.resultsEl.toggleClass("list-view", !isGridView);
-    });
+    this.searchBar = new SearchBar(container);
 
     // Hint bar
     this.core.renderHints(container, (hint) => {
@@ -59,8 +50,12 @@ export class FinderView extends ItemView {
       this.onSearch();
     });
 
-    // TODO Container dei risultati
+    // Container dei risultati
     this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
+    this.searchBar.onToggle((isGridView) => {
+      this.resultsEl.toggleClass("grid-view", isGridView);
+      this.resultsEl.toggleClass("list-view", !isGridView);
+    });
     this.searchBar.onInput(() => this.onSearch())
     this.searchBar.onFocus();
   }
