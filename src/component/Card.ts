@@ -7,12 +7,13 @@ export class SearchBar {
   private inputEl: HTMLInputElement;
   private resultCountEl: HTMLElement;
   private toggle: ToggleButton;
+  private headerEl: HTMLElement
 
   constructor(parentEl: HTMLElement) {
-    const headerEl = parentEl.createDiv({ cls: "finder-view-header" });
+    this.headerEl = parentEl.createDiv({ cls: "finder-view-header" });
 
     // Input wrapper (contiene input + contatore)
-    const inputWrapper = headerEl.createDiv({ cls: "finder-view-input-wrapper" });
+    const inputWrapper = this.headerEl.createDiv({ cls: "finder-view-input-wrapper" });
     this.inputEl = inputWrapper.createEl("input", {
       type: "text",
       placeholder: "Search files...",
@@ -21,7 +22,7 @@ export class SearchBar {
 
     this.resultCountEl = inputWrapper.createSpan({ cls: "finder-view-count" });
 
-    this.toggle = new ToggleButton(headerEl);
+    // this.toggle = new ToggleButton(headerEl);
   }
 
   public setValue(hint: string): void {
@@ -44,8 +45,9 @@ export class SearchBar {
     this.inputEl.addEventListener("input", (event) => func(event));
   }
 
-  public onToggle(func: (isGridView: boolean) => void): void {
-    this.toggle.onClick(func);
+  public createToggle(): ToggleButton {
+    this.toggle = new ToggleButton(this.headerEl);
+    return this.toggle
   }
 }
 

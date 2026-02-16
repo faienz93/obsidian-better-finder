@@ -52,7 +52,7 @@ export class FinderView extends ItemView {
 
     // Container dei risultati
     this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
-    this.searchBar.onToggle((isGridView) => {
+    this.searchBar.createToggle().onClick((isGridView) => {
       this.resultsEl.toggleClass("grid-view", isGridView);
       this.resultsEl.toggleClass("list-view", !isGridView);
     });
