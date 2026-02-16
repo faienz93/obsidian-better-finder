@@ -9,7 +9,6 @@ export const FINDER_VIEW_TYPE = "better-finder-view";
 
 export class FinderView extends ItemView {
   private core: FinderCore;
-  // Card
   private resultsEl: HTMLElement;
   private searchBar: SearchBar;
 
@@ -66,17 +65,11 @@ export class FinderView extends ItemView {
     this.searchBar.onFocus();
   }
 
-
-
-
-
   private async onSearch(): Promise<void> {
     this.core.updateHintHighlights(this.searchBar.getValue());
     const results = await this.core.search(this.searchBar.getValue());
     this.renderResults(results);
   }
-
-
 
   private renderResults(results: SearchResult[]): void {
     this.resultsEl.empty();
@@ -122,6 +115,7 @@ export class FinderView extends ItemView {
   }
 
   private async loadPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
+    // TODO questi vorrei che fossero componenti della class card e vorrei un istanziazione globale della card (forse?)
     containerEl.empty();
     containerEl.addClass('finder-view-preview');
     const ext = file.extension.toLowerCase();

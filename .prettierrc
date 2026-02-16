@@ -1,14 +1,11 @@
 {
-
   "editorconfig": true,
-
   "semi": true,
-
   "singleQuote": true,
-
   "trailingComma": "es5",
-
-  "printWidth": 80,
-
-  "bracketSameLine": true
+  "printWidth": 120,
+  "bracketSameLine": true,
+  "arrowParens": "always",
+  "bracketSpacing": true,
+  "endOfLine": "lf"
 }
