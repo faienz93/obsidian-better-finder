@@ -1,5 +1,3 @@
-
-
 export interface ParsedQuery {
   // Input originale
   rawInput: string;
@@ -20,7 +18,6 @@ export interface ParsedQuery {
 }
 
 export class QueryParser {
-
   /**
    * Parse user input and extract all filters
    * @param input - Raw search query from user
@@ -42,6 +39,7 @@ export class QueryParser {
     if (trimmedInput.startsWith('>')) {
       result.isCommandMode = true;
       result.commandText = trimmedInput.slice(1).trim();
+
       return result;
     }
 
@@ -62,6 +60,7 @@ export class QueryParser {
 
     // 4. Extract scope (title:something)
     const scopeResult = this.extractScope(remainingText);
+
     result.scope = scopeResult.scope;
     remainingText = scopeResult.remainingText;
 
@@ -81,6 +80,7 @@ export class QueryParser {
   private static extractTags(query: string): string[] {
     const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
     const matches = query.match(tagRegex);
+
     return matches ? matches.map(tag => tag.toLowerCase()) : [];
   }
 
@@ -101,9 +101,11 @@ export class QueryParser {
     if (/\btoday\b/.test(lowerQuery)) {
       return 'today';
     }
+
     if (/\bthis week\b/.test(lowerQuery)) {
       return 'this-week';
     }
+
     if (/\bthis month\b/.test(lowerQuery)) {
       return 'this-month';
     }
@@ -194,6 +196,7 @@ export class QueryParser {
     if (titleMatch) {
       const searchTerm = titleMatch[1];
       const remainingText = query.replace(/\btitle:\s*\S+/i, searchTerm).trim();
+
       return { scope: 'title', remainingText };
     }
 
@@ -209,9 +212,11 @@ export class QueryParser {
     if (/\btask-todo:\b/.test(lowerQuery)) {
       return 'todo';
     }
+
     if (/\btask-done:\b/.test(lowerQuery)) {
       return 'done';
     }
+
     if (/\btask:\b/.test(lowerQuery)) {
       return 'all';
     }
@@ -235,6 +240,7 @@ export class QueryParser {
    */
   static isToday(date: Date): boolean {
     const today = new Date();
+
     return date.getDate() === today.getDate() &&
       date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear();
@@ -246,10 +252,12 @@ export class QueryParser {
   static isThisWeek(date: Date): boolean {
     const today = new Date();
     const weekStart = new Date(today);
+
     weekStart.setDate(today.getDate() - today.getDay()); // Sunday
     weekStart.setHours(0, 0, 0, 0);
 
     const weekEnd = new Date(weekStart);
+
     weekEnd.setDate(weekStart.getDate() + 7);
 
     return date >= weekStart && date < weekEnd;
@@ -260,6 +268,7 @@ export class QueryParser {
    */
   static isThisMonth(date: Date): boolean {
     const today = new Date();
+
     return date.getMonth() === today.getMonth() &&
       date.getFullYear() === today.getFullYear();
   }

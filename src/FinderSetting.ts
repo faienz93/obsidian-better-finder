@@ -1,8 +1,6 @@
-
 import { App, PluginSettingTab, Setting } from 'obsidian';
 
 import ObsidianBetterFinder from '../main'
-
 
 class FinderSetting extends PluginSettingTab {
   plugin: ObsidianBetterFinder;
@@ -24,11 +22,13 @@ class FinderSetting extends PluginSettingTab {
         .setValue(this.plugin.settings.showRibbonIcon)
         .onChange(async (value) => {
           this.plugin.settings.showRibbonIcon = value;
+
           if (value) {
             this.plugin.addRibbonIconEl();
           } else {
             this.plugin.removeRibbonIconEl();
           }
+
           await this.plugin.saveSettings();
         }));
   }

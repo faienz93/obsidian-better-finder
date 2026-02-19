@@ -78,9 +78,11 @@ export default class ObsidianBetterFinder extends Plugin {
         this.app.vault.on('delete', (file) => {
           if (file instanceof TFile) {
             const index = this.fileCache.indexOf(file);
+
             if (index > -1) {
               this.fileCache.splice(index, 1);
             }
+
             this.searchIndex.removeFile(file);
           }
         })
@@ -106,7 +108,6 @@ export default class ObsidianBetterFinder extends Plugin {
         })
       );
     })
-
   }
 
   async activateFinderView() {
@@ -138,8 +139,6 @@ export default class ObsidianBetterFinder extends Plugin {
 
   }
 
-
-
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
@@ -147,10 +146,4 @@ export default class ObsidianBetterFinder extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
-
-
 }
-
-
-
-

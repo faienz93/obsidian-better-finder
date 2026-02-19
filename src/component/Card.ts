@@ -2,7 +2,6 @@
 
 import { emojis } from "src/const";
 
-
 export class SearchBar {
   private inputEl: HTMLInputElement;
   private resultCountEl: HTMLElement;
@@ -14,6 +13,7 @@ export class SearchBar {
 
     // Input wrapper (contiene input + contatore)
     const inputWrapper = this.headerEl.createDiv({ cls: "finder-view-input-wrapper" });
+
     this.inputEl = inputWrapper.createEl("input", {
       type: "text",
       placeholder: "Search files...",
@@ -47,12 +47,12 @@ export class SearchBar {
 
   public createToggle(): ToggleButton {
     this.toggle = new ToggleButton(this.headerEl);
+
     return this.toggle
   }
 }
 
 export class ToggleButton {
-
   private toggleBtn: HTMLElement;
   private isGridView = true;
   constructor(headerEl: HTMLElement) {
@@ -75,6 +75,7 @@ export class ToggleButton {
 
   private updateToggleIcon(btn: HTMLElement): void {
     btn.empty();
+
     if (this.isGridView) {
       btn.setText(emojis.listIcon); // List icon
       btn.setAttribute("title", "Switch to list view");
@@ -145,11 +146,13 @@ export class Card {
 
   public getPreviewContainer(): HTMLElement {
     const preview = new Preview(this.card);
+
     return preview.getElement()
   }
 
   public setMetadata(date: string, path: string) {
     const metadata = new Metadata(this.card);
+
     metadata.setContent(date, path)
   }
 

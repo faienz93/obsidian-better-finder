@@ -14,10 +14,13 @@ class FinderModal extends SuggestModal<SearchResult> {
   onOpen(): void {
     // Hint bar - inserita dopo .prompt-input-container
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
+
     if (promptEl) {
       const hintWrapper = createDiv();
+
       promptEl.insertAdjacentElement('afterend', hintWrapper);
       this.core.renderHints(hintWrapper, (hint) => {
+        // eslint-disable-next-line prefer-template
         this.inputEl.value = hint + ' ';
         this.inputEl.focus();
         this.inputEl.dispatchEvent(new Event('input'));
@@ -41,6 +44,7 @@ class FinderModal extends SuggestModal<SearchResult> {
 
     if (isCommand(result)) {
       this.core.renderCommand(result, el);
+
       return;
     }
 
@@ -55,6 +59,7 @@ class FinderModal extends SuggestModal<SearchResult> {
 
     // File name (title)
     const titleEl = el.createDiv({ cls: 'suggestion-title' });
+
     titleEl.createSpan({ text: result.basename });
 
     // File extension badge (if not markdown)
@@ -63,6 +68,7 @@ class FinderModal extends SuggestModal<SearchResult> {
         text: result.extension.toUpperCase(),
         cls: 'suggestion-flair'
       });
+
       extBadge.style.marginLeft = '8px';
       extBadge.style.fontSize = '10px';
       extBadge.style.padding = '2px 6px';
@@ -72,6 +78,7 @@ class FinderModal extends SuggestModal<SearchResult> {
 
     // Metadata row (date + path)
     const metaRow = el.createDiv({ cls: 'suggestion-note' });
+
     metaRow.style.display = 'flex';
     metaRow.style.gap = '12px';
     metaRow.style.fontSize = '11px';
@@ -80,20 +87,24 @@ class FinderModal extends SuggestModal<SearchResult> {
 
     // Date
     const dateEl = metaRow.createSpan();
+
     dateEl.setText(new Date(result.stat.mtime).toLocaleDateString());
 
     // Path
     const pathEl = metaRow.createSpan();
+
     pathEl.setText(result.parent?.path || '/');
 
     // Tags (only for markdown files)
     if (result.extension === 'md') {
       const fileCache = this.app.metadataCache.getFileCache(result);
+
       if (fileCache) {
         const fileTags = getAllTags(fileCache) || [];
 
         if (fileTags.length > 0) {
           const tagsContainer = el.createDiv();
+
           tagsContainer.style.marginTop = '8px';
           tagsContainer.style.display = 'flex';
           tagsContainer.style.gap = '4px';
@@ -104,6 +115,7 @@ class FinderModal extends SuggestModal<SearchResult> {
 
           fileTags.forEach(tag => {
             const tagEl = tagsContainer.createSpan({ text: tag });
+
             tagEl.style.background = 'var(--tag-background)';
             tagEl.style.color = 'var(--tag-color)';
             tagEl.style.padding = '2px 6px';
@@ -131,6 +143,7 @@ class FinderModal extends SuggestModal<SearchResult> {
 
           if (tasks.length > 0) {
             const taskBadge = el.createDiv();
+
             taskBadge.style.marginTop = '6px';
             taskBadge.style.fontSize = '11px';
             taskBadge.style.color = 'var(--text-muted)';

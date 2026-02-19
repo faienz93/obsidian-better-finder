@@ -4,6 +4,7 @@ import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
 
 export type SearchResult = TFile | Command;
+
 // TODO non usato. cancellare
 export function isFile(result: SearchResult): result is TFile {
   return 'stat' in result;
@@ -49,6 +50,7 @@ export class FinderCore {
 
     hints.forEach(hint => {
       const chip = hintBar.createSpan({ cls: 'hint-chip' });
+
       chip.setText(hint.label);
       chip.setAttribute('title', hint.desc);
       this.hintChips.set(hint.label.toLowerCase(), chip);
@@ -75,8 +77,6 @@ export class FinderCore {
     });
   }
 
-
-
   // COPIATO DA FinderModal.getCommandSuggestions()
   getCommandSuggestions(searchText: string): Command[] {
     const allCommands = (this.app as any).commands.listCommands() as Command[];
@@ -86,6 +86,7 @@ export class FinderCore {
     }
 
     const lowerSearch = searchText.toLowerCase();
+
     return allCommands.filter(cmd =>
       cmd.name.toLowerCase().includes(lowerSearch) ||
       (cmd.id && cmd.id.toLowerCase().includes(lowerSearch))
@@ -115,8 +116,10 @@ export class FinderCore {
     if (parsed.tags.length > 0) {
       results = results.filter(file => {
         const fileCache = this.app.metadataCache.getFileCache(file);
+
         if (!fileCache) return false;
         const fileTags = getAllTags(fileCache) || [];
+
         return parsed.tags.every(tag => fileTags.includes(tag));
       });
     }
@@ -125,6 +128,7 @@ export class FinderCore {
     if (parsed.dateFilter) {
       results = results.filter(file => {
         const fileDate = new Date(file.stat.mtime);
+
         switch (parsed.dateFilter) {
           case 'today': return QueryParser.isToday(fileDate);
           case 'this-week': return QueryParser.isThisWeek(fileDate);
@@ -147,6 +151,7 @@ export class FinderCore {
           const indexResults = this.searchIndex.search(parsed.freeText, 50);
           // Intersezione con risultati pre-filtrati (tag, date, task)
           const resultPaths = new Set(results.map(f => f.path));
+
           results = indexResults.filter(f => resultPaths.has(f.path));
         } else {
           // Fallback per non-markdown o indice non pronto
@@ -162,9 +167,12 @@ export class FinderCore {
       results = results.filter(file => {
         if (file.extension !== 'md') return false;
         const fileCache = this.app.metadataCache.getFileCache(file);
+
         if (!fileCache || !fileCache.listItems) return false;
         const tasks = fileCache.listItems.filter(item => item.task);
+
         if (tasks.length === 0) return false;
+
         switch (parsed.taskFilter) {
           case 'all': return true;
           case 'todo': return tasks.some(t => t.task !== 'x' && t.task !== 'X');
@@ -177,6 +185,7 @@ export class FinderCore {
     if (!parsed.freeText) {
       results.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }
+
     return results.slice(0, 50);
   }
 
@@ -184,32 +193,39 @@ export class FinderCore {
     el.addClass('suggestion-item');
 
     const titleEl = el.createDiv({ cls: 'suggestion-title' });
+
     titleEl.createSpan({ text: command.name });
 
     if (command.icon) {
       const iconEl = titleEl.createSpan({ cls: 'suggestion-flair' });
+
       iconEl.style.marginLeft = '8px';
       iconEl.setText(command.icon);
     }
 
     const metaRow = el.createDiv({ cls: 'suggestion-note' });
+
     metaRow.style.fontSize = '11px';
     metaRow.style.color = 'var(--text-muted)';
     metaRow.style.marginTop = '4px';
     metaRow.setText(command.id);
 
     const hotkeys = (this.app as any).hotkeyManager.getHotkeys(command.id);
+
     if (hotkeys && hotkeys.length > 0) {
       const hotkeyEl = el.createDiv();
+
       hotkeyEl.style.marginTop = '4px';
       hotkeyEl.style.fontSize = '11px';
       hotkeyEl.style.color = 'var(--text-accent)';
 
       const hotkeyText = hotkeys.map((hk: any) => {
         const modifiers = [];
+
         if (hk.modifiers.includes('Mod')) modifiers.push('Ctrl');
         if (hk.modifiers.includes('Shift')) modifiers.push('Shift');
         if (hk.modifiers.includes('Alt')) modifiers.push('Alt');
+
         return [...modifiers, hk.key].join('+');
       }).join(', ');
 
@@ -226,6 +242,7 @@ export class FinderCore {
       this.debounceTimer = window.setTimeout(async () => {
         this.debounceTimer = null;
         const results = await this.getResults(query);
+
         this.lastResultCount = results.length;
         resolve(results);
       }, FinderCore.DEBOUNCE_MS);
@@ -235,9 +252,12 @@ export class FinderCore {
   handleSelection(result: SearchResult): void {
     if (isCommand(result)) {
       (this.app as any).commands.executeCommandById(result.id);
+
       return;
     }
+
     const file = result as TFile;
+
     this.app.workspace.getLeaf(false).openFile(file);
   }
 }

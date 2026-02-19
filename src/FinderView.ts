@@ -5,13 +5,10 @@ import { Card, SearchBar } from "./component/Card";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
-
-
 export class FinderView extends ItemView {
   private core: FinderCore;
   private resultsEl: HTMLElement;
   private searchBar: SearchBar;
-
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -45,7 +42,7 @@ export class FinderView extends ItemView {
 
     // Hint bar
     this.core.renderHints(container, (hint) => {
-      this.searchBar.setValue(hint + ' ')
+      this.searchBar.setValue(`${hint  } `)
       this.searchBar.onFocus();
       this.onSearch();
     });
@@ -63,6 +60,7 @@ export class FinderView extends ItemView {
   private async onSearch(): Promise<void> {
     this.core.updateHintHighlights(this.searchBar.getValue());
     const results = await this.core.search(this.searchBar.getValue());
+
     this.renderResults(results);
   }
 
@@ -72,6 +70,7 @@ export class FinderView extends ItemView {
 
     results.forEach(result => {
       const card = new Card(this.resultsEl);
+
       // TODO refactor
       if (isCommand(result)) {
         this.core.renderCommand(result, card.getElement());
@@ -85,6 +84,7 @@ export class FinderView extends ItemView {
         card.onContextMenu((event) => {
           event.preventDefault();
           const menu = new Menu();
+
           this.app.workspace.trigger('file-menu', menu, result as TFile, 'file-explorer-context-menu');
           menu.showAtMouseEvent(event);
         });
@@ -92,11 +92,11 @@ export class FinderView extends ItemView {
     });
   }
 
-
   private renderFile(file: TFile, card: Card): void {
     card.setSuggestionItem();
 
     const title = card.setTitle(file.basename);
+
     if (file.extension !== 'md') {
       card.setBadge(title, file.extension.toUpperCase());
     }
@@ -119,7 +119,9 @@ export class FinderView extends ItemView {
       if (ext === 'md') {
         const rawContent = await this.app.vault.cachedRead(file);
         const cleaned = rawContent.replace(/^---[\s\S]*?---\n?/, '').slice(0, 500);
+
         await MarkdownRenderer.render(this.app, cleaned, containerEl, file.path, this);
+
         return;
       }
 
@@ -128,6 +130,7 @@ export class FinderView extends ItemView {
         const rawContent = await this.app.vault.cachedRead(file);
         const preview = rawContent.slice(0, 300);
         const codeEl = containerEl.createEl('pre', { cls: 'code-preview' });
+
         codeEl.createEl('code', { text: preview });
         codeEl.setCssStyles({
           fontSize: '9px',
@@ -140,6 +143,7 @@ export class FinderView extends ItemView {
           whiteSpace: 'pre-wrap',
           wordBreak: 'break-all'
         });
+
         return;
       }
 
@@ -150,5 +154,4 @@ export class FinderView extends ItemView {
       containerEl.setText('Preview not available');
     }
   }
-
 }
