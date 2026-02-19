@@ -1,50 +1,48 @@
-// Strategy pattern o Factory Pattern
-export interface SearchStrategyInterface {
-  addFilter(query: string): any;
-  removeFilter(query: string): any;
+import { i18n } from './const';
+
+export interface SearchStrategyInterface<TResult> {
+  extract(query: string): TResult;
+  removeFrom(query: string): string;
+  getHints(): { label: string; desc: string }[];
 }
 
-class TagsFilter implements SearchStrategyInterface {
-  /**
-   * Extract tags from query (#tag, #tag-with-dash, #tag/nested)
-   */
-  addFilter(query: string) {
+class TagsFilter implements SearchStrategyInterface<string[]> {
+  getHints() {
+    return [{ label: '#tag', desc: 'tag' }];
+  }
+
+  extract(query: string) {
     const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
     const matches = query.match(tagRegex);
 
     return matches ? matches.map(tag => tag.toLowerCase()) : [];
   }
-  /**
-   * Remove tags from query string
-   */
-  removeFilter(query: string) {
+
+  removeFrom(query: string) {
     return query.replace(/#([a-zA-Z0-9][\w\-/]*)/g, '').trim();
   }
 }
 
-class DateFilter implements SearchStrategyInterface {
-  /**
-   * Extract date filter keywords
-   */
-  addFilter(query: string): 'today' | 'this-week' | 'this-month' | undefined {
+class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'this-month' | undefined> {
+  getHints() {
+    return [
+      { label: 'today', desc: i18n.today },
+      { label: 'this week', desc: i18n.thisWeek },
+      { label: 'this month', desc: i18n.thisMonth },
+    ];
+  }
+
+  extract(query: string): 'today' | 'this-week' | 'this-month' | undefined {
     const lowerQuery = query.toLowerCase();
 
-    // Check for exact matches (word boundaries)
-    if (/\btoday\b/.test(lowerQuery)) {
-      return 'today';
-    }
-
-    if (/\bthis week\b/.test(lowerQuery)) {
-      return 'this-week';
-    }
-
-    if (/\bthis month\b/.test(lowerQuery)) {
-      return 'this-month';
-    }
+    if (/\btoday\b/.test(lowerQuery)) return 'today';
+    if (/\bthis week\b/.test(lowerQuery)) return 'this-week';
+    if (/\bthis month\b/.test(lowerQuery)) return 'this-month';
 
     return undefined;
   }
-  removeFilter(query: string): string {
+
+  removeFrom(query: string): string {
     return query
       .replace(/\btoday\b/gi, '')
       .replace(/\bthis week\b/gi, '')
@@ -53,59 +51,36 @@ class DateFilter implements SearchStrategyInterface {
   }
 }
 
-// Extract file type filters (PDF, immagine, Word, Excel)
-class FileFilter implements SearchStrategyInterface {
-  /**
-   * Extract file type filters
-   * Supports: PDF, Word, Excel, immagine/image
-   */
-  addFilter(query: string): string[] {
+class FileFilter implements SearchStrategyInterface<string[]> {
+  getHints() {
+    return [
+      { label: 'pdf', desc: 'PDF' },
+      { label: 'image', desc: i18n.images },
+      { label: 'canvas', desc: 'canvas' },
+      { label: 'json', desc: 'json' },
+      { label: 'base', desc: 'base' },
+    ];
+  }
+
+  extract(query: string): string[] {
     const types: string[] = [];
     const lowerQuery = query.toLowerCase();
 
-    // Image patterns
     if (/\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/.test(lowerQuery)) {
       types.push('.png', '.jpg', '.jpeg', '.gif', '.webp');
     }
 
-    // PDF
-    if (/\bpdf\b/.test(lowerQuery)) {
-      types.push('.pdf');
-    }
+    if (/\bpdf\b/.test(lowerQuery)) types.push('.pdf');
+    if (/\b(word|docx|doc)\b/.test(lowerQuery)) types.push('.docx', '.doc');
+    if (/\b(excel|xlsx|xls)\b/.test(lowerQuery)) types.push('.xlsx', '.xls');
+    if (/\bcanvas\b/.test(lowerQuery)) types.push('.canvas');
+    if (/\bjson\b/.test(lowerQuery)) types.push('.json');
+    if (/\bbase\b/.test(lowerQuery)) types.push('.base');
 
-    // Word documents
-    if (/\b(word|docx|doc)\b/.test(lowerQuery)) {
-      types.push('.docx', '.doc');
-    }
-
-    // Excel spreadsheets
-    if (/\b(excel|xlsx|xls)\b/.test(lowerQuery)) {
-      types.push('.xlsx', '.xls');
-    }
-
-    // Canvas files
-    if (/\bcanvas\b/.test(lowerQuery)) {
-      types.push('.canvas');
-    }
-
-    // JSON files
-    if (/\bjson\b/.test(lowerQuery)) {
-      types.push('.json');
-    }
-
-    // BASE files
-    if (/\bbase\b/.test(lowerQuery)) {
-      types.push('.base');
-    }
-
-    // Remove duplicates
     return [...new Set(types)];
   }
 
-  /**
-   * Remove file type keywords from query
-   */
-  removeFilter(query: string): string {
+  removeFrom(query: string): string {
     return query
       .replace(/\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/gi, '')
       .replace(/\bpdf\b/gi, '')
@@ -118,12 +93,14 @@ class FileFilter implements SearchStrategyInterface {
   }
 }
 
-class ScopeFilter implements SearchStrategyInterface {
-  /**
-   * Extract scope filter (title:something)
-   * Returns both scope and remaining text
-   */
-  addFilter(query: string): { scope?: 'title' | 'content', remainingText: string } {
+// TODO: ScopeFilter non rispetta ISP — extract() restituisce già remainingText,
+// quindi removeFrom() è ridondante. Da valutare se separare in futuro.
+class ScopeFilter implements SearchStrategyInterface<{ scope?: 'title' | 'content'; remainingText: string }> {
+  getHints() {
+    return [{ label: 'title:', desc: i18n.title }];
+  }
+
+  extract(query: string): { scope?: 'title' | 'content'; remainingText: string } {
     const titleMatch = query.match(/\btitle:\s*(\S+)/i);
 
     if (titleMatch) {
@@ -136,40 +113,28 @@ class ScopeFilter implements SearchStrategyInterface {
     return { scope: undefined, remainingText: query };
   }
 
-  // TODO: implementare. cosi non rispetta principio SOLID di Interface Segregation
-  removeFilter(query: string) {
-    // result.scope = scopeResult.scope;
-    // remainingText = scopeResult.remainingText;
-    throw new Error("Method not implemented.");
+  // Rimuove il prefisso "title:" mantenendo il termine di ricerca come testo libero
+  removeFrom(query: string): string {
+    return query.replace(/\btitle:\s*/i, '').trim();
   }
 }
 
-class TaskFilter implements SearchStrategyInterface {
-  /**
-   * Extract task filter (task:, task-todo:, task-done:)
-   */
-  addFilter(query: string): 'all' | 'todo' | 'done' | undefined {
+class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | undefined> {
+  getHints() {
+    return [{ label: 'task:', desc: 'task' }];
+  }
+
+  extract(query: string): 'all' | 'todo' | 'done' | undefined {
     const lowerQuery = query.toLowerCase();
 
-    if (/\btask-todo:\b/.test(lowerQuery)) {
-      return 'todo';
-    }
-
-    if (/\btask-done:\b/.test(lowerQuery)) {
-      return 'done';
-    }
-
-    if (/\btask:\b/.test(lowerQuery)) {
-      return 'all';
-    }
+    if (/\btask-todo:\b/.test(lowerQuery)) return 'todo';
+    if (/\btask-done:\b/.test(lowerQuery)) return 'done';
+    if (/\btask:\b/.test(lowerQuery)) return 'all';
 
     return undefined;
   }
 
-  /**
-   * Remove task filter keywords from query
-   */
-  removeFilter(query: string): string {
+  removeFrom(query: string): string {
     return query
       .replace(/\btask-todo:\b/gi, '')
       .replace(/\btask-done:\b/gi, '')
@@ -178,57 +143,16 @@ class TaskFilter implements SearchStrategyInterface {
   }
 }
 
-// TODO questo per lo "strategy pattern" capire quale va meglio
-// class SearchStrategyContext {
-//   private strategy: SearchStrategyInterface;
-//   public setStrategy(strategy: SearchStrategyInterface): void {
-//     this.strategy = strategy;
-//   }
+export class SearchStrategyFactory {
+  private static readonly strategies: SearchStrategyInterface<unknown>[] = [
+    new TagsFilter(),
+    new DateFilter(),
+    new FileFilter(),
+    new ScopeFilter(),
+    new TaskFilter(),
+  ];
 
-//   public addFilter(query: string): any {
-//     return this.strategy.addFilter(query);
-//   }
-
-//   public removeFilter(query: string): any {
-//     return this.removeFilter(query);
-//   }
-// }
-
-class SearchStrategyFactory {
-  private static readonly strategyMap: Map<string, SearchStrategyInterface> = new Map();
-
-  constructor() {
-    // Da cambiare. per ora lo mantengo qui ma no dovrebbe andare nel costruttore
-    // popolare la mappa statica nel costruttore non è l'ideale
-    // perché verrebbe eseguito ogni volta che fai 'new'
-
-    // Questi nomi li ho messi qui cosi, ma dovranno essere quelli degli Hints
-    SearchStrategyFactory.strategyMap.set('tag', new TagsFilter());
-    SearchStrategyFactory.strategyMap.set('dateFilter', new DateFilter());
-    SearchStrategyFactory.strategyMap.set('fileTypes', new FileFilter());
-    SearchStrategyFactory.strategyMap.set('title', new ScopeFilter());
-    SearchStrategyFactory.strategyMap.set('task', new TaskFilter());
-  }
-
-  public getStrategy(strategyType: string) {
-    const strategy = SearchStrategyFactory.strategyMap.get(strategyType);
-
-    if (!strategy) {
-      throw new Error(`Invalid type type: ${strategyType}`);
-    }
-
-    return strategy;
+  static getAllHints(): { label: string; desc: string }[] {
+    return SearchStrategyFactory.strategies.flatMap(s => s.getHints());
   }
 }
-
-class Main {
-  public static main(args: string[]): void {
-    console.log("Test!");
-    console.log("Arguments:", args);
-    const test: SearchStrategyFactory = new SearchStrategyFactory()
-
-    console.log(test)
-  }
-}
-
-Main.main(process.argv.slice(2));
