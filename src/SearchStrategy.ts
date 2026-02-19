@@ -144,15 +144,28 @@ class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | un
 }
 
 export class SearchStrategyFactory {
-  private static readonly strategies: SearchStrategyInterface<unknown>[] = [
-    new TagsFilter(),
-    new DateFilter(),
-    new FileFilter(),
-    new ScopeFilter(),
-    new TaskFilter(),
-  ];
+  private static readonly strategyMap: Map<string, SearchStrategyInterface<unknown>> = new Map();
+
+  // TODO qui dopo devo correggere. non va bene averle nel costruttore
+  constructor() {
+    SearchStrategyFactory.strategyMap.set('tag', new TagsFilter());
+    SearchStrategyFactory.strategyMap.set('dateFilter', new DateFilter());
+    SearchStrategyFactory.strategyMap.set('fileTypes', new FileFilter());
+    SearchStrategyFactory.strategyMap.set('title', new ScopeFilter());
+    SearchStrategyFactory.strategyMap.set('task', new TaskFilter());
+  }
+
+  public getStrategy(strategyType: string) {
+    const strategy = SearchStrategyFactory.strategyMap.get(strategyType);
+
+    if (!strategy) {
+      throw new Error(`Invalid type type: ${strategyType}`);
+    }
+
+    return strategy;
+  }
 
   static getAllHints(): { label: string; desc: string }[] {
-    return SearchStrategyFactory.strategies.flatMap(s => s.getHints());
+    return [...SearchStrategyFactory.strategyMap.values()].flatMap(s => s.getHints());
   }
 }
