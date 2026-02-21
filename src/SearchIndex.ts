@@ -1,6 +1,6 @@
 import { App, TFile, Notice } from "obsidian";
 import MiniSearch from 'minisearch';
-import { ParsedQuery } from "./QueryParser";
+import { ParsedQuery } from "./SearchStrategy";
 
 interface IndexedDocument {
   id: string;           // file.path

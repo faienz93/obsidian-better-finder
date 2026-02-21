@@ -3,6 +3,18 @@ export interface SearchStrategyInterface<TResult> {
   removeFrom(query: string): string;
 }
 
+export interface ParsedQuery {
+  rawInput: string;
+  isCommandMode: boolean;
+  commandText?: string;
+  tags: string[];
+  dateFilter?: 'today' | 'this-week' | 'this-month';
+  fileTypes: string[];
+  scope?: 'title' | 'content';
+  taskFilter?: 'all' | 'todo' | 'done';
+  freeText: string;
+}
+
 class TagsFilter implements SearchStrategyInterface<string[]> {
   extract(query: string) {
     const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
@@ -33,6 +45,35 @@ class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'thi
       .replace(/\bthis week\b/gi, '')
       .replace(/\bthis month\b/gi, '')
       .trim();
+  }
+
+  isToday(date: Date): boolean {
+    const today = new Date();
+
+    return date.getDate() === today.getDate() &&
+      date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
+  }
+
+  isThisWeek(date: Date): boolean {
+    const today = new Date();
+    const weekStart = new Date(today);
+
+    weekStart.setDate(today.getDate() - today.getDay());
+    weekStart.setHours(0, 0, 0, 0);
+
+    const weekEnd = new Date(weekStart);
+
+    weekEnd.setDate(weekStart.getDate() + 7);
+
+    return date >= weekStart && date < weekEnd;
+  }
+
+  isThisMonth(date: Date): boolean {
+    const today = new Date();
+
+    return date.getMonth() === today.getMonth() &&
+      date.getFullYear() === today.getFullYear();
   }
 }
 
@@ -131,7 +172,6 @@ export class SearchStrategyFactory {
   }
 
   public getStrategy(strategyType: string) {
-    // TODO che succede se chiamo getStrategy senza aver chiamato getInstance()?
     const strategy = this.strategyMap.get(strategyType);
 
     if (!strategy) {
@@ -139,5 +179,47 @@ export class SearchStrategyFactory {
     }
 
     return strategy;
+  }
+
+  public parse(input: string): ParsedQuery {
+    const trimmedInput = input.trim();
+
+    const result: ParsedQuery = {
+      rawInput: trimmedInput,
+      isCommandMode: false,
+      tags: [],
+      fileTypes: [],
+      freeText: ''
+    };
+
+    if (trimmedInput.startsWith('>')) {
+      result.isCommandMode = true;
+      result.commandText = trimmedInput.slice(1).trim();
+
+      return result;
+    }
+
+    let remainingText = trimmedInput;
+
+    result.tags = this.getStrategy('tag').extract(remainingText) as string[];
+    remainingText = this.getStrategy('tag').removeFrom(remainingText);
+
+    result.dateFilter = this.getStrategy('dateFilter').extract(remainingText) as ParsedQuery['dateFilter'];
+    remainingText = this.getStrategy('dateFilter').removeFrom(remainingText);
+
+    result.fileTypes = this.getStrategy('fileTypes').extract(remainingText) as string[];
+    remainingText = this.getStrategy('fileTypes').removeFrom(remainingText);
+
+    const scopeResult = this.getStrategy('title').extract(remainingText) as { scope?: 'title' | 'content'; remainingText: string };
+
+    result.scope = scopeResult.scope;
+    remainingText = scopeResult.remainingText;
+
+    result.taskFilter = this.getStrategy('task').extract(remainingText) as ParsedQuery['taskFilter'];
+    remainingText = this.getStrategy('task').removeFrom(remainingText);
+
+    result.freeText = remainingText.trim();
+
+    return result;
   }
 }

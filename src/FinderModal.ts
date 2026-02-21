@@ -1,5 +1,5 @@
 import { App, SuggestModal, getAllTags } from "obsidian";
-import { QueryParser } from "./QueryParser";
+import { SearchStrategyFactory } from "./SearchStrategy";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 
 class FinderModal extends SuggestModal<SearchResult> {
@@ -51,7 +51,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     // const file = result as TFile;
 
     // Parse query once at the beginning
-    const parsed = QueryParser.parse(this.inputEl.value);
+    const parsed = SearchStrategyFactory.getInstance().parse(this.inputEl.value);
 
     // Add class to el directly instead of creating nested container
     el.addClass('suggestion-item');

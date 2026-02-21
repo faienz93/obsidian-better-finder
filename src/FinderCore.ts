@@ -1,5 +1,5 @@
 import { App, TFile, getAllTags, Command } from "obsidian";
-import { QueryParser } from "./QueryParser";
+import { SearchStrategyFactory } from "./SearchStrategy";
 import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
 
@@ -63,7 +63,6 @@ export class FinderCore {
     });
   }
 
-  // COPIATO DA FinderModal.updateHintHighlights()
   updateHintHighlights(query: string): void {
     // const query = this.inputEl.value.toLowerCase();
     const queryLowerCase = query.toLowerCase();
@@ -77,7 +76,6 @@ export class FinderCore {
     });
   }
 
-  // COPIATO DA FinderModal.getCommandSuggestions()
   getCommandSuggestions(searchText: string): Command[] {
     const allCommands = (this.app as any).commands.listCommands() as Command[];
 
@@ -93,9 +91,9 @@ export class FinderCore {
     );
   }
 
-  // COPIATO DA FinderModal.getSuggestions()
   async getResults(query: string): Promise<SearchResult[]> {
-    const parsed = QueryParser.parse(query);
+    const factory = SearchStrategyFactory.getInstance();
+    const parsed = factory.parse(query);
 
     if (parsed.isCommandMode) {
       return this.getCommandSuggestions(parsed.commandText || '');
@@ -126,13 +124,15 @@ export class FinderCore {
 
     // 3. Filter by date
     if (parsed.dateFilter) {
+      const dateFilter = factory.getStrategy('dateFilter') as any;
+
       results = results.filter(file => {
         const fileDate = new Date(file.stat.mtime);
 
         switch (parsed.dateFilter) {
-          case 'today': return QueryParser.isToday(fileDate);
-          case 'this-week': return QueryParser.isThisWeek(fileDate);
-          case 'this-month': return QueryParser.isThisMonth(fileDate);
+          case 'today': return dateFilter.isToday(fileDate);
+          case 'this-week': return dateFilter.isThisWeek(fileDate);
+          case 'this-month': return dateFilter.isThisMonth(fileDate);
           default: return true;
         }
       });
