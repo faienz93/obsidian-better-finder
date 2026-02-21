@@ -1,16 +1,9 @@
-import { i18n } from './const';
-
 export interface SearchStrategyInterface<TResult> {
   extract(query: string): TResult;
   removeFrom(query: string): string;
-  getHints(): { label: string; desc: string }[];
 }
 
 class TagsFilter implements SearchStrategyInterface<string[]> {
-  getHints() {
-    return [{ label: '#tag', desc: 'tag' }];
-  }
-
   extract(query: string) {
     const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
     const matches = query.match(tagRegex);
@@ -24,14 +17,6 @@ class TagsFilter implements SearchStrategyInterface<string[]> {
 }
 
 class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'this-month' | undefined> {
-  getHints() {
-    return [
-      { label: 'today', desc: i18n.today },
-      { label: 'this week', desc: i18n.thisWeek },
-      { label: 'this month', desc: i18n.thisMonth },
-    ];
-  }
-
   extract(query: string): 'today' | 'this-week' | 'this-month' | undefined {
     const lowerQuery = query.toLowerCase();
 
@@ -52,16 +37,6 @@ class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'thi
 }
 
 class FileFilter implements SearchStrategyInterface<string[]> {
-  getHints() {
-    return [
-      { label: 'pdf', desc: 'PDF' },
-      { label: 'image', desc: i18n.images },
-      { label: 'canvas', desc: 'canvas' },
-      { label: 'json', desc: 'json' },
-      { label: 'base', desc: 'base' },
-    ];
-  }
-
   extract(query: string): string[] {
     const types: string[] = [];
     const lowerQuery = query.toLowerCase();
@@ -69,7 +44,6 @@ class FileFilter implements SearchStrategyInterface<string[]> {
     if (/\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/.test(lowerQuery)) {
       types.push('.png', '.jpg', '.jpeg', '.gif', '.webp');
     }
-
     if (/\bpdf\b/.test(lowerQuery)) types.push('.pdf');
     if (/\b(word|docx|doc)\b/.test(lowerQuery)) types.push('.docx', '.doc');
     if (/\b(excel|xlsx|xls)\b/.test(lowerQuery)) types.push('.xlsx', '.xls');
@@ -96,10 +70,6 @@ class FileFilter implements SearchStrategyInterface<string[]> {
 // TODO: ScopeFilter non rispetta ISP — extract() restituisce già remainingText,
 // quindi removeFrom() è ridondante. Da valutare se separare in futuro.
 class ScopeFilter implements SearchStrategyInterface<{ scope?: 'title' | 'content'; remainingText: string }> {
-  getHints() {
-    return [{ label: 'title:', desc: i18n.title }];
-  }
-
   extract(query: string): { scope?: 'title' | 'content'; remainingText: string } {
     const titleMatch = query.match(/\btitle:\s*(\S+)/i);
 
@@ -120,10 +90,6 @@ class ScopeFilter implements SearchStrategyInterface<{ scope?: 'title' | 'conten
 }
 
 class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | undefined> {
-  getHints() {
-    return [{ label: 'task:', desc: 'task' }];
-  }
-
   extract(query: string): 'all' | 'todo' | 'done' | undefined {
     const lowerQuery = query.toLowerCase();
 
@@ -148,24 +114,20 @@ export class SearchStrategyFactory {
 
   // TODO qui dopo devo correggere. non va bene averle nel costruttore
   constructor() {
-    SearchStrategyFactory.strategyMap.set('tag', new TagsFilter());
+    SearchStrategyFactory.strategyMap.set('tag',        new TagsFilter());
     SearchStrategyFactory.strategyMap.set('dateFilter', new DateFilter());
-    SearchStrategyFactory.strategyMap.set('fileTypes', new FileFilter());
-    SearchStrategyFactory.strategyMap.set('title', new ScopeFilter());
-    SearchStrategyFactory.strategyMap.set('task', new TaskFilter());
+    SearchStrategyFactory.strategyMap.set('fileTypes',  new FileFilter());
+    SearchStrategyFactory.strategyMap.set('title',      new ScopeFilter());
+    SearchStrategyFactory.strategyMap.set('task',       new TaskFilter());
   }
 
   public getStrategy(strategyType: string) {
     const strategy = SearchStrategyFactory.strategyMap.get(strategyType);
 
     if (!strategy) {
-      throw new Error(`Invalid type type: ${strategyType}`);
+      throw new Error(`Strategy not found: ${strategyType}`);
     }
 
     return strategy;
-  }
-
-  static getAllHints(): { label: string; desc: string }[] {
-    return [...SearchStrategyFactory.strategyMap.values()].flatMap(s => s.getHints());
   }
 }
