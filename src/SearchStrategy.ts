@@ -111,16 +111,15 @@ class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | un
 }
 
 export class SearchStrategyFactory {
-  private static readonly strategyMap: Map<string, SearchStrategyInterface<unknown>> = new Map();
+  private readonly strategyMap: Map<string, SearchStrategyInterface<unknown>> = new Map();
   private static _instance: SearchStrategyFactory;
 
-  // TODO qui dopo devo correggere. non va bene averle nel costruttore
   private constructor() {
-    SearchStrategyFactory.strategyMap.set('tag', new TagsFilter());
-    SearchStrategyFactory.strategyMap.set('dateFilter', new DateFilter());
-    SearchStrategyFactory.strategyMap.set('fileTypes', new FileFilter());
-    SearchStrategyFactory.strategyMap.set('title', new ScopeFilter());
-    SearchStrategyFactory.strategyMap.set('task', new TaskFilter());
+    this.strategyMap.set('tag', new TagsFilter());
+    this.strategyMap.set('dateFilter', new DateFilter());
+    this.strategyMap.set('fileTypes', new FileFilter());
+    this.strategyMap.set('title', new ScopeFilter());
+    this.strategyMap.set('task', new TaskFilter());
   }
 
   public static getInstance(): SearchStrategyFactory {
@@ -132,7 +131,8 @@ export class SearchStrategyFactory {
   }
 
   public getStrategy(strategyType: string) {
-    const strategy = SearchStrategyFactory.strategyMap.get(strategyType);
+    // TODO che succede se chiamo getStrategy senza aver chiamato getInstance()?
+    const strategy = this.strategyMap.get(strategyType);
 
     if (!strategy) {
       throw new Error(`Strategy not found: ${strategyType}`);
