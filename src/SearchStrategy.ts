@@ -3,6 +3,10 @@ export interface SearchStrategyInterface<TResult> {
   removeFrom(query: string): string;
 }
 
+export interface Filterable<TResult> {
+  filter(files: TFile[], extracted: TResult, app: App): TFile[];
+}
+
 export interface ParsedQuery {
   rawInput: string;
   isCommandMode: boolean;
@@ -15,7 +19,7 @@ export interface ParsedQuery {
   freeText: string;
 }
 
-class TagsFilter implements SearchStrategyInterface<string[]> {
+class TagsFilter implements SearchStrategyInterface<string[]>, Filterable<string[]> {
   extract(query: string) {
     const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
     const matches = query.match(tagRegex);
@@ -26,9 +30,22 @@ class TagsFilter implements SearchStrategyInterface<string[]> {
   removeFrom(query: string) {
     return query.replace(/#([a-zA-Z0-9][\w\-/]*)/g, '').trim();
   }
+
+  filter(files: TFile[], tags: string[], app: App): TFile[] {
+    if (tags.length === 0) return files;
+
+    return files.filter(file => {
+      const cache = app.metadataCache.getFileCache(file);
+
+      if (!cache) return false;
+      const fileTags = getAllTags(cache) || [];
+
+      return tags.every(tag => fileTags.includes(tag));
+    });
+  }
 }
 
-class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'this-month' | undefined> {
+class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'this-month' | undefined>, Filterable<'today' | 'this-week' | 'this-month' | undefined> {
   extract(query: string): 'today' | 'this-week' | 'this-month' | undefined {
     const lowerQuery = query.toLowerCase();
 
@@ -45,6 +62,21 @@ class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'thi
       .replace(/\bthis week\b/gi, '')
       .replace(/\bthis month\b/gi, '')
       .trim();
+  }
+
+  filter(files: TFile[], dateFilter: 'today' | 'this-week' | 'this-month' | undefined, app: App): TFile[] {
+    if (!dateFilter) return files;
+
+    return files.filter(file => {
+      const fileDate = new Date(file.stat.mtime);
+
+      switch (dateFilter) {
+        case 'today': return this.isToday(fileDate);
+        case 'this-week': return this.isThisWeek(fileDate);
+        case 'this-month': return this.isThisMonth(fileDate);
+        default: return true;
+      }
+    });
   }
 
   isToday(date: Date): boolean {
@@ -77,7 +109,7 @@ class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'thi
   }
 }
 
-class FileFilter implements SearchStrategyInterface<string[]> {
+class FileFilter implements SearchStrategyInterface<string[]>, Filterable<string[]> {
   extract(query: string): string[] {
     const types: string[] = [];
     const lowerQuery = query.toLowerCase();
@@ -106,6 +138,14 @@ class FileFilter implements SearchStrategyInterface<string[]> {
       .replace(/\bjson\b/gi, '')
       .replace(/\bbase\b/gi, '')
       .trim();
+  }
+
+  filter(files: TFile[], fileTypes: string[], app: App): TFile[] {
+    if (fileTypes.length === 0) {
+      return files.filter(f => f.extension === 'md');
+    }
+
+    return files.filter(f => fileTypes.some(ext => f.extension === ext.slice(1)));
   }
 }
 
@@ -147,7 +187,7 @@ class CommandFilter implements SearchStrategyInterface<{ isCommandMode: boolean;
   }
 }
 
-class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | undefined> {
+class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | undefined>, Filterable<'all' | 'todo' | 'done' | undefined> {
   extract(query: string): 'all' | 'todo' | 'done' | undefined {
     const lowerQuery = query.toLowerCase();
 
@@ -164,6 +204,27 @@ class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | un
       .replace(/\btask-done:\b/gi, '')
       .replace(/\btask:\b/gi, '')
       .trim();
+  }
+
+  filter(files: TFile[], taskFilter: 'all' | 'todo' | 'done' | undefined, app: App): TFile[] {
+    if (!taskFilter) return files;
+
+    return files.filter(file => {
+      if (file.extension !== 'md') return false;
+      const cache = app.metadataCache.getFileCache(file);
+
+      if (!cache?.listItems) return false;
+      const tasks = cache.listItems.filter(item => item.task);
+
+      if (tasks.length === 0) return false;
+
+      switch (taskFilter) {
+        case 'all': return true;
+        case 'todo': return tasks.some(t => t.task !== 'x' && t.task !== 'X');
+        case 'done': return tasks.some(t => t.task === 'x' || t.task === 'X');
+        default: return true;
+      }
+    });
   }
 }
 
