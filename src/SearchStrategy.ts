@@ -131,6 +131,22 @@ class ScopeFilter implements SearchStrategyInterface<{ scope?: 'title' | 'conten
   }
 }
 
+class CommandFilter implements SearchStrategyInterface<{ isCommandMode: boolean; commandText?: string }> {
+  extract(query: string): { isCommandMode: boolean; commandText?: string } {
+    const trimmed = query.trim();
+
+    if (trimmed.startsWith('>')) {
+      return { isCommandMode: true, commandText: trimmed.slice(1).trim() };
+    }
+
+    return { isCommandMode: false };
+  }
+
+  removeFrom(query: string): string {
+    return query.replace(/^>\s*/, '').trim();
+  }
+}
+
 class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | undefined> {
   extract(query: string): 'all' | 'todo' | 'done' | undefined {
     const lowerQuery = query.toLowerCase();
@@ -156,6 +172,7 @@ export class SearchStrategyFactory {
   private static _instance: SearchStrategyFactory;
 
   private constructor() {
+    this.strategyMap.set('command', new CommandFilter());
     this.strategyMap.set('tag', new TagsFilter());
     this.strategyMap.set('dateFilter', new DateFilter());
     this.strategyMap.set('fileTypes', new FileFilter());
@@ -192,9 +209,11 @@ export class SearchStrategyFactory {
       freeText: ''
     };
 
-    if (trimmedInput.startsWith('>')) {
+    const commandResult = this.getStrategy('command').extract(trimmedInput) as { isCommandMode: boolean; commandText?: string };
+
+    if (commandResult.isCommandMode) {
       result.isCommandMode = true;
-      result.commandText = trimmedInput.slice(1).trim();
+      result.commandText = commandResult.commandText;
 
       return result;
     }

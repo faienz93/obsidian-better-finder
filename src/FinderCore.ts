@@ -22,6 +22,22 @@ export class FinderCore {
   private searchIndex: SearchIndex;
   private debounceTimer: number | null = null;
   private static readonly DEBOUNCE_MS = 150;
+  private factory = SearchStrategyFactory.getInstance();
+
+  hints = [
+    { label: '#tag', desc: 'tag', strategy: this.factory.getStrategy('tag') },
+    { label: 'today', desc: i18n.today, strategy: this.factory.getStrategy('dateFilter') },
+    { label: 'this week', desc: i18n.thisWeek, strategy: this.factory.getStrategy('dateFilter') },
+    { label: 'this month', desc: i18n.thisMonth, strategy: this.factory.getStrategy('dateFilter') },
+    { label: '>', desc: i18n.commands, strategy: this.factory.getStrategy('command') },
+    { label: 'title:', desc: i18n.title, strategy: this.factory.getStrategy('title') },
+    { label: 'task:', desc: 'task', strategy: this.factory.getStrategy('task') },
+    { label: 'pdf', desc: 'PDF', strategy: this.factory.getStrategy('fileTypes') },
+    { label: 'image', desc: i18n.images, strategy: this.factory.getStrategy('fileTypes') },
+    { label: 'canvas', desc: 'canvas', strategy: this.factory.getStrategy('fileTypes') },
+    { label: 'json', desc: 'json', strategy: this.factory.getStrategy('fileTypes') },
+    { label: 'base', desc: 'base', strategy: this.factory.getStrategy('fileTypes') },
+  ];
 
   constructor(app: App) {
     this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
@@ -29,26 +45,10 @@ export class FinderCore {
     this.searchIndex = SearchIndex.getInstance(this.app);
   }
 
-  // COPIATO DA FinderModal.renderHints() - adattato per usare container invece di modalEl
   renderHints(container: HTMLElement, onHintClick: (hint: string) => void): void {
     const hintBar = container.createDiv({ cls: 'hint-bar' });
 
-    const hints = [
-      { label: '#tag', desc: 'tag' },
-      { label: 'today', desc: i18n.today },
-      { label: 'this week', desc: i18n.thisWeek },
-      { label: 'this month', desc: i18n.thisMonth },
-      { label: '>', desc: i18n.commands },
-      { label: 'title:', desc: i18n.title },
-      { label: 'task:', desc: 'task' },
-      { label: 'pdf', desc: 'PDF' },
-      { label: 'image', desc: i18n.images },
-      { label: 'canvas', desc: 'canvas' },
-      { label: 'json', desc: 'json' },
-      { label: 'base', desc: 'base' },
-    ];
-
-    hints.forEach(hint => {
+    this.hints.forEach(hint => {
       const chip = hintBar.createSpan({ cls: 'hint-chip' });
 
       chip.setText(hint.label);
@@ -92,8 +92,7 @@ export class FinderCore {
   }
 
   async getResults(query: string): Promise<SearchResult[]> {
-    const factory = SearchStrategyFactory.getInstance();
-    const parsed = factory.parse(query);
+    const parsed = this.factory.parse(query);
 
     if (parsed.isCommandMode) {
       return this.getCommandSuggestions(parsed.commandText || '');
@@ -124,7 +123,7 @@ export class FinderCore {
 
     // 3. Filter by date
     if (parsed.dateFilter) {
-      const dateFilter = factory.getStrategy('dateFilter') as any;
+      const dateFilter = this.factory.getStrategy('dateFilter') as any;
 
       results = results.filter(file => {
         const fileDate = new Date(file.stat.mtime);
