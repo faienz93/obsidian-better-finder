@@ -1,3 +1,5 @@
+import { App, getAllTags, TFile } from "obsidian";
+
 export interface SearchStrategyInterface<TResult> {
   extract(query: string): TResult;
   removeFrom(query: string): string;
@@ -7,15 +9,18 @@ export interface Filterable<TResult> {
   filter(files: TFile[], extracted: TResult, app: App): TFile[];
 }
 
+export type DateRange = 'today' | 'this-week' | 'this-month';
+export type TaskStatus = 'all' | 'todo' | 'done';
+
 export interface ParsedQuery {
   rawInput: string;
   isCommandMode: boolean;
   commandText?: string;
   tags: string[];
-  dateFilter?: 'today' | 'this-week' | 'this-month';
+  dateFilter?: DateRange;
   fileTypes: string[];
   scope?: 'title' | 'content';
-  taskFilter?: 'all' | 'todo' | 'done';
+  taskFilter?: TaskStatus;
   freeText: string;
 }
 
@@ -45,8 +50,8 @@ class TagsFilter implements SearchStrategyInterface<string[]>, Filterable<string
   }
 }
 
-class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'this-month' | undefined>, Filterable<'today' | 'this-week' | 'this-month' | undefined> {
-  extract(query: string): 'today' | 'this-week' | 'this-month' | undefined {
+class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filterable<DateRange | undefined> {
+  extract(query: string): DateRange | undefined {
     const lowerQuery = query.toLowerCase();
 
     if (/\btoday\b/.test(lowerQuery)) return 'today';
@@ -64,7 +69,7 @@ class DateFilter implements SearchStrategyInterface<'today' | 'this-week' | 'thi
       .trim();
   }
 
-  filter(files: TFile[], dateFilter: 'today' | 'this-week' | 'this-month' | undefined, app: App): TFile[] {
+  filter(files: TFile[], dateFilter: DateRange | undefined, app: App): TFile[] {
     if (!dateFilter) return files;
 
     return files.filter(file => {
@@ -187,8 +192,8 @@ class CommandFilter implements SearchStrategyInterface<{ isCommandMode: boolean;
   }
 }
 
-class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | undefined>, Filterable<'all' | 'todo' | 'done' | undefined> {
-  extract(query: string): 'all' | 'todo' | 'done' | undefined {
+class TaskFilter implements SearchStrategyInterface<TaskStatus | undefined>, Filterable<TaskStatus | undefined> {
+  extract(query: string): TaskStatus | undefined {
     const lowerQuery = query.toLowerCase();
 
     if (/\btask-todo:\b/.test(lowerQuery)) return 'todo';
@@ -206,7 +211,7 @@ class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | un
       .trim();
   }
 
-  filter(files: TFile[], taskFilter: 'all' | 'todo' | 'done' | undefined, app: App): TFile[] {
+  filter(files: TFile[], taskFilter: TaskStatus | undefined, app: App): TFile[] {
     if (!taskFilter) return files;
 
     return files.filter(file => {
