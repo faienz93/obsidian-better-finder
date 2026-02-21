@@ -44,6 +44,7 @@ class FileFilter implements SearchStrategyInterface<string[]> {
     if (/\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/.test(lowerQuery)) {
       types.push('.png', '.jpg', '.jpeg', '.gif', '.webp');
     }
+
     if (/\bpdf\b/.test(lowerQuery)) types.push('.pdf');
     if (/\b(word|docx|doc)\b/.test(lowerQuery)) types.push('.docx', '.doc');
     if (/\b(excel|xlsx|xls)\b/.test(lowerQuery)) types.push('.xlsx', '.xls');
@@ -111,14 +112,23 @@ class TaskFilter implements SearchStrategyInterface<'all' | 'todo' | 'done' | un
 
 export class SearchStrategyFactory {
   private static readonly strategyMap: Map<string, SearchStrategyInterface<unknown>> = new Map();
+  private static _instance: SearchStrategyFactory;
 
   // TODO qui dopo devo correggere. non va bene averle nel costruttore
-  constructor() {
-    SearchStrategyFactory.strategyMap.set('tag',        new TagsFilter());
+  private constructor() {
+    SearchStrategyFactory.strategyMap.set('tag', new TagsFilter());
     SearchStrategyFactory.strategyMap.set('dateFilter', new DateFilter());
-    SearchStrategyFactory.strategyMap.set('fileTypes',  new FileFilter());
-    SearchStrategyFactory.strategyMap.set('title',      new ScopeFilter());
-    SearchStrategyFactory.strategyMap.set('task',       new TaskFilter());
+    SearchStrategyFactory.strategyMap.set('fileTypes', new FileFilter());
+    SearchStrategyFactory.strategyMap.set('title', new ScopeFilter());
+    SearchStrategyFactory.strategyMap.set('task', new TaskFilter());
+  }
+
+  public static getInstance(): SearchStrategyFactory {
+    if (!SearchStrategyFactory._instance) {
+      SearchStrategyFactory._instance = new SearchStrategyFactory();
+    }
+
+    return SearchStrategyFactory._instance;
   }
 
   public getStrategy(strategyType: string) {
