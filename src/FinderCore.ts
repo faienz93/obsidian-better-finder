@@ -2,7 +2,6 @@ import { App, TFile, getAllTags, Command } from "obsidian";
 import { QueryParser } from "./QueryParser";
 import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
-import { SearchStrategyFactory } from "./SearchStrategy";
 
 export type SearchResult = TFile | Command;
 
@@ -96,7 +95,6 @@ export class FinderCore {
 
   // COPIATO DA FinderModal.getSuggestions()
   async getResults(query: string): Promise<SearchResult[]> {
-    const test = SearchStrategyFactory.getInstance()
     const parsed = QueryParser.parse(query);
 
     if (parsed.isCommandMode) {
