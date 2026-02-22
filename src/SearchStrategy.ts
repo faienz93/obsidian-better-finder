@@ -24,6 +24,11 @@ export interface ParsedQuery {
   freeText: string;
 }
 
+// Type Guards.
+export const isFilterable = (strategy: any): strategy is Filterable<unknown> => {
+  return typeof strategy.filter === 'function';
+}
+
 class TagsFilter implements SearchStrategyInterface<string[]>, Filterable<string[]> {
   extract(query: string) {
     const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;

@@ -1,5 +1,5 @@
 import { App, TFile, getAllTags, Command } from "obsidian";
-import { SearchStrategyFactory } from "./SearchStrategy";
+import { isFilterable, SearchStrategyFactory } from "./SearchStrategy";
 import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
 
@@ -91,6 +91,7 @@ export class FinderCore {
     );
   }
 
+  // QUESTO METODO DEVO RIFATTORIZZARE
   async getResults(query: string): Promise<SearchResult[]> {
     const parsed = this.factory.parse(query);
 
@@ -98,9 +99,29 @@ export class FinderCore {
       return this.getCommandSuggestions(parsed.commandText || '');
     }
 
+    // // // Esempio tag
+    // const test = this.hints.filter(f => query.includes(f.label))
+
+    // // console.log(test)
+    // const trimmedInput = query.trim();
+
+    // const strategy = test[0].strategy;
+
+    // const test2 = strategy.extract(trimmedInput)
+
+    // const freeText = strategy.removeFrom(trimmedInput).trim()
+
+    // console.log(test2)
+
     let results: TFile[] = this.allFiles;
 
+    // if (isFilterable(strategy)) {
+    //   // TypeScript ora sa che 'strategy' ha il metodo filter
+    //   const currentFiles = strategy.filter(results, parsed.fileTypes, this.app);
+    // }
+
     // 1. Filter by file types
+    // FileFilter
     if (parsed.fileTypes.length > 0) {
       results = results.filter(file =>
         parsed.fileTypes.some(ext => file.extension === ext.slice(1))
