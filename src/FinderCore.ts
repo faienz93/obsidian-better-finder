@@ -1,11 +1,14 @@
-import { App, TFile, getAllTags, Command } from "obsidian";
-import { isFilterable, SearchStrategyFactory } from "./SearchStrategy";
+import { App, TFile, Command } from "obsidian";
+import { isFilterable, SearchStrategyFactory, SearchStrategyInterface } from "./SearchStrategy";
 import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
+// import { ParsedQuery } from "./QueryParser";
 
 export type SearchResult = TFile | Command;
 
-// TODO non usato. cancellare
+export type HintsType = { label: string, desc: string, strategy: SearchStrategyInterface<unknown> }[]
+
+// TODO non usato. NON CANCELLARE
 export function isFile(result: SearchResult): result is TFile {
   return 'stat' in result;
 }
@@ -24,8 +27,8 @@ export class FinderCore {
   private static readonly DEBOUNCE_MS = 150;
   private factory = SearchStrategyFactory.getInstance();
 
-  hints = [
-    { label: '#tag', desc: 'tag', strategy: this.factory.getStrategy('tag') },
+  hints: HintsType = [
+    { label: '#', desc: 'tag', strategy: this.factory.getStrategy('tag') },
     { label: 'today', desc: i18n.today, strategy: this.factory.getStrategy('dateFilter') },
     { label: 'this week', desc: i18n.thisWeek, strategy: this.factory.getStrategy('dateFilter') },
     { label: 'this month', desc: i18n.thisMonth, strategy: this.factory.getStrategy('dateFilter') },
@@ -91,118 +94,59 @@ export class FinderCore {
     );
   }
 
-  // QUESTO METODO DEVO RIFATTORIZZARE
   async getResults(query: string): Promise<SearchResult[]> {
-    const parsed = this.factory.parse(query);
+    console.log(query)
+    const trimmedInput = query.trim();
 
-    if (parsed.isCommandMode) {
-      return this.getCommandSuggestions(parsed.commandText || '');
+    // Command mode: early return
+    const commandResult = this.factory.getStrategy('command').extract(trimmedInput) as { isCommandMode: boolean; commandText?: string };
+
+    if (commandResult.isCommandMode) {
+      return this.getCommandSuggestions(commandResult.commandText || '');
     }
 
-    // // // Esempio tag
-    // const test = this.hints.filter(f => query.includes(f.label))
+    // Strategie uniche matchate dagli hints (escluso command '>')
+    const matchedStrategies = [...new Set(
+      this.hints
+        .filter(h => h.label !== '>' && trimmedInput.includes(h.label))
+        .map(h => h.strategy)
+    )];
 
-    // // console.log(test)
-    // const trimmedInput = query.trim();
-
-    // const strategy = test[0].strategy;
-
-    // const test2 = strategy.extract(trimmedInput)
-
-    // const freeText = strategy.removeFrom(trimmedInput).trim()
-
-    // console.log(test2)
-
+    console.log('MATCHED STRATEGY')
+    console.log(matchedStrategies)
     let results: TFile[] = this.allFiles;
+    let remainingText = trimmedInput;
+    let titleSearchDone = false;
 
-    // if (isFilterable(strategy)) {
-    //   // TypeScript ora sa che 'strategy' ha il metodo filter
-    //   const currentFiles = strategy.filter(results, parsed.fileTypes, this.app);
-    // }
+    for (const strategy of matchedStrategies) {
+      console.log('test')
+      const extracted = strategy.extract(remainingText);
 
-    // 1. Filter by file types
-    // FileFilter
-    if (parsed.fileTypes.length > 0) {
-      results = results.filter(file =>
-        parsed.fileTypes.some(ext => file.extension === ext.slice(1))
-      );
-    } else {
-      results = results.filter(file => file.extension === 'md');
-    }
+      remainingText = strategy.removeFrom(remainingText);
 
-    // 2. Filter by tags
-    if (parsed.tags.length > 0) {
-      results = results.filter(file => {
-        const fileCache = this.app.metadataCache.getFileCache(file);
-
-        if (!fileCache) return false;
-        const fileTags = getAllTags(fileCache) || [];
-
-        return parsed.tags.every(tag => fileTags.includes(tag));
-      });
-    }
-
-    // 3. Filter by date
-    if (parsed.dateFilter) {
-      const dateFilter = this.factory.getStrategy('dateFilter') as any;
-
-      results = results.filter(file => {
-        const fileDate = new Date(file.stat.mtime);
-
-        switch (parsed.dateFilter) {
-          case 'today': return dateFilter.isToday(fileDate);
-          case 'this-week': return dateFilter.isThisWeek(fileDate);
-          case 'this-month': return dateFilter.isThisMonth(fileDate);
-          default: return true;
-        }
-      });
-    }
-
-    // 4. Filter by scope / free text search
-    if (parsed.freeText) {
-      if (parsed.scope === 'title') {
-        results = this.searchIndex.searchInTitlesWithoutIndex(parsed.freeText, results);
-      } else {
-        const isMarkdownOnly = parsed.fileTypes.length === 0 ||
-          parsed.fileTypes.every(ext => ext === '.md');
-
-        if (this.searchIndex?.isIndexReady() && isMarkdownOnly) {
-          // MiniSearch: ricerca indicizzata veloce
-          const indexResults = this.searchIndex.search(parsed.freeText, 50);
-          // Intersezione con risultati pre-filtrati (tag, date, task)
-          const resultPaths = new Set(results.map(f => f.path));
-
-          results = indexResults.filter(f => resultPaths.has(f.path));
-        } else {
-          // Fallback per non-markdown o indice non pronto
-          results = await this.searchIndex.searchFilesWithoutIndex(parsed, results);
-        }
+      if (isFilterable(strategy)) {
+        results = strategy.filter(results, extracted, this.app);
+        if ((extracted as any)?.scope === 'title') titleSearchDone = true;
       }
-    } else {
-      results.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }
 
-    // 5. Filter by tasks
-    if (parsed.taskFilter) {
-      results = results.filter(file => {
-        if (file.extension !== 'md') return false;
-        const fileCache = this.app.metadataCache.getFileCache(file);
+    const freeText = remainingText.trim();
 
-        if (!fileCache || !fileCache.listItems) return false;
-        const tasks = fileCache.listItems.filter(item => item.task);
+    if (!titleSearchDone && freeText) {
+      const fileTypeLabels = ['pdf', 'image', 'canvas', 'json', 'base'];
+      const isMarkdownOnly = !this.hints
+        .filter(h => trimmedInput.includes(h.label))
+        .some(h => fileTypeLabels.includes(h.label));
 
-        if (tasks.length === 0) return false;
+      if (this.searchIndex?.isIndexReady() && isMarkdownOnly) {
+        const indexResults = this.searchIndex.search(freeText, 50);
+        const resultPaths = new Set(results.map(f => f.path));
 
-        switch (parsed.taskFilter) {
-          case 'all': return true;
-          case 'todo': return tasks.some(t => t.task !== 'x' && t.task !== 'X');
-          case 'done': return tasks.some(t => t.task === 'x' || t.task === 'X');
-          default: return true;
-        }
-      });
-    }
-
-    if (!parsed.freeText) {
+        results = indexResults.filter(f => resultPaths.has(f.path));
+      } else {
+        results = await this.searchIndex.searchFilesWithoutIndex(freeText, results);
+      }
+    } else if (!freeText && !titleSearchDone) {
       results.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }
 

@@ -1,6 +1,5 @@
 import { App, TFile, Notice } from "obsidian";
 import MiniSearch from 'minisearch';
-import { ParsedQuery } from "./SearchStrategy";
 
 interface IndexedDocument {
   id: string;           // file.path
@@ -245,13 +244,13 @@ export class SearchIndex {
    * Search files using simple text matching
    * Returns files sorted by relevance
    */
-  async searchFilesWithoutIndex(parsed: ParsedQuery, files: TFile[]): Promise<TFile[]> {
+  async searchFilesWithoutIndex(freeText: string, files: TFile[]): Promise<TFile[]> {
     // If no free text, return files as-is
-    if (!parsed.freeText) {
+    if (!freeText) {
       return files;
     }
 
-    const searchText = parsed.freeText.toLowerCase();
+    const searchText = freeText.toLowerCase();
     const scoredFiles: Array<{ file: TFile; score: number }> = [];
 
     for (const file of files) {

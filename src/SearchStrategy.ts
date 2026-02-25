@@ -1,4 +1,5 @@
 import { App, getAllTags, TFile } from "obsidian";
+import { SearchIndex } from "./SearchIndex";
 
 export interface SearchStrategyInterface<TResult> {
   extract(query: string): TResult;
@@ -11,18 +12,6 @@ export interface Filterable<TResult> {
 
 export type DateRange = 'today' | 'this-week' | 'this-month';
 export type TaskStatus = 'all' | 'todo' | 'done';
-
-export interface ParsedQuery {
-  rawInput: string;
-  isCommandMode: boolean;
-  commandText?: string;
-  tags: string[];
-  dateFilter?: DateRange;
-  fileTypes: string[];
-  scope?: 'title' | 'content';
-  taskFilter?: TaskStatus;
-  freeText: string;
-}
 
 // Type Guards.
 export const isFilterable = (strategy: any): strategy is Filterable<unknown> => {
@@ -161,7 +150,7 @@ class FileFilter implements SearchStrategyInterface<string[]>, Filterable<string
 
 // TODO: ScopeFilter non rispetta ISP — extract() restituisce già remainingText,
 // quindi removeFrom() è ridondante. Da valutare se separare in futuro.
-class ScopeFilter implements SearchStrategyInterface<{ scope?: 'title' | 'content'; remainingText: string }> {
+class TitleFilter implements SearchStrategyInterface<{ scope?: 'title' | 'content'; remainingText: string }>, Filterable<{ scope?: 'title' | 'content'; remainingText: string }> {
   extract(query: string): { scope?: 'title' | 'content'; remainingText: string } {
     const titleMatch = query.match(/\btitle:\s*(\S+)/i);
 
@@ -178,6 +167,12 @@ class ScopeFilter implements SearchStrategyInterface<{ scope?: 'title' | 'conten
   // Rimuove il prefisso "title:" mantenendo il termine di ricerca come testo libero
   removeFrom(query: string): string {
     return query.replace(/\btitle:\s*/i, '').trim();
+  }
+
+  filter(files: TFile[], extracted: { scope?: "title" | "content"; remainingText: string; }, app: App): TFile[] {
+    const searchIndex = SearchIndex.getInstance(app);
+
+    return searchIndex.searchInTitlesWithoutIndex(extracted.remainingText, files);
   }
 }
 
@@ -247,7 +242,7 @@ export class SearchStrategyFactory {
     this.strategyMap.set('tag', new TagsFilter());
     this.strategyMap.set('dateFilter', new DateFilter());
     this.strategyMap.set('fileTypes', new FileFilter());
-    this.strategyMap.set('title', new ScopeFilter());
+    this.strategyMap.set('title', new TitleFilter());
     this.strategyMap.set('task', new TaskFilter());
   }
 
@@ -267,49 +262,5 @@ export class SearchStrategyFactory {
     }
 
     return strategy;
-  }
-
-  public parse(input: string): ParsedQuery {
-    const trimmedInput = input.trim();
-
-    const result: ParsedQuery = {
-      rawInput: trimmedInput,
-      isCommandMode: false,
-      tags: [],
-      fileTypes: [],
-      freeText: ''
-    };
-
-    const commandResult = this.getStrategy('command').extract(trimmedInput) as { isCommandMode: boolean; commandText?: string };
-
-    if (commandResult.isCommandMode) {
-      result.isCommandMode = true;
-      result.commandText = commandResult.commandText;
-
-      return result;
-    }
-
-    let remainingText = trimmedInput;
-
-    result.tags = this.getStrategy('tag').extract(remainingText) as string[];
-    remainingText = this.getStrategy('tag').removeFrom(remainingText);
-
-    result.dateFilter = this.getStrategy('dateFilter').extract(remainingText) as ParsedQuery['dateFilter'];
-    remainingText = this.getStrategy('dateFilter').removeFrom(remainingText);
-
-    result.fileTypes = this.getStrategy('fileTypes').extract(remainingText) as string[];
-    remainingText = this.getStrategy('fileTypes').removeFrom(remainingText);
-
-    const scopeResult = this.getStrategy('title').extract(remainingText) as { scope?: 'title' | 'content'; remainingText: string };
-
-    result.scope = scopeResult.scope;
-    remainingText = scopeResult.remainingText;
-
-    result.taskFilter = this.getStrategy('task').extract(remainingText) as ParsedQuery['taskFilter'];
-    remainingText = this.getStrategy('task').removeFrom(remainingText);
-
-    result.freeText = remainingText.trim();
-
-    return result;
   }
 }
