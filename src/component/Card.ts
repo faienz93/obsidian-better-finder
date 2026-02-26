@@ -92,9 +92,29 @@ class Metadata {
     this.metadata = parentEl.createDiv({ cls: 'suggestion-note' });
   }
 
-  public setContent(date: string, path: string) {
-    this.metadata.createSpan({ text: date });
-    this.metadata.createSpan({ text: path, attr: { style: "margin-left: 10px; opacity: 0.6;" } });
+  public setContent(primary: string, secondary?: string) {
+    this.metadata.createSpan({ text: primary });
+
+    if (secondary) {
+      this.metadata.createSpan({ text: secondary, attr: { style: "margin-left: 10px; opacity: 0.6;" } });
+    }
+  }
+}
+
+class Hotkey {
+  private hotkey: HTMLElement;
+
+  constructor(parentEl: HTMLElement) {
+    this.hotkey = parentEl.createDiv();
+    this.hotkey.setCssStyles({
+      marginTop: '4px',
+      fontSize: '11px',
+      color: 'var(--text-accent)',
+    });
+  }
+
+  public setContent(text: string) {
+    this.hotkey.setText(`⌨️ ${text}`);
   }
 }
 
@@ -236,10 +256,20 @@ export class SuggestionItem {
     titleRef.addBadge(text);
   }
 
-  public setMetadata(date: string, path: string) {
+  public setMetadata(date: string, path?: string) {
     const metadata = new Metadata(this.el);
 
     metadata.setContent(date, path);
+  }
+
+  public setNote(text: string) {
+    this.setMetadata(text);
+  }
+
+  public setHotkey(text: string) {
+    const hotkey = new Hotkey(this.el);
+
+    hotkey.setContent(text);
   }
 
   public setTags(tags: string[], searchedTags: string[]) {

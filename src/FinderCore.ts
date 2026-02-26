@@ -2,6 +2,7 @@ import { App, TFile, Command } from "obsidian";
 import { isFilterable, SearchStrategyFactory, SearchStrategyInterface } from "./SearchStrategy";
 import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
+import { SuggestionItem } from "./component/Card";
 // import { ParsedQuery } from "./QueryParser";
 
 export type SearchResult = TFile | Command;
@@ -154,35 +155,18 @@ export class FinderCore {
   }
 
   renderCommand(command: Command, el: HTMLElement): void {
-    el.addClass('suggestion-item');
-
-    const titleEl = el.createDiv({ cls: 'suggestion-title' });
-
-    titleEl.createSpan({ text: command.name });
+    const item = new SuggestionItem(el);
+    const title = item.setTitle(command.name);
 
     if (command.icon) {
-      const iconEl = titleEl.createSpan({ cls: 'suggestion-flair' });
-
-      iconEl.style.marginLeft = '8px';
-      iconEl.setText(command.icon);
+      item.setBadge(title, command.icon);
     }
 
-    const metaRow = el.createDiv({ cls: 'suggestion-note' });
-
-    metaRow.style.fontSize = '11px';
-    metaRow.style.color = 'var(--text-muted)';
-    metaRow.style.marginTop = '4px';
-    metaRow.setText(command.id);
+    item.setNote(command.id);
 
     const hotkeys = (this.app as any).hotkeyManager.getHotkeys(command.id);
 
     if (hotkeys && hotkeys.length > 0) {
-      const hotkeyEl = el.createDiv();
-
-      hotkeyEl.style.marginTop = '4px';
-      hotkeyEl.style.fontSize = '11px';
-      hotkeyEl.style.color = 'var(--text-accent)';
-
       const hotkeyText = hotkeys.map((hk: any) => {
         const modifiers = [];
 
@@ -193,7 +177,7 @@ export class FinderCore {
         return [...modifiers, hk.key].join('+');
       }).join(', ');
 
-      hotkeyEl.setText(`⌨️ ${hotkeyText}`);
+      item.setHotkey(hotkeyText);
     }
   }
 
