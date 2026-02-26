@@ -98,6 +98,61 @@ class Metadata {
   }
 }
 
+class Tags {
+  private container: HTMLElement;
+
+  constructor(parentEl: HTMLElement) {
+    this.container = parentEl.createDiv();
+    this.container.setCssStyles({
+      marginTop: '8px',
+      display: 'flex',
+      gap: '4px',
+      flexWrap: 'wrap',
+    });
+  }
+
+  public setContent(tags: string[], searchedTags: string[]) {
+    tags.forEach(tag => {
+      const tagEl = this.container.createSpan({ text: tag });
+
+      tagEl.setCssStyles({
+        background: 'var(--tag-background)',
+        color: 'var(--tag-color)',
+        padding: '2px 6px',
+        borderRadius: '4px',
+        fontSize: '11px',
+      });
+
+      const isMatched = searchedTags.some(st => tag.toLowerCase() === st.toLowerCase());
+
+      if (isMatched) {
+        tagEl.setCssStyles({
+          background: 'var(--interactive-accent)',
+          color: 'var(--text-on-accent)',
+          fontWeight: '600',
+        });
+      }
+    });
+  }
+}
+
+class TaskBadge {
+  private badge: HTMLElement;
+
+  constructor(parentEl: HTMLElement) {
+    this.badge = parentEl.createDiv();
+    this.badge.setCssStyles({
+      marginTop: '6px',
+      fontSize: '11px',
+      color: 'var(--text-muted)',
+    });
+  }
+
+  public setContent(done: number, total: number) {
+    this.badge.setText(`✓ ${done}/${total} tasks completed`);
+  }
+}
+
 class Preview {
   private preview: HTMLElement
   constructor(parentEl: HTMLElement) {
@@ -162,5 +217,41 @@ export class Card {
 
   public onContextMenu(func: (event: PointerEvent) => void) {
     this.card.addEventListener('contextmenu', (event) => func(event));
+  }
+}
+
+export class SuggestionItem {
+  private el: HTMLElement;
+
+  constructor(el: HTMLElement) {
+    this.el = el;
+    this.el.addClass('suggestion-item');
+  }
+
+  public setTitle(text: string): Title {
+    return new Title(this.el, text);
+  }
+
+  public setBadge(titleRef: Title, text: string) {
+    titleRef.addBadge(text);
+  }
+
+  public setMetadata(date: string, path: string) {
+    const metadata = new Metadata(this.el);
+
+    metadata.setContent(date, path);
+  }
+
+  public setTags(tags: string[], searchedTags: string[]) {
+    if (tags.length === 0) return;
+    const tagsEl = new Tags(this.el);
+
+    tagsEl.setContent(tags, searchedTags);
+  }
+
+  public setTaskBadge(done: number, total: number) {
+    const badge = new TaskBadge(this.el);
+
+    badge.setContent(done, total);
   }
 }
