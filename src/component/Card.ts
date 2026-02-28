@@ -242,10 +242,12 @@ export class Card {
 
 export class SuggestionItem {
   private el: HTMLElement;
+  private metadata: Metadata;
 
   constructor(el: HTMLElement) {
     this.el = el;
     this.el.addClass('suggestion-item');
+    this.metadata = new Metadata(this.el);
   }
 
   public setTitle(text: string): Title {
@@ -257,9 +259,11 @@ export class SuggestionItem {
   }
 
   public setMetadata(date: string, path?: string) {
-    const metadata = new Metadata(this.el);
+    this.metadata.setContent(date, path);
+  }
 
-    metadata.setContent(date, path);
+  public getMetadata(): Metadata {
+    return this.metadata;
   }
 
   public setNote(text: string) {
