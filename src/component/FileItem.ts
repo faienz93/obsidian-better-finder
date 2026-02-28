@@ -1,5 +1,6 @@
 import { TFile } from "obsidian";
-import { SuggestionItem, Title } from "./Card";
+import { SuggestionItem } from "./ui/SuggestionItem";
+import { Title } from "./ui/Title";
 
 export interface FileItemData {
   file: TFile;
