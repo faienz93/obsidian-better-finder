@@ -1,13 +1,12 @@
 import { App, TFile, Command } from "obsidian";
-import { isFilterable, SearchStrategyFactory, SearchStrategyInterface } from "./SearchStrategy";
+import { SearchStrategyFactory } from "./SearchStrategy";
 import { SearchIndex } from "./SearchIndex";
 import { i18n } from "./const";
 import { SuggestionItem } from "./component/Card";
-// import { ParsedQuery } from "./QueryParser";
 
 export type SearchResult = TFile | Command;
 
-export type HintsType = { label: string, desc: string, strategy: SearchStrategyInterface<unknown> }[]
+export type HintsType = { label: string, desc: string }[]
 
 // TODO non usato. NON CANCELLARE
 export function isFile(result: SearchResult): result is TFile {
@@ -29,18 +28,18 @@ export class FinderCore {
   private factory = SearchStrategyFactory.getInstance();
 
   hints: HintsType = [
-    { label: '#', desc: 'tag', strategy: this.factory.getStrategy('tag') },
-    { label: 'today', desc: i18n.today, strategy: this.factory.getStrategy('dateFilter') },
-    { label: 'this week', desc: i18n.thisWeek, strategy: this.factory.getStrategy('dateFilter') },
-    { label: 'this month', desc: i18n.thisMonth, strategy: this.factory.getStrategy('dateFilter') },
-    { label: '>', desc: i18n.commands, strategy: this.factory.getStrategy('command') },
-    { label: 'title:', desc: i18n.title, strategy: this.factory.getStrategy('title') },
-    { label: 'task:', desc: 'task', strategy: this.factory.getStrategy('task') },
-    { label: 'pdf', desc: 'PDF', strategy: this.factory.getStrategy('fileTypes') },
-    { label: 'image', desc: i18n.images, strategy: this.factory.getStrategy('fileTypes') },
-    { label: 'canvas', desc: 'canvas', strategy: this.factory.getStrategy('fileTypes') },
-    { label: 'json', desc: 'json', strategy: this.factory.getStrategy('fileTypes') },
-    { label: 'base', desc: 'base', strategy: this.factory.getStrategy('fileTypes') },
+    { label: '#', desc: 'tag' },
+    { label: 'today', desc: i18n.today },
+    { label: 'this week', desc: i18n.thisWeek },
+    { label: 'this month', desc: i18n.thisMonth },
+    { label: '>', desc: i18n.commands },
+    { label: 'title:', desc: i18n.title },
+    { label: 'task:', desc: 'task' },
+    { label: 'pdf', desc: 'PDF' },
+    { label: 'image', desc: i18n.images },
+    { label: 'canvas', desc: 'canvas' },
+    { label: 'json', desc: 'json' },
+    { label: 'base', desc: 'base' },
   ];
 
   constructor(app: App) {
@@ -96,58 +95,34 @@ export class FinderCore {
   }
 
   async getResults(query: string): Promise<SearchResult[]> {
-    console.log(query)
-    const trimmedInput = query.trim();
+    const parsed = this.factory.parse(query);
 
     // Command mode: early return
-    const commandResult = this.factory.getStrategy('command').extract(trimmedInput) as { isCommandMode: boolean; commandText?: string };
-
-    if (commandResult.isCommandMode) {
-      return this.getCommandSuggestions(commandResult.commandText || '');
+    if (parsed.isCommandMode) {
+      return this.getCommandSuggestions(parsed.commandText || '');
     }
 
-    // Strategie uniche matchate dagli hints (escluso command '>')
-    const matchedStrategies = [...new Set(
-      this.hints
-        .filter(h => h.label !== '>' && trimmedInput.includes(h.label))
-        .map(h => h.strategy)
-    )];
+    // Apply all filters
+    let results = this.factory.filter(this.allFiles, parsed, this.app);
 
-    console.log('MATCHED STRATEGY')
-    console.log(matchedStrategies)
-    let results: TFile[] = this.allFiles;
-    let remainingText = trimmedInput;
-    let titleSearchDone = false;
-
-    for (const strategy of matchedStrategies) {
-      console.log('test')
-      const extracted = strategy.extract(remainingText);
-
-      remainingText = strategy.removeFrom(remainingText);
-
-      if (isFilterable(strategy)) {
-        results = strategy.filter(results, extracted, this.app);
-        if ((extracted as any)?.scope === 'title') titleSearchDone = true;
-      }
+    // Title search: no free text search needed, already filtered
+    if (parsed.scope === 'title') {
+      return results.slice(0, 50);
     }
 
-    const freeText = remainingText.trim();
-
-    if (!titleSearchDone && freeText) {
-      const fileTypeLabels = ['pdf', 'image', 'canvas', 'json', 'base'];
-      const isMarkdownOnly = !this.hints
-        .filter(h => trimmedInput.includes(h.label))
-        .some(h => fileTypeLabels.includes(h.label));
+    // Free text search
+    if (parsed.freeText) {
+      const isMarkdownOnly = parsed.fileTypes.length === 0;
 
       if (this.searchIndex?.isIndexReady() && isMarkdownOnly) {
-        const indexResults = this.searchIndex.search(freeText, 50);
+        const indexResults = this.searchIndex.search(parsed.freeText, 50);
         const resultPaths = new Set(results.map(f => f.path));
 
         results = indexResults.filter(f => resultPaths.has(f.path));
       } else {
-        results = await this.searchIndex.searchFilesWithoutIndex(freeText, results);
+        results = await this.searchIndex.searchFilesWithoutIndex(parsed.freeText, results);
       }
-    } else if (!freeText && !titleSearchDone) {
+    } else {
       results.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }
 

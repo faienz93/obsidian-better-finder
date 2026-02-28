@@ -277,6 +277,70 @@ export class SearchStrategyFactory {
   }
 
   /**
+   * Apply all filters from ParsedQuery to a list of files
+   * @param files - Files to filter
+   * @param parsed - ParsedQuery with extracted filters
+   * @param app - Obsidian App instance
+   * @returns Filtered files
+   */
+  filter(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
+    let results = files;
+
+    // Apply tag filter
+    if (parsed.tags.length > 0) {
+      const strategy = this.strategyMap.get('tag');
+
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, parsed.tags, app);
+      }
+    }
+
+    // Apply date filter
+    if (parsed.dateFilter) {
+      const strategy = this.strategyMap.get('dateFilter');
+
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, parsed.dateFilter, app);
+      }
+    }
+
+    // Apply file type filter (always applied - filters to markdown if no types specified)
+    const fileStrategy = this.strategyMap.get('fileTypes');
+
+    if (fileStrategy && isFilterable(fileStrategy)) {
+      results = fileStrategy.filter(results, parsed.fileTypes, app);
+    } else {
+      // Fallback: filter to markdown files only if no strategy
+      results = results.filter(f => f.extension === 'md');
+    }
+
+    // Apply task filter
+    if (parsed.taskFilter) {
+      const strategy = this.strategyMap.get('task');
+
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, parsed.taskFilter, app);
+      }
+    }
+
+    // Apply title filter (scope search)
+    if (parsed.scope === 'title') {
+      const strategy = this.strategyMap.get('title');
+
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, { scope: parsed.scope, remainingText: parsed.freeText }, app);
+      } else {
+        // Fallback: simple basename search
+        const searchTerm = parsed.freeText.toLowerCase();
+
+        results = results.filter(f => f.basename.toLowerCase().includes(searchTerm));
+      }
+    }
+
+    return results;
+  }
+
+  /**
    * Parse user input and extract all filters
    * @param input - Raw search query from user
    * @returns ParsedQuery object with all extracted filters
