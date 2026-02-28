@@ -1,6 +1,18 @@
 import { App, getAllTags, TFile } from "obsidian";
 import { SearchIndex } from "./SearchIndex";
 
+export interface ParsedQuery {
+  rawInput: string;
+  isCommandMode: boolean;
+  commandText?: string;
+  tags: string[];
+  dateFilter?: 'today' | 'this-week' | 'this-month';
+  fileTypes: string[];
+  scope?: 'title' | 'content';
+  taskFilter?: 'all' | 'todo' | 'done';
+  freeText: string;
+}
+
 export interface SearchStrategyInterface<TResult> {
   extract(query: string): TResult;
   removeFrom(query: string): string;
@@ -262,5 +274,72 @@ export class SearchStrategyFactory {
     }
 
     return strategy;
+  }
+
+  /**
+   * Parse user input and extract all filters
+   * @param input - Raw search query from user
+   * @returns ParsedQuery object with all extracted filters
+   */
+  parse(input: string): ParsedQuery {
+    const trimmedInput = input.trim();
+
+    // Initialize result
+    const result: ParsedQuery = {
+      rawInput: trimmedInput,
+      isCommandMode: false,
+      tags: [],
+      fileTypes: [],
+      freeText: ''
+    };
+
+    // 1. Check for command mode (starts with >)
+    const commandStrategy = this.getStrategy('command') as CommandFilter;
+    const commandResult = commandStrategy.extract(trimmedInput);
+
+    if (commandResult.isCommandMode) {
+      result.isCommandMode = true;
+      result.commandText = commandResult.commandText;
+
+      return result;
+    }
+
+    let remainingText = trimmedInput;
+
+    // 2. Extract tags (#react #css)
+    const tagStrategy = this.getStrategy('tag') as TagsFilter;
+
+    result.tags = tagStrategy.extract(remainingText);
+    remainingText = tagStrategy.removeFrom(remainingText);
+
+    // 3. Extract date filters (today, this week, this month)
+    const dateStrategy = this.getStrategy('dateFilter') as DateFilter;
+
+    result.dateFilter = dateStrategy.extract(remainingText);
+    remainingText = dateStrategy.removeFrom(remainingText);
+
+    // 4. Extract file type filters (PDF, immagine, Word, Excel)
+    const fileStrategy = this.getStrategy('fileTypes') as FileFilter;
+
+    result.fileTypes = fileStrategy.extract(remainingText);
+    remainingText = fileStrategy.removeFrom(remainingText);
+
+    // 5. Extract scope (title:something)
+    const titleStrategy = this.getStrategy('title') as TitleFilter;
+    const scopeResult = titleStrategy.extract(remainingText);
+
+    result.scope = scopeResult.scope;
+    remainingText = titleStrategy.removeFrom(remainingText);
+
+    // 6. Extract task filters (task:, task-todo:, task-done:)
+    const taskStrategy = this.getStrategy('task') as TaskFilter;
+
+    result.taskFilter = taskStrategy.extract(remainingText);
+    remainingText = taskStrategy.removeFrom(remainingText);
+
+    // 7. What's left is free text
+    result.freeText = remainingText.trim();
+
+    return result;
   }
 }
