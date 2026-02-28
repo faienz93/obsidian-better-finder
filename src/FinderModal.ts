@@ -1,7 +1,7 @@
-import { App, SuggestModal, getAllTags } from "obsidian";
+import { App, SuggestModal, getAllTags, TFile } from "obsidian";
 import { SearchStrategyFactory } from "./SearchStrategy";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
-import { SuggestionItem } from "./component/Card";
+import { FileItem } from "./component/FileItem";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: FinderCore;
@@ -47,37 +47,21 @@ class FinderModal extends SuggestModal<SearchResult> {
       return;
     }
 
+    const file = result as TFile;
     const parsed = SearchStrategyFactory.getInstance().parse(this.inputEl.value);
-    const item = new SuggestionItem(el);
-    const title = item.setTitle(result.basename);
+    const fileCache = this.app.metadataCache.getFileCache(file);
+    const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
+    const tasks = fileCache?.listItems?.filter(i => i.task) || [];
+    const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
 
-    if (result.extension !== 'md') {
-      item.setBadge(title, result.extension.toUpperCase());
-    }
+    const fileItem = new FileItem(el);
 
-    item.setMetadata(
-      new Date(result.stat.mtime).toLocaleDateString(),
-      result.parent?.path || '/'
-    );
-
-    if (result.extension === 'md') {
-      const fileCache = this.app.metadataCache.getFileCache(result);
-
-      if (fileCache) {
-        const fileTags = getAllTags(fileCache) || [];
-
-        item.setTags(fileTags, parsed.tags);
-
-        if (parsed.taskFilter && fileCache.listItems) {
-          const tasks = fileCache.listItems.filter(i => i.task);
-          const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
-
-          if (tasks.length > 0) {
-            item.setTaskBadge(doneCount, tasks.length);
-          }
-        }
-      }
-    }
+    fileItem.render({
+      file,
+      tags: fileTags,
+      searchedTags: parsed.tags,
+      taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined
+    });
   }
 
   onChooseSuggestion(result: SearchResult) {

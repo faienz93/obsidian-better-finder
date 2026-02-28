@@ -184,7 +184,7 @@ class Preview {
   }
 }
 
-class Title {
+export class Title {
   private title: HTMLElement
   constructor(parentEl: HTMLElement, text: string) {
     this.title = parentEl.createDiv({ cls: 'suggestion-title' });
