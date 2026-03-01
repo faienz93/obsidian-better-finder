@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile, Menu, MarkdownRenderer } from "obsidian";
-import { FinderCore, SearchResult, isCommand } from "./FinderController";
+import { Finder, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
 import { Card, SearchBar } from "./component/Card";
 import { ResultsContainer } from "./component/ui/ResultsContainer";
@@ -9,14 +9,14 @@ import { HintBar } from "./component/ui/HintBar";
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
 export class FinderCard extends ItemView {
-  private core: FinderCore;
+  private core: Finder;
   private resultsContainer: ResultsContainer;
   private searchBar: SearchBar;
   private hintBar: HintBar;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
-    this.core = new FinderCore(this.app);
+    this.core = new Finder(this.app);
   }
 
   getViewType(): string {
@@ -75,7 +75,7 @@ export class FinderCard extends ItemView {
       if (isCommand(result)) {
         this.core.renderCommand(result, card.getElement());
       } else {
-        this.renderFile(result as TFile, card);
+        this.renderCard(result as TFile, card);
       }
 
       card.onClick(() => this.core.openResult(result));
@@ -92,7 +92,7 @@ export class FinderCard extends ItemView {
     });
   }
 
-  private renderFile(file: TFile, card: Card): void {
+  private renderCard(file: TFile, card: Card): void {
     card.setSuggestionItem();
 
     const title = card.setTitle(file.basename);

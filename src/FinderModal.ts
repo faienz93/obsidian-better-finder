@@ -1,16 +1,16 @@
 import { App, SuggestModal, getAllTags, TFile } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
-import { FinderCore, SearchResult, isCommand } from "./FinderController";
+import { Finder, SearchResult, isCommand } from "./Finder";
 import { ModalItem } from "./component/ModalItem";
 import { HintBar } from "./component/ui/HintBar";
 
 class FinderModal extends SuggestModal<SearchResult> {
-  private core: FinderCore;
+  private core: Finder;
   private hintBar: HintBar;
 
   constructor(app: App) {
     super(app);
-    this.core = new FinderCore(app);
+    this.core = new Finder(app);
   }
 
   onOpen(): void {
@@ -40,8 +40,12 @@ class FinderModal extends SuggestModal<SearchResult> {
     return this.core.search(query);
   }
 
-  // Renders each suggestion item
   renderSuggestion(result: SearchResult, el: HTMLElement) {
+    this.renderModalItem(result, el);
+  }
+
+  // Renders each suggestion item
+  renderModalItem(result: SearchResult, el: HTMLElement) {
     el.empty();
 
     if (isCommand(result)) {

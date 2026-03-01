@@ -15,7 +15,7 @@ export function isCommand(result: SearchResult): result is Command {
   return 'id' in result && 'name' in result;
 }
 
-export class FinderCore {
+export class Finder {
   allFiles: TFile[];
   lastResultCount = 0;
   private app: App;
@@ -121,7 +121,7 @@ export class FinderCore {
 
         this.lastResultCount = results.length;
         resolve(results);
-      }, FinderCore.DEBOUNCE_MS);
+      }, Finder.DEBOUNCE_MS);
     });
   }
 
