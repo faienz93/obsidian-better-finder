@@ -40,10 +40,6 @@ class FinderModal extends SuggestModal<SearchResult> {
     return this.core.search(query);
   }
 
-  renderSuggestion(result: SearchResult, el: HTMLElement) {
-    this.renderModalItem(result, el);
-  }
-
   // Renders each suggestion item
   renderModalItem(result: SearchResult, el: HTMLElement) {
     el.empty();
