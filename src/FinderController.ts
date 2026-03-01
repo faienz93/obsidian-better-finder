@@ -77,11 +77,6 @@ export class FinderCore {
     // Apply all filters
     let results = this.factory.filter(this.allFiles, parsed, this.app);
 
-    // Title search: no free text search needed, already filtered
-    if (parsed.scope === 'title') {
-      return results.slice(0, 50);
-    }
-
     results = await this.factory.filterFreeText(results, parsed, this.app);
 
     return results.slice(0, 50);
