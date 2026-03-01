@@ -2,7 +2,7 @@ import { TFile } from "obsidian";
 import { SuggestionItem } from "./ui/SuggestionItem";
 import { Title } from "./ui/Title";
 
-export interface FileItemData {
+export interface ModalData {
   file: TFile;
   tags: string[];
   searchedTags: string[];
@@ -12,7 +12,7 @@ export interface FileItemData {
   };
 }
 
-export class FileItem {
+export class ModalItem {
   private item: SuggestionItem;
   private title: Title;
 
@@ -20,7 +20,7 @@ export class FileItem {
     this.item = new SuggestionItem(el);
   }
 
-  public render(data: FileItemData): void {
+  public render(data: ModalData): void {
     const { file, tags, searchedTags, taskInfo } = data;
 
     this.title = this.item.setTitle(file.basename);

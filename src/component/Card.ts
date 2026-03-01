@@ -1,3 +1,4 @@
+import { App, Component, TFile } from "obsidian";
 import { Metadata } from "./ui/Metadata";
 import { Preview } from "./ui/Preview";
 import { Title } from "./ui/Title";
@@ -9,9 +10,11 @@ export { Title } from "./ui/Title";
 
 export class Card {
   private card: HTMLElement;
+  private preview: Preview;
 
   constructor(parentEl: HTMLElement) {
     this.card = parentEl.createDiv({ cls: 'finder-view-result' });
+    this.preview = new Preview(this.card);
   }
 
   public getElement(): HTMLElement {
@@ -30,10 +33,8 @@ export class Card {
     titleRef.addBadge(text)
   }
 
-  public getPreviewContainer(): HTMLElement {
-    const preview = new Preview(this.card);
-
-    return preview.getElement()
+  public async renderPreview(file: TFile, app: App, component: Component): Promise<void> {
+    await this.preview.render(file, app, component);
   }
 
   public setMetadata(date: string, path: string) {

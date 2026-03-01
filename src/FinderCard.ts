@@ -1,13 +1,14 @@
-import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
-import { FinderCore, SearchResult, isCommand } from "./FinderCore";
+import { ItemView, WorkspaceLeaf, TFile, Menu } from "obsidian";
+import { FinderCore, SearchResult, isCommand } from "./FinderController";
 import { i18n } from "./const";
 import { Card, SearchBar } from "./component/Card";
+import { ResultsContainer } from "./component/ui/ResultsContainer";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
 export class FinderCard extends ItemView {
   private core: FinderCore;
-  private resultsEl: HTMLElement;
+  private resultsContainer: ResultsContainer;
   private searchBar: SearchBar;
 
   constructor(leaf: WorkspaceLeaf) {
@@ -36,24 +37,18 @@ export class FinderCard extends ItemView {
   }
 
   private buildUI(): void {
-    const container = this.contentEl.createDiv({ cls: "finder-view-container" });
+    this.searchBar = new SearchBar(this.contentEl);
 
-    this.searchBar = new SearchBar(container);
-
-    // Hint bar
-    this.core.renderHints(container, (hint) => {
-      this.searchBar.setValue(`${hint} `)
+    this.core.renderHints(this.searchBar.containerEl, (hint) => {
+      this.searchBar.setValue(`${hint} `);
       this.searchBar.onFocus();
       this.onSearch();
     });
 
-    // Container dei risultati
-    this.resultsEl = container.createDiv({ cls: "finder-view-results grid-view" });
-    this.searchBar.createToggle().onClick((isGridView) => {
-      this.resultsEl.toggleClass("grid-view", isGridView);
-      this.resultsEl.toggleClass("list-view", !isGridView);
-    });
-    this.searchBar.onInput(() => this.onSearch())
+    const toggle = this.searchBar.createToggle();
+
+    this.resultsContainer = new ResultsContainer(this.searchBar.containerEl, toggle);
+    this.searchBar.onInput(() => this.onSearch());
     this.searchBar.onFocus();
   }
 
@@ -65,20 +60,19 @@ export class FinderCard extends ItemView {
   }
 
   private renderResults(results: SearchResult[]): void {
-    this.resultsEl.empty();
-    this.searchBar.setCounterElement(`${this.core.lastResultCount} ${i18n.results}`)
+    this.resultsContainer.empty();
+    this.searchBar.setCounterElement(`${this.core.lastResultCount} ${i18n.results}`);
 
     results.forEach(result => {
-      const card = new Card(this.resultsEl);
+      const card = new Card(this.resultsContainer.getElement());
 
-      // TODO refactor
       if (isCommand(result)) {
         this.core.renderCommand(result, card.getElement());
       } else {
         this.renderFile(result as TFile, card);
       }
 
-      card.onClick(() => this.core.handleSelection(result))
+      card.onClick(() => this.core.handleSelection(result));
 
       if (!isCommand(result)) {
         card.onContextMenu((event) => {
@@ -101,57 +95,11 @@ export class FinderCard extends ItemView {
       card.setBadge(title, file.extension.toUpperCase());
     }
 
-    this.loadPreview(file, card.getPreviewContainer());
+    card.renderPreview(file, this.app, this);
 
     card.setMetadata(
       new Date(file.stat.mtime).toLocaleDateString(),
       file.parent?.path || '/'
     );
-  }
-
-  private async loadPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
-    // TODO questi vorrei che fossero componenti della class card e vorrei un istanziazione globale della card (forse?)
-    containerEl.empty();
-    containerEl.addClass('finder-view-preview');
-    const ext = file.extension.toLowerCase();
-
-    try {
-      if (ext === 'md') {
-        const rawContent = await this.app.vault.cachedRead(file);
-        const cleaned = rawContent.replace(/^---[\s\S]*?---\n?/, '').slice(0, 500);
-
-        await MarkdownRenderer.render(this.app, cleaned, containerEl, file.path, this);
-
-        return;
-      }
-
-      if (ext === 'json') {
-        containerEl.addClass('code-thumbnail');
-        const rawContent = await this.app.vault.cachedRead(file);
-        const preview = rawContent.slice(0, 300);
-        const codeEl = containerEl.createEl('pre', { cls: 'code-preview' });
-
-        codeEl.createEl('code', { text: preview });
-        codeEl.setCssStyles({
-          fontSize: '9px',
-          lineHeight: '1.2',
-          overflow: 'hidden',
-          margin: '0',
-          padding: '8px',
-          background: 'var(--background-secondary)',
-          color: 'var(--text-muted)',
-          whiteSpace: 'pre-wrap',
-          wordBreak: 'break-all'
-        });
-
-        return;
-      }
-
-      // Fallback
-      await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, '', this);
-    } catch (e) {
-      console.error('Preview error:', e);
-      containerEl.setText('Preview not available');
-    }
   }
 }

@@ -4,10 +4,12 @@ export class SearchBar {
   private inputEl: HTMLInputElement;
   private resultCountEl: HTMLElement;
   private toggle: ToggleButton;
-  private headerEl: HTMLElement
+  private headerEl: HTMLElement;
+  readonly containerEl: HTMLElement;
 
   constructor(parentEl: HTMLElement) {
-    this.headerEl = parentEl.createDiv({ cls: "finder-view-header" });
+    this.containerEl = parentEl.createDiv({ cls: "finder-view-container" });
+    this.headerEl = this.containerEl.createDiv({ cls: "finder-view-header" });
 
     const inputWrapper = this.headerEl.createDiv({ cls: "finder-view-input-wrapper" });
 

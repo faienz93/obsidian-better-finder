@@ -1,7 +1,7 @@
 import { App, SuggestModal, getAllTags, TFile } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
-import { FinderCore, SearchResult, isCommand } from "./FinderCore";
-import { FileItem } from "./component/FileItem";
+import { FinderCore, SearchResult, isCommand } from "./FinderController";
+import { ModalItem } from "./component/FileItem";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: FinderCore;
@@ -53,7 +53,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];
     const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
 
-    const fileItem = new FileItem(el);
+    const fileItem = new ModalItem(el);
 
     fileItem.render({
       file,
