@@ -48,11 +48,7 @@ export class FinderCore {
 
     return this.hints
       .map(h => h.label.toLowerCase())
-      .filter(label =>
-        q.includes(label) ||
-        (label === '#' && !!q.match(/#\w+/)) ||
-        (label === 'task:' && q.includes('task:'))
-      );
+      .filter(label => q.includes(label));
   }
 
   getCommandSuggestions(searchText: string): Command[] {

@@ -45,7 +45,8 @@ export class FinderCard extends ItemView {
     this.hintBar = new HintBar(this.searchBar.containerEl);
     this.core.hints.forEach(hint => {
       this.hintBar.addHint(hint, (label) => {
-        this.searchBar.setValue(`${label} `);
+        // eslint-disable-next-line prefer-template
+        this.searchBar.setValue(label + ' ');
         this.searchBar.onFocus();
         this.onSearch();
       });
