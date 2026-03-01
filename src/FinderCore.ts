@@ -1,6 +1,6 @@
 import { App, TFile, Command } from "obsidian";
-import { SearchStrategyFactory } from "./SearchStrategy";
-import { SearchIndex } from "./SearchIndex";
+import { SearchStrategyFactory } from "./engine/SearchStrategy";
+import { SearchIndex } from "./engine/SearchIndex";
 import { i18n } from "./const";
 import { SuggestionItem } from "./component/Card";
 

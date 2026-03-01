@@ -1,5 +1,5 @@
 import { App, SuggestModal, getAllTags, TFile } from "obsidian";
-import { SearchStrategyFactory } from "./SearchStrategy";
+import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 import { FileItem } from "./component/FileItem";
 
@@ -12,7 +12,6 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   onOpen(): void {
-    // Hint bar - inserita dopo .prompt-input-container
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
 
     if (promptEl) {

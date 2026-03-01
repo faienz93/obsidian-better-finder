@@ -2,7 +2,7 @@ import { Platform, Plugin, TFile } from 'obsidian';
 import FinderModal from './src/FinderModal'
 import FinderSetting from './src/FinderSetting'
 import { FinderView, FINDER_VIEW_TYPE } from './src/FinderView'
-import { SearchIndex } from './src/SearchIndex';
+import { SearchIndex } from './src/engine/SearchIndex';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
