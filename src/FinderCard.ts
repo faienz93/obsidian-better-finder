@@ -42,10 +42,13 @@ export class FinderCard extends ItemView {
   private buildUI(): void {
     this.searchBar = new SearchBar(this.contentEl);
 
-    this.hintBar = new HintBar(this.searchBar.containerEl, this.core.hints, (hint) => {
-      this.searchBar.setValue(`${hint} `);
-      this.searchBar.onFocus();
-      this.onSearch();
+    this.hintBar = new HintBar(this.searchBar.containerEl);
+    this.core.hints.forEach(hint => {
+      this.hintBar.addHint(hint, (label) => {
+        this.searchBar.setValue(`${label} `);
+        this.searchBar.onFocus();
+        this.onSearch();
+      });
     });
 
     const toggle = this.searchBar.createToggle();

@@ -20,11 +20,14 @@ class FinderModal extends SuggestModal<SearchResult> {
       const hintWrapper = createDiv();
 
       promptEl.insertAdjacentElement('afterend', hintWrapper);
-      this.hintBar = new HintBar(hintWrapper, this.core.hints, (hint) => {
-        // eslint-disable-next-line prefer-template
-        this.inputEl.value = hint + ' ';
-        this.inputEl.focus();
-        this.inputEl.dispatchEvent(new Event('input'));
+      this.hintBar = new HintBar(hintWrapper);
+      this.core.hints.forEach(hint => {
+        this.hintBar.addHint(hint, (label) => {
+          // eslint-disable-next-line prefer-template
+          this.inputEl.value = label + ' ';
+          this.inputEl.focus();
+          this.inputEl.dispatchEvent(new Event('input'));
+        });
       });
     }
 

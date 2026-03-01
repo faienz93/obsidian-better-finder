@@ -2,10 +2,9 @@ import { App, TFile, Command } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { i18n } from "./const";
 import { SuggestionItem } from "./component/Card";
+import { HintsType } from "./component/ui/HintBar";
 
 export type SearchResult = TFile | Command;
-
-export type HintsType = { label: string, desc: string }[]
 
 // TODO non usato. NON CANCELLARE
 export function isFile(result: SearchResult): result is TFile {
@@ -24,7 +23,7 @@ export class FinderCore {
   private static readonly DEBOUNCE_MS = 150;
   private factory = SearchStrategyFactory.getInstance();
 
-  readonly hints: HintsType = [
+  readonly hints: HintsType[] = [
     { label: '#', desc: 'tag' },
     { label: 'today', desc: i18n.today },
     { label: 'this week', desc: i18n.thisWeek },
