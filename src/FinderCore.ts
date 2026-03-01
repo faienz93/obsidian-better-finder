@@ -1,6 +1,5 @@
 import { App, TFile, Command } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
-import { SearchIndex } from "./engine/SearchIndex";
 import { i18n } from "./const";
 import { SuggestionItem } from "./component/Card";
 
@@ -22,7 +21,6 @@ export class FinderCore {
   hintChips: Map<string, HTMLElement> = new Map();
   lastResultCount = 0;
   private app: App;
-  private searchIndex: SearchIndex;
   private debounceTimer: number | null = null;
   private static readonly DEBOUNCE_MS = 150;
   private factory = SearchStrategyFactory.getInstance();
@@ -45,7 +43,6 @@ export class FinderCore {
   constructor(app: App) {
     this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
     this.app = app;
-    this.searchIndex = SearchIndex.getInstance(this.app);
   }
 
   renderHints(container: HTMLElement, onHintClick: (hint: string) => void): void {
@@ -110,21 +107,7 @@ export class FinderCore {
       return results.slice(0, 50);
     }
 
-    // Free text search
-    if (parsed.freeText) {
-      const isMarkdownOnly = parsed.fileTypes.length === 0;
-
-      if (this.searchIndex?.isIndexReady() && isMarkdownOnly) {
-        const indexResults = this.searchIndex.search(parsed.freeText, 50);
-        const resultPaths = new Set(results.map(f => f.path));
-
-        results = indexResults.filter(f => resultPaths.has(f.path));
-      } else {
-        results = await this.searchIndex.searchFilesWithoutIndex(parsed.freeText, results);
-      }
-    } else {
-      results.sort((a, b) => b.stat.mtime - a.stat.mtime);
-    }
+    results = await this.factory.filterFreeText(results, parsed, this.app);
 
     return results.slice(0, 50);
   }

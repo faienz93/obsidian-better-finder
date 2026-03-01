@@ -341,6 +341,29 @@ export class SearchStrategyFactory {
   }
 
   /**
+   * Apply free text search on an already-filtered list of files.
+   * Uses the MiniSearch index when available (markdown-only), falls back to
+   * content scan otherwise. When there is no free text, sorts by mtime desc.
+   */
+  async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<TFile[]> {
+    if (!parsed.freeText) {
+      return files.sort((a, b) => b.stat.mtime - a.stat.mtime);
+    }
+
+    const searchIndex = SearchIndex.getInstance(app);
+    const isMarkdownOnly = parsed.fileTypes.length === 0;
+
+    if (searchIndex.isIndexReady() && isMarkdownOnly) {
+      const indexResults = searchIndex.search(parsed.freeText, 50);
+      const resultPaths = new Set(files.map(f => f.path));
+
+      return indexResults.filter(f => resultPaths.has(f.path));
+    }
+
+    return searchIndex.searchFilesWithoutIndex(parsed.freeText, files);
+  }
+
+  /**
    * Parse user input and extract all filters
    * @param input - Raw search query from user
    * @returns ParsedQuery object with all extracted filters
