@@ -48,7 +48,6 @@ export class FinderCard extends ItemView {
         // eslint-disable-next-line prefer-template
         this.searchBar.setValue(label + ' ');
         this.searchBar.onFocus();
-        this.onSearch();
       });
     });
 

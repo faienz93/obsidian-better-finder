@@ -22,8 +22,9 @@ export class SearchBar {
     this.resultCountEl = inputWrapper.createSpan({ cls: "finder-view-count" });
   }
 
-  public setValue(hint: string): void {
-    this.inputEl.value = hint;
+  public setValue(value: string): void {
+    this.inputEl.value = value;
+    this.inputEl.dispatchEvent(new Event('input'));
   }
 
   public getValue(): string {
