@@ -1,8 +1,9 @@
-import { ItemView, WorkspaceLeaf, TFile, Menu } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Menu, MarkdownRenderer } from "obsidian";
 import { FinderCore, SearchResult, isCommand } from "./FinderController";
 import { i18n } from "./const";
 import { Card, SearchBar } from "./component/Card";
 import { ResultsContainer } from "./component/ui/ResultsContainer";
+import { CodePreview } from "./component/ui/CodePreview";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -95,11 +96,41 @@ export class FinderCard extends ItemView {
       card.setBadge(title, file.extension.toUpperCase());
     }
 
-    card.renderPreview(file, this.app, this);
+    this.loadPreview(file, card.getPreviewContainer());
 
     card.setMetadata(
       new Date(file.stat.mtime).toLocaleDateString(),
       file.parent?.path || '/'
     );
+  }
+
+  private async loadPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
+    containerEl.empty();
+    const ext = file.extension.toLowerCase();
+
+    try {
+      if (ext === 'md') {
+        const rawContent = await this.app.vault.cachedRead(file);
+        const cleaned = rawContent.replace(/^---[\s\S]*?---\n?/, '').slice(0, 500);
+
+        await MarkdownRenderer.render(this.app, cleaned, containerEl, file.path, this);
+
+        return;
+      }
+
+      if (ext === 'json') {
+        containerEl.addClass('code-thumbnail');
+        const rawContent = await this.app.vault.cachedRead(file);
+
+        new CodePreview(containerEl, rawContent.slice(0, 300));
+
+        return;
+      }
+
+      await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, '', this);
+    } catch (e) {
+      console.error('Preview error:', e);
+      containerEl.setText('Preview not available');
+    }
   }
 }
