@@ -120,44 +120,50 @@ class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filt
   }
 }
 
-class FileFilter implements SearchStrategyInterface<string[]>, Filterable<string[]> {
+abstract class FileTypeFilter implements SearchStrategyInterface<string[]>, Filterable<string[]> {
+  protected abstract pattern: RegExp;
+  protected abstract extensions: string[];
+
   extract(query: string): string[] {
-    const types: string[] = [];
-    const lowerQuery = query.toLowerCase();
-
-    if (/\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/.test(lowerQuery)) {
-      types.push('.png', '.jpg', '.jpeg', '.gif', '.webp');
-    }
-
-    if (/\bpdf\b/.test(lowerQuery)) types.push('.pdf');
-    if (/\b(word|docx|doc)\b/.test(lowerQuery)) types.push('.docx', '.doc');
-    if (/\b(excel|xlsx|xls)\b/.test(lowerQuery)) types.push('.xlsx', '.xls');
-    if (/\bcanvas\b/.test(lowerQuery)) types.push('.canvas');
-    if (/\bjson\b/.test(lowerQuery)) types.push('.json');
-    if (/\bbase\b/.test(lowerQuery)) types.push('.base');
-
-    return [...new Set(types)];
+    return this.pattern.test(query.toLowerCase()) ? this.extensions : [];
   }
 
   removeFrom(query: string): string {
-    return query
-      .replace(/\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/gi, '')
-      .replace(/\bpdf\b/gi, '')
-      .replace(/\b(word|docx|doc)\b/gi, '')
-      .replace(/\b(excel|xlsx|xls)\b/gi, '')
-      .replace(/\bcanvas\b/gi, '')
-      .replace(/\bjson\b/gi, '')
-      .replace(/\bbase\b/gi, '')
-      .trim();
+    return query.replace(this.pattern, '').trim();
   }
 
-  filter(files: TFile[], fileTypes: string[], app: App): TFile[] {
-    if (fileTypes.length === 0) {
+  filter(files: TFile[], types: string[], _app: App): TFile[] {
+    if (types.length === 0) {
       return files.filter(f => f.extension === 'md');
     }
 
-    return files.filter(f => fileTypes.some(ext => f.extension === ext.slice(1)));
+    return files.filter(f => types.some(ext => f.extension === ext.slice(1)));
   }
+}
+
+class PdfFilter extends FileTypeFilter {
+  protected pattern = /\bpdf\b/gi;
+  protected extensions = ['.pdf'];
+}
+
+class ImageFilter extends FileTypeFilter {
+  protected pattern = /\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/gi;
+  protected extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
+}
+
+class CanvasFilter extends FileTypeFilter {
+  protected pattern = /\bcanvas\b/gi;
+  protected extensions = ['.canvas'];
+}
+
+class JsonFilter extends FileTypeFilter {
+  protected pattern = /\bjson\b/gi;
+  protected extensions = ['.json'];
+}
+
+class BaseFilter extends FileTypeFilter {
+  protected pattern = /\bbase\b/gi;
+  protected extensions = ['.base'];
 }
 
 // TODO: ScopeFilter non rispetta ISP — extract() restituisce già remainingText,
@@ -249,11 +255,18 @@ export class SearchStrategyFactory {
   private readonly strategyMap: Map<string, SearchStrategyInterface<unknown>> = new Map();
   private static _instance: SearchStrategyFactory;
 
+  private readonly fileTypeStrategies: FileTypeFilter[] = [
+    new PdfFilter(),
+    new ImageFilter(),
+    new CanvasFilter(),
+    new JsonFilter(),
+    new BaseFilter(),
+  ];
+
   private constructor() {
     this.strategyMap.set('command', new CommandFilter());
     this.strategyMap.set('tag', new TagsFilter());
     this.strategyMap.set('dateFilter', new DateFilter());
-    this.strategyMap.set('fileTypes', new FileFilter());
     this.strategyMap.set('title', new TitleFilter());
     this.strategyMap.set('task', new TaskFilter());
   }
@@ -305,14 +318,9 @@ export class SearchStrategyFactory {
     }
 
     // Apply file type filter (always applied - filters to markdown if no types specified)
-    const fileStrategy = this.strategyMap.get('fileTypes');
+    const firstFileStrategy = this.fileTypeStrategies[0];
 
-    if (fileStrategy && isFilterable(fileStrategy)) {
-      results = fileStrategy.filter(results, parsed.fileTypes, app);
-    } else {
-      // Fallback: filter to markdown files only if no strategy
-      results = results.filter(f => f.extension === 'md');
-    }
+    results = firstFileStrategy.filter(results, parsed.fileTypes, app);
 
     // Apply task filter
     if (parsed.taskFilter) {
@@ -405,11 +413,13 @@ export class SearchStrategyFactory {
     result.dateFilter = dateStrategy.extract(remainingText);
     remainingText = dateStrategy.removeFrom(remainingText);
 
-    // 4. Extract file type filters (PDF, immagine, Word, Excel)
-    const fileStrategy = this.getStrategy('fileTypes') as FileFilter;
+    // 4. Extract file type filters (pdf, image, canvas, json, base)
+    for (const strategy of this.fileTypeStrategies) {
+      result.fileTypes.push(...strategy.extract(remainingText));
+      remainingText = strategy.removeFrom(remainingText);
+    }
 
-    result.fileTypes = fileStrategy.extract(remainingText);
-    remainingText = fileStrategy.removeFrom(remainingText);
+    result.fileTypes = [...new Set(result.fileTypes)];
 
     // 5. Extract scope (title:something)
     const titleStrategy = this.getStrategy('title') as TitleFilter;
