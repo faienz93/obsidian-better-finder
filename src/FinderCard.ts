@@ -78,7 +78,7 @@ export class FinderCard extends ItemView {
         this.renderFile(result as TFile, card);
       }
 
-      card.onClick(() => this.core.handleSelection(result));
+      card.onClick(() => this.core.openResult(result));
 
       if (!isCommand(result)) {
         card.onContextMenu((event) => {

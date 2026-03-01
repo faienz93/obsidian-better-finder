@@ -68,7 +68,7 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   onChooseSuggestion(result: SearchResult) {
-    this.core.handleSelection(result);
+    this.core.openResult(result);
   }
 }
 

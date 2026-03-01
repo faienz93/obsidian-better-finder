@@ -125,7 +125,7 @@ export class FinderCore {
     });
   }
 
-  handleSelection(result: SearchResult): void {
+  openResult(result: SearchResult): void {
     if (isCommand(result)) {
       (this.app as any).commands.executeCommandById(result.id);
 
