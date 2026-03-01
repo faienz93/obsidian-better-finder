@@ -1,10 +1,12 @@
 import { App, SuggestModal, getAllTags, TFile } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { FinderCore, SearchResult, isCommand } from "./FinderController";
-import { ModalItem } from "./component/FileItem";
+import { ModalItem } from "./component/ModalItem";
+import { HintBar } from "./component/ui/HintBar";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: FinderCore;
+  private hintBar: HintBar;
 
   constructor(app: App) {
     super(app);
@@ -18,7 +20,7 @@ class FinderModal extends SuggestModal<SearchResult> {
       const hintWrapper = createDiv();
 
       promptEl.insertAdjacentElement('afterend', hintWrapper);
-      this.core.renderHints(hintWrapper, (hint) => {
+      this.hintBar = new HintBar(hintWrapper, this.core.hints, (hint) => {
         // eslint-disable-next-line prefer-template
         this.inputEl.value = hint + ' ';
         this.inputEl.focus();
@@ -26,9 +28,8 @@ class FinderModal extends SuggestModal<SearchResult> {
       });
     }
 
-    // Update hints on input
     this.inputEl.addEventListener('input', () => {
-      this.core.updateHintHighlights(this.inputEl.value);
+      this.hintBar?.highlightChips(this.core.getActiveHints(this.inputEl.value));
     });
   }
 

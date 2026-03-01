@@ -18,14 +18,13 @@ export function isCommand(result: SearchResult): result is Command {
 
 export class FinderCore {
   allFiles: TFile[];
-  hintChips: Map<string, HTMLElement> = new Map();
   lastResultCount = 0;
   private app: App;
   private debounceTimer: number | null = null;
   private static readonly DEBOUNCE_MS = 150;
   private factory = SearchStrategyFactory.getInstance();
 
-  hints: HintsType = [
+  readonly hints: HintsType = [
     { label: '#', desc: 'tag' },
     { label: 'today', desc: i18n.today },
     { label: 'this week', desc: i18n.thisWeek },
@@ -45,35 +44,16 @@ export class FinderCore {
     this.app = app;
   }
 
-  renderHints(container: HTMLElement, onHintClick: (hint: string) => void): void {
-    const hintBar = container.createDiv({ cls: 'hint-bar' });
+  getActiveHints(query: string): string[] {
+    const q = query.toLowerCase();
 
-    this.hints.forEach(hint => {
-      const chip = hintBar.createSpan({ cls: 'hint-chip' });
-
-      chip.setText(hint.label);
-      chip.setAttribute('title', hint.desc);
-      this.hintChips.set(hint.label.toLowerCase(), chip);
-      chip.addEventListener('click', () => {
-        // this.inputEl.value = hint.label + ' ';
-        // this.inputEl.focus();
-        // this.onSearch();
-        onHintClick(hint.label);
-      });
-    });
-  }
-
-  updateHintHighlights(query: string): void {
-    // const query = this.inputEl.value.toLowerCase();
-    const queryLowerCase = query.toLowerCase();
-
-    this.hintChips.forEach((chip, label) => {
-      const isActive = queryLowerCase.includes(label) ||
-        (label === '#tag' && !!queryLowerCase.match(/#\w+/)) ||
-        (label === 'task:' && queryLowerCase.includes('task:'));
-
-      chip.toggleClass('hint-chip-active', isActive);
-    });
+    return this.hints
+      .map(h => h.label.toLowerCase())
+      .filter(label =>
+        q.includes(label) ||
+        (label === '#' && !!q.match(/#\w+/)) ||
+        (label === 'task:' && q.includes('task:'))
+      );
   }
 
   getCommandSuggestions(searchText: string): Command[] {

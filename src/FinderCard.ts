@@ -4,6 +4,7 @@ import { i18n } from "./const";
 import { Card, SearchBar } from "./component/Card";
 import { ResultsContainer } from "./component/ui/ResultsContainer";
 import { CodePreview } from "./component/ui/CodePreview";
+import { HintBar } from "./component/ui/HintBar";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -11,6 +12,7 @@ export class FinderCard extends ItemView {
   private core: FinderCore;
   private resultsContainer: ResultsContainer;
   private searchBar: SearchBar;
+  private hintBar: HintBar;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -40,7 +42,7 @@ export class FinderCard extends ItemView {
   private buildUI(): void {
     this.searchBar = new SearchBar(this.contentEl);
 
-    this.core.renderHints(this.searchBar.containerEl, (hint) => {
+    this.hintBar = new HintBar(this.searchBar.containerEl, this.core.hints, (hint) => {
       this.searchBar.setValue(`${hint} `);
       this.searchBar.onFocus();
       this.onSearch();
@@ -54,7 +56,7 @@ export class FinderCard extends ItemView {
   }
 
   private async onSearch(): Promise<void> {
-    this.core.updateHintHighlights(this.searchBar.getValue());
+    this.hintBar.highlightChips(this.core.getActiveHints(this.searchBar.getValue()));
     const results = await this.core.search(this.searchBar.getValue());
 
     this.renderResults(results);
