@@ -5,7 +5,7 @@ import { Card, SearchBar } from "./component/Card";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
-export class FinderView extends ItemView {
+export class FinderCard extends ItemView {
   private core: FinderCore;
   private resultsEl: HTMLElement;
   private searchBar: SearchBar;
@@ -42,7 +42,7 @@ export class FinderView extends ItemView {
 
     // Hint bar
     this.core.renderHints(container, (hint) => {
-      this.searchBar.setValue(`${hint  } `)
+      this.searchBar.setValue(`${hint} `)
       this.searchBar.onFocus();
       this.onSearch();
     });

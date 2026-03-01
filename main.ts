@@ -1,7 +1,7 @@
 import { Platform, Plugin, TFile } from 'obsidian';
 import FinderModal from './src/FinderModal'
 import FinderSetting from './src/FinderSetting'
-import { FinderView, FINDER_VIEW_TYPE } from './src/FinderView'
+import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
 import { SearchIndex } from './src/engine/SearchIndex';
 
 interface ObsidianBetterFinderSettings {
@@ -30,7 +30,7 @@ export default class ObsidianBetterFinder extends Plugin {
     await this.loadSettings();
 
     // Register the FinderView
-    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderView(leaf));
+    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderCard(leaf));
 
     this.addCommand({
       id: 'obsidian-better-finder-open-modal',
