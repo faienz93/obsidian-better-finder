@@ -41,7 +41,7 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   // Renders each suggestion item
-  renderModalItem(result: SearchResult, el: HTMLElement) {
+  renderSuggestion(result: SearchResult, el: HTMLElement) {
     el.empty();
 
     if (isCommand(result)) {
@@ -57,9 +57,9 @@ class FinderModal extends SuggestModal<SearchResult> {
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];
     const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
 
-    const fileItem = new ModalItem(el);
+    const modal = new ModalItem(el);
 
-    fileItem.render({
+    modal.render({
       file,
       tags: fileTags,
       searchedTags: parsed.tags,
