@@ -1,6 +1,5 @@
 import { App, TFile, Command } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
-import { i18n } from "./const";
 import { SuggestionItem } from "./component/Card";
 import { HintsType } from "./component/ui/HintBar";
 
@@ -23,20 +22,7 @@ export class Finder {
   private static readonly DEBOUNCE_MS = 150;
   private factory = SearchStrategyFactory.getInstance();
 
-  readonly hints: HintsType[] = [
-    { label: '#', desc: 'tag' },
-    { label: 'today', desc: i18n.today },
-    { label: 'this week', desc: i18n.thisWeek },
-    { label: 'this month', desc: i18n.thisMonth },
-    { label: '>', desc: i18n.commands },
-    { label: 'title:', desc: i18n.title },
-    { label: 'task:', desc: 'task' },
-    { label: 'pdf', desc: 'PDF' },
-    { label: 'image', desc: i18n.images },
-    { label: 'canvas', desc: 'canvas' },
-    { label: 'json', desc: 'json' },
-    { label: 'base', desc: 'base' },
-  ];
+  readonly hints: HintsType[] = this.factory.hints;
 
   constructor(app: App) {
     this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown

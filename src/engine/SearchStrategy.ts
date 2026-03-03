@@ -1,5 +1,7 @@
 import { App, getAllTags, TFile } from "obsidian";
 import { SearchIndex } from "./SearchIndex";
+import { HintsType } from "src/component/ui/HintBar";
+import { i18n } from "src/const";
 
 export interface ParsedQuery {
   rawInput: string;
@@ -30,7 +32,18 @@ export const isFilterable = (strategy: any): strategy is Filterable<unknown> => 
   return typeof strategy.filter === 'function';
 }
 
-class TagsFilter implements SearchStrategyInterface<string[]>, Filterable<string[]> {
+abstract class SearchFilter<TResult> implements SearchStrategyInterface<TResult>, Filterable<TResult>, HintsType {
+  abstract readonly label: string;
+  abstract readonly desc: string;
+  abstract filter(files: TFile[], extracted: TResult, app: App): TFile[]
+
+  abstract extract(query: string): TResult
+  abstract removeFrom(query: string): string
+}
+class TagsFilter extends SearchFilter<string[]> {
+  label = '#';
+  desc = 'tag';
+
   extract(query: string) {
     const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
     const matches = query.match(tagRegex);
@@ -56,7 +69,7 @@ class TagsFilter implements SearchStrategyInterface<string[]>, Filterable<string
   }
 }
 
-class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filterable<DateRange | undefined> {
+abstract class DateFilter extends SearchFilter<DateRange | undefined> {
   extract(query: string): DateRange | undefined {
     const lowerQuery = query.toLowerCase();
 
@@ -75,7 +88,7 @@ class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filt
       .trim();
   }
 
-  filter(files: TFile[], dateFilter: DateRange | undefined, app: App): TFile[] {
+  filter(files: TFile[], dateFilter: DateRange | undefined, _app: App): TFile[] {
     if (!dateFilter) return files;
 
     return files.filter(file => {
@@ -90,7 +103,7 @@ class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filt
     });
   }
 
-  isToday(date: Date): boolean {
+  private isToday(date: Date): boolean {
     const today = new Date();
 
     return date.getDate() === today.getDate() &&
@@ -98,7 +111,7 @@ class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filt
       date.getFullYear() === today.getFullYear();
   }
 
-  isThisWeek(date: Date): boolean {
+  private isThisWeek(date: Date): boolean {
     const today = new Date();
     const weekStart = new Date(today);
 
@@ -112,7 +125,7 @@ class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filt
     return date >= weekStart && date < weekEnd;
   }
 
-  isThisMonth(date: Date): boolean {
+  private isThisMonth(date: Date): boolean {
     const today = new Date();
 
     return date.getMonth() === today.getMonth() &&
@@ -120,7 +133,24 @@ class DateFilter implements SearchStrategyInterface<DateRange | undefined>, Filt
   }
 }
 
-abstract class FileTypeFilter implements SearchStrategyInterface<string[]>, Filterable<string[]> {
+class TodayFilter extends DateFilter {
+  readonly label = 'today';
+  readonly desc = i18n.today;
+}
+
+class ThisWeekFilter extends DateFilter {
+  readonly label = 'this week';
+  readonly desc = i18n.thisWeek;
+}
+
+class ThisMonthFilter extends DateFilter {
+  readonly label = 'this month';
+  readonly desc = i18n.thisMonth;
+}
+
+abstract class FileTypeFilter extends SearchFilter<string[]> {
+  abstract readonly label: string;
+  abstract readonly desc: string;
   protected abstract pattern: RegExp;
   protected abstract extensions: string[];
 
@@ -142,33 +172,45 @@ abstract class FileTypeFilter implements SearchStrategyInterface<string[]>, Filt
 }
 
 class PdfFilter extends FileTypeFilter {
+  readonly label = 'pdf';
+  readonly desc = 'PDF';
   protected pattern = /\bpdf\b/gi;
   protected extensions = ['.pdf'];
 }
 
 class ImageFilter extends FileTypeFilter {
+  readonly label = 'image';
+  readonly desc = i18n.images;
   protected pattern = /\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/gi;
   protected extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
 }
 
 class CanvasFilter extends FileTypeFilter {
+  readonly label = 'canvas';
+  readonly desc = 'canvas';
   protected pattern = /\bcanvas\b/gi;
   protected extensions = ['.canvas'];
 }
 
 class JsonFilter extends FileTypeFilter {
+  readonly label = 'json';
+  readonly desc = 'json';
   protected pattern = /\bjson\b/gi;
   protected extensions = ['.json'];
 }
 
 class BaseFilter extends FileTypeFilter {
+  readonly label = 'base';
+  readonly desc = 'base';
   protected pattern = /\bbase\b/gi;
   protected extensions = ['.base'];
 }
 
 // TODO: ScopeFilter non rispetta ISP — extract() restituisce già remainingText,
 // quindi removeFrom() è ridondante. Da valutare se separare in futuro.
-class TitleFilter implements SearchStrategyInterface<{ scope?: 'title' | 'content'; remainingText: string }>, Filterable<{ scope?: 'title' | 'content'; remainingText: string }> {
+class TitleFilter extends SearchFilter<{ scope?: 'title' | 'content'; remainingText: string }> {
+  readonly label = 'title:';
+  readonly desc = i18n.title;
   extract(query: string): { scope?: 'title' | 'content'; remainingText: string } {
     const titleMatch = query.match(/\btitle:\s*(\S+)/i);
 
@@ -194,7 +236,13 @@ class TitleFilter implements SearchStrategyInterface<{ scope?: 'title' | 'conten
   }
 }
 
-class CommandFilter implements SearchStrategyInterface<{ isCommandMode: boolean; commandText?: string }> {
+class CommandFilter extends SearchFilter<{ isCommandMode: boolean; commandText?: string }> {
+  readonly label = '>';
+  readonly desc = i18n.commands;
+
+  filter(_files: TFile[], _extracted: { isCommandMode: boolean; commandText?: string; }, _app: App): TFile[] {
+    throw new Error("Method not implemented.");
+  }
   extract(query: string): { isCommandMode: boolean; commandText?: string } {
     const trimmed = query.trim();
 
@@ -210,7 +258,9 @@ class CommandFilter implements SearchStrategyInterface<{ isCommandMode: boolean;
   }
 }
 
-class TaskFilter implements SearchStrategyInterface<TaskStatus | undefined>, Filterable<TaskStatus | undefined> {
+class TaskFilter extends SearchFilter<TaskStatus | undefined> {
+  readonly label = 'task:';
+  readonly desc = 'task';
   extract(query: string): TaskStatus | undefined {
     const lowerQuery = query.toLowerCase();
 
@@ -252,23 +302,27 @@ class TaskFilter implements SearchStrategyInterface<TaskStatus | undefined>, Fil
 }
 
 export class SearchStrategyFactory {
-  private readonly strategyMap: Map<string, SearchStrategyInterface<unknown>> = new Map();
+  private readonly strategyMap: Map<string, SearchFilter<unknown>> = new Map();
   private static _instance: SearchStrategyFactory;
 
-  private readonly fileTypeStrategies: FileTypeFilter[] = [
-    new PdfFilter(),
-    new ImageFilter(),
-    new CanvasFilter(),
-    new JsonFilter(),
-    new BaseFilter(),
-  ];
-
   private constructor() {
-    this.strategyMap.set('command', new CommandFilter());
+    // L'ordine definisce l'ordine degli hints nella UI
     this.strategyMap.set('tag', new TagsFilter());
-    this.strategyMap.set('dateFilter', new DateFilter());
+    this.strategyMap.set('today', new TodayFilter());
+    this.strategyMap.set('this week', new ThisWeekFilter());
+    this.strategyMap.set('this month', new ThisMonthFilter());
+    this.strategyMap.set('command', new CommandFilter());
     this.strategyMap.set('title', new TitleFilter());
     this.strategyMap.set('task', new TaskFilter());
+    this.strategyMap.set('pdf', new PdfFilter());
+    this.strategyMap.set('image', new ImageFilter());
+    this.strategyMap.set('canvas', new CanvasFilter());
+    this.strategyMap.set('json', new JsonFilter());
+    this.strategyMap.set('base', new BaseFilter());
+  }
+
+  get hints(): HintsType[] {
+    return Array.from(this.strategyMap.values());
   }
 
   public static getInstance(): SearchStrategyFactory {
@@ -308,9 +362,9 @@ export class SearchStrategyFactory {
       }
     }
 
-    // Apply date filter
+    // Apply date filter (any of the 3 date strategies share the same logic)
     if (parsed.dateFilter) {
-      const strategy = this.strategyMap.get('dateFilter');
+      const strategy = this.strategyMap.get('today');
 
       if (strategy && isFilterable(strategy)) {
         results = strategy.filter(results, parsed.dateFilter, app);
@@ -318,9 +372,9 @@ export class SearchStrategyFactory {
     }
 
     // Apply file type filter (always applied - filters to markdown if no types specified)
-    const firstFileStrategy = this.fileTypeStrategies[0];
+    const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
 
-    results = firstFileStrategy.filter(results, parsed.fileTypes, app);
+    results = fileTypeStrategy.filter(results, parsed.fileTypes, app);
 
     // Apply task filter
     if (parsed.taskFilter) {
@@ -379,6 +433,16 @@ export class SearchStrategyFactory {
   parse(input: string): ParsedQuery {
     const trimmedInput = input.trim();
 
+    console.log(trimmedInput)
+    //const hasHash = trimmedInput.includes("#");
+
+    const strategyWithHash = Array.from(this.strategyMap.values())
+      .find(s => trimmedInput.includes(s.label));
+
+    console.log(strategyWithHash)
+
+    //console.log(hasHash)
+
     // Initialize result
     const result: ParsedQuery = {
       rawInput: trimmedInput,
@@ -408,13 +472,17 @@ export class SearchStrategyFactory {
     remainingText = tagStrategy.removeFrom(remainingText);
 
     // 3. Extract date filters (today, this week, this month)
-    const dateStrategy = this.getStrategy('dateFilter') as DateFilter;
+    const dateStrategy = this.getStrategy('today') as DateFilter;
 
     result.dateFilter = dateStrategy.extract(remainingText);
     remainingText = dateStrategy.removeFrom(remainingText);
 
     // 4. Extract file type filters (pdf, image, canvas, json, base)
-    for (const strategy of this.fileTypeStrategies) {
+    const fileTypeKeys = ['pdf', 'image', 'canvas', 'json', 'base'];
+
+    for (const key of fileTypeKeys) {
+      const strategy = this.getStrategy(key) as FileTypeFilter;
+
       result.fileTypes.push(...strategy.extract(remainingText));
       remainingText = strategy.removeFrom(remainingText);
     }
