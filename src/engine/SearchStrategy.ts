@@ -1,305 +1,16 @@
-import { App, getAllTags, TFile } from "obsidian";
-import { SearchIndex } from "./SearchIndex";
+import { App, TFile } from "obsidian";
 import { HintsType } from "src/component/ui/HintBar";
-import { i18n } from "src/const";
-
-export interface ParsedQuery {
-  rawInput: string;
-  isCommandMode: boolean;
-  commandText?: string;
-  tags: string[];
-  dateFilter?: 'today' | 'this-week' | 'this-month';
-  fileTypes: string[];
-  scope?: 'title' | 'content';
-  taskFilter?: 'all' | 'todo' | 'done';
-  freeText: string;
-}
-
-export interface SearchStrategyInterface<TResult> {
-  extract(query: string): TResult;
-  removeFrom(query: string): string;
-}
-
-export interface Filterable<TResult> {
-  filter(files: TFile[], extracted: TResult, app: App): TFile[];
-}
-
-export type DateRange = 'today' | 'this-week' | 'this-month';
-export type TaskStatus = 'all' | 'todo' | 'done';
-
-// Type Guards.
-export const isFilterable = (strategy: any): strategy is Filterable<unknown> => {
-  return typeof strategy.filter === 'function';
-}
-
-abstract class SearchFilter<TResult> implements SearchStrategyInterface<TResult>, Filterable<TResult>, HintsType {
-  abstract readonly label: string;
-  abstract readonly desc: string;
-  abstract filter(files: TFile[], extracted: TResult, app: App): TFile[]
-
-  abstract extract(query: string): TResult
-  abstract removeFrom(query: string): string
-}
-class TagsFilter extends SearchFilter<string[]> {
-  label = '#';
-  desc = 'tag';
-
-  extract(query: string) {
-    const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
-    const matches = query.match(tagRegex);
-
-    return matches ? matches.map(tag => tag.toLowerCase()) : [];
-  }
-
-  removeFrom(query: string) {
-    return query.replace(/#([a-zA-Z0-9][\w\-/]*)/g, '').trim();
-  }
-
-  filter(files: TFile[], tags: string[], app: App): TFile[] {
-    if (tags.length === 0) return files;
-
-    return files.filter(file => {
-      const cache = app.metadataCache.getFileCache(file);
-
-      if (!cache) return false;
-      const fileTags = getAllTags(cache) || [];
-
-      return tags.every(tag => fileTags.includes(tag));
-    });
-  }
-}
-
-abstract class DateFilter extends SearchFilter<DateRange | undefined> {
-  extract(query: string): DateRange | undefined {
-    const lowerQuery = query.toLowerCase();
-
-    if (/\btoday\b/.test(lowerQuery)) return 'today';
-    if (/\bthis week\b/.test(lowerQuery)) return 'this-week';
-    if (/\bthis month\b/.test(lowerQuery)) return 'this-month';
-
-    return undefined;
-  }
-
-  removeFrom(query: string): string {
-    return query
-      .replace(/\btoday\b/gi, '')
-      .replace(/\bthis week\b/gi, '')
-      .replace(/\bthis month\b/gi, '')
-      .trim();
-  }
-
-  filter(files: TFile[], dateFilter: DateRange | undefined, _app: App): TFile[] {
-    if (!dateFilter) return files;
-
-    return files.filter(file => {
-      const fileDate = new Date(file.stat.mtime);
-
-      switch (dateFilter) {
-        case 'today': return this.isToday(fileDate);
-        case 'this-week': return this.isThisWeek(fileDate);
-        case 'this-month': return this.isThisMonth(fileDate);
-        default: return true;
-      }
-    });
-  }
-
-  private isToday(date: Date): boolean {
-    const today = new Date();
-
-    return date.getDate() === today.getDate() &&
-      date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-  }
-
-  private isThisWeek(date: Date): boolean {
-    const today = new Date();
-    const weekStart = new Date(today);
-
-    weekStart.setDate(today.getDate() - today.getDay());
-    weekStart.setHours(0, 0, 0, 0);
-
-    const weekEnd = new Date(weekStart);
-
-    weekEnd.setDate(weekStart.getDate() + 7);
-
-    return date >= weekStart && date < weekEnd;
-  }
-
-  private isThisMonth(date: Date): boolean {
-    const today = new Date();
-
-    return date.getMonth() === today.getMonth() &&
-      date.getFullYear() === today.getFullYear();
-  }
-}
-
-class TodayFilter extends DateFilter {
-  readonly label = 'today';
-  readonly desc = i18n.today;
-}
-
-class ThisWeekFilter extends DateFilter {
-  readonly label = 'this week';
-  readonly desc = i18n.thisWeek;
-}
-
-class ThisMonthFilter extends DateFilter {
-  readonly label = 'this month';
-  readonly desc = i18n.thisMonth;
-}
-
-abstract class FileTypeFilter extends SearchFilter<string[]> {
-  abstract readonly label: string;
-  abstract readonly desc: string;
-  protected abstract pattern: RegExp;
-  protected abstract extensions: string[];
-
-  extract(query: string): string[] {
-    return this.pattern.test(query.toLowerCase()) ? this.extensions : [];
-  }
-
-  removeFrom(query: string): string {
-    return query.replace(this.pattern, '').trim();
-  }
-
-  filter(files: TFile[], types: string[], _app: App): TFile[] {
-    if (types.length === 0) {
-      return files.filter(f => f.extension === 'md');
-    }
-
-    return files.filter(f => types.some(ext => f.extension === ext.slice(1)));
-  }
-}
-
-class PdfFilter extends FileTypeFilter {
-  readonly label = 'pdf';
-  readonly desc = 'PDF';
-  protected pattern = /\bpdf\b/gi;
-  protected extensions = ['.pdf'];
-}
-
-class ImageFilter extends FileTypeFilter {
-  readonly label = 'image';
-  readonly desc = i18n.images;
-  protected pattern = /\b(immagine|image|img|png|jpg|jpeg|gif|webp)\b/gi;
-  protected extensions = ['.png', '.jpg', '.jpeg', '.gif', '.webp'];
-}
-
-class CanvasFilter extends FileTypeFilter {
-  readonly label = 'canvas';
-  readonly desc = 'canvas';
-  protected pattern = /\bcanvas\b/gi;
-  protected extensions = ['.canvas'];
-}
-
-class JsonFilter extends FileTypeFilter {
-  readonly label = 'json';
-  readonly desc = 'json';
-  protected pattern = /\bjson\b/gi;
-  protected extensions = ['.json'];
-}
-
-class BaseFilter extends FileTypeFilter {
-  readonly label = 'base';
-  readonly desc = 'base';
-  protected pattern = /\bbase\b/gi;
-  protected extensions = ['.base'];
-}
-
-// TODO: ScopeFilter non rispetta ISP — extract() restituisce già remainingText,
-// quindi removeFrom() è ridondante. Da valutare se separare in futuro.
-class TitleFilter extends SearchFilter<{ scope?: 'title' | 'content'; remainingText: string }> {
-  readonly label = 'title:';
-  readonly desc = i18n.title;
-  extract(query: string): { scope?: 'title' | 'content'; remainingText: string } {
-    const titleMatch = query.match(/\btitle:\s*(\S+)/i);
-
-    if (titleMatch) {
-      const searchTerm = titleMatch[1];
-      const remainingText = query.replace(/\btitle:\s*\S+/i, searchTerm).trim();
-
-      return { scope: 'title', remainingText };
-    }
-
-    return { scope: undefined, remainingText: query };
-  }
-
-  // Rimuove il prefisso "title:" mantenendo il termine di ricerca come testo libero
-  removeFrom(query: string): string {
-    return query.replace(/\btitle:\s*/i, '').trim();
-  }
-
-  filter(files: TFile[], extracted: { scope?: "title" | "content"; remainingText: string; }, app: App): TFile[] {
-    const searchIndex = SearchIndex.getInstance(app);
-
-    return searchIndex.searchInTitlesWithoutIndex(extracted.remainingText, files);
-  }
-}
-
-class CommandFilter extends SearchFilter<{ isCommandMode: boolean; commandText?: string }> {
-  readonly label = '>';
-  readonly desc = i18n.commands;
-
-  filter(_files: TFile[], _extracted: { isCommandMode: boolean; commandText?: string; }, _app: App): TFile[] {
-    throw new Error("Method not implemented.");
-  }
-  extract(query: string): { isCommandMode: boolean; commandText?: string } {
-    const trimmed = query.trim();
-
-    if (trimmed.startsWith('>')) {
-      return { isCommandMode: true, commandText: trimmed.slice(1).trim() };
-    }
-
-    return { isCommandMode: false };
-  }
-
-  removeFrom(query: string): string {
-    return query.replace(/^>\s*/, '').trim();
-  }
-}
-
-class TaskFilter extends SearchFilter<TaskStatus | undefined> {
-  readonly label = 'task:';
-  readonly desc = 'task';
-  extract(query: string): TaskStatus | undefined {
-    const lowerQuery = query.toLowerCase();
-
-    if (/\btask-todo:\b/.test(lowerQuery)) return 'todo';
-    if (/\btask-done:\b/.test(lowerQuery)) return 'done';
-    if (/\btask:\b/.test(lowerQuery)) return 'all';
-
-    return undefined;
-  }
-
-  removeFrom(query: string): string {
-    return query
-      .replace(/\btask-todo:\b/gi, '')
-      .replace(/\btask-done:\b/gi, '')
-      .replace(/\btask:\b/gi, '')
-      .trim();
-  }
-
-  filter(files: TFile[], taskFilter: TaskStatus | undefined, app: App): TFile[] {
-    if (!taskFilter) return files;
-
-    return files.filter(file => {
-      if (file.extension !== 'md') return false;
-      const cache = app.metadataCache.getFileCache(file);
-
-      if (!cache?.listItems) return false;
-      const tasks = cache.listItems.filter(item => item.task);
-
-      if (tasks.length === 0) return false;
-
-      switch (taskFilter) {
-        case 'all': return true;
-        case 'todo': return tasks.some(t => t.task !== 'x' && t.task !== 'X');
-        case 'done': return tasks.some(t => t.task === 'x' || t.task === 'X');
-        default: return true;
-      }
-    });
-  }
-}
+import { SearchIndex } from "./SearchIndex";
+import {
+  ParsedQuery, SearchFilter, isFilterable,
+  TagsFilter, TodayFilter, ThisWeekFilter, ThisMonthFilter,
+  FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
+  TitleFilter, CommandFilter, TaskFilter,
+} from "./search-filters";
+
+// Re-export per compatibilità con i file che importano da qui
+export type { ParsedQuery, DateRange, TaskStatus } from "./search-filters";
+export { SearchFilter, isFilterable } from "./search-filters";
 
 export class SearchStrategyFactory {
   private readonly strategyMap: Map<string, SearchFilter<unknown>> = new Map();
@@ -343,13 +54,6 @@ export class SearchStrategyFactory {
     return strategy;
   }
 
-  /**
-   * Apply all filters from ParsedQuery to a list of files
-   * @param files - Files to filter
-   * @param parsed - ParsedQuery with extracted filters
-   * @param app - Obsidian App instance
-   * @returns Filtered files
-   */
   filter(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
     let results = files;
 
@@ -402,11 +106,6 @@ export class SearchStrategyFactory {
     return results;
   }
 
-  /**
-   * Apply free text search on an already-filtered list of files.
-   * Uses the MiniSearch index when available (markdown-only), falls back to
-   * content scan otherwise. When there is no free text, sorts by mtime desc.
-   */
   async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<TFile[]> {
     if (!parsed.freeText) {
       return files.sort((a, b) => b.stat.mtime - a.stat.mtime);
@@ -425,23 +124,16 @@ export class SearchStrategyFactory {
     return searchIndex.searchFilesWithoutIndex(parsed.freeText, files);
   }
 
-  /**
-   * Parse user input and extract all filters
-   * @param input - Raw search query from user
-   * @returns ParsedQuery object with all extracted filters
-   */
   parse(input: string): ParsedQuery {
     const trimmedInput = input.trim();
 
-    console.log(trimmedInput)
-    //const hasHash = trimmedInput.includes("#");
+    // TEST non cancellare
+    // console.log(trimmedInput)
 
-    const strategyWithHash = Array.from(this.strategyMap.values())
-      .find(s => trimmedInput.includes(s.label));
+    // const strategyWithHash = Array.from(this.strategyMap.values())
+    //   .find(s => trimmedInput.includes(s.label));
 
-    console.log(strategyWithHash)
-
-    //console.log(hasHash)
+    // console.log(strategyWithHash)
 
     // Initialize result
     const result: ParsedQuery = {
@@ -472,7 +164,7 @@ export class SearchStrategyFactory {
     remainingText = tagStrategy.removeFrom(remainingText);
 
     // 3. Extract date filters (today, this week, this month)
-    const dateStrategy = this.getStrategy('today') as DateFilter;
+    const dateStrategy = this.getStrategy('today') as TodayFilter;
 
     result.dateFilter = dateStrategy.extract(remainingText);
     remainingText = dateStrategy.removeFrom(remainingText);
