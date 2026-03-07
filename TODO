@@ -10,7 +10,6 @@ quindi io cerco qualcosa per fare in mdoo che possa trovarlo dovunque, anche nei
 ### Modal - Search Features
 
 - [ ] **Preview** Add support for Bases with preview
-- [x] **Preview** Support preview of PNG / PDF
 - [ ] **Preview** Search highliths. i.e `==Example==`
 - [ ] **Preview** Date ranges: `created:2024-01-01 2024-12-31` or `modified:2024-01-01 2024-12-31`. If not upper limit are not specified, then consider `today`
   - Supported data range
@@ -102,6 +101,7 @@ quindi io cerco qualcosa per fare in mdoo che possa trovarlo dovunque, anche nei
 - [x] Show Obsidian commands when typing `>`
 - [x] create external view to show card
 - [x] Create `CommandsView.ts` - persistent sidebar view
+- [x] **Preview** Support preview of PNG / PDF
 
 ### BUG
 
