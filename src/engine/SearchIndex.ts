@@ -132,7 +132,7 @@ export class SearchIndex {
   /**
    * Ricerca full-text veloce usando l'indice
    */
-  search(query: string, maxResults = 50): TFile[] {
+  search(query: string, maxResults?: number): TFile[] {
     if (!this.isReady) {
       console.warn('[SearchIndex] Index not ready yet');
 
@@ -149,7 +149,7 @@ export class SearchIndex {
       // Converti risultati in TFile oggetti
       const files: TFile[] = [];
 
-      for (const result of results.slice(0, maxResults)) {
+      for (const result of (maxResults !== undefined ? results.slice(0, maxResults) : results)) {
         const file = this.app.vault.getAbstractFileByPath(result.id);
 
         // files[0].stat.ctime

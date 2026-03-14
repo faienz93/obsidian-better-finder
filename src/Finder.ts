@@ -65,7 +65,7 @@ export class Finder {
 
     results = await this.factory.filterFreeText(results, parsed, this.app);
 
-    return results.slice(0, 50);
+    return results;
   }
 
   renderCommand(command: Command, el: HTMLElement): void {

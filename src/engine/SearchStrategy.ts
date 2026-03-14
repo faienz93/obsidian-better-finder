@@ -115,7 +115,7 @@ export class SearchStrategyFactory {
     const isMarkdownOnly = parsed.fileTypes.length === 0;
 
     if (searchIndex.isIndexReady() && isMarkdownOnly) {
-      const indexResults = searchIndex.search(parsed.freeText, 50);
+      const indexResults = searchIndex.search(parsed.freeText);
       const resultPaths = new Set(files.map(f => f.path));
 
       return indexResults.filter(f => resultPaths.has(f.path));
