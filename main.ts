@@ -1,8 +1,8 @@
 import { Platform, Plugin, TFile } from 'obsidian';
 import FinderModal from './src/FinderModal'
 import FinderSetting from './src/FinderSetting'
-import { FinderView, FINDER_VIEW_TYPE } from './src/FinderView'
-import { SearchIndex } from './src/SearchIndex';
+import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
+import { SearchIndex } from './src/engine/SearchIndex';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
@@ -30,7 +30,7 @@ export default class ObsidianBetterFinder extends Plugin {
     await this.loadSettings();
 
     // Register the FinderView
-    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderView(leaf));
+    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderCard(leaf));
 
     this.addCommand({
       id: 'obsidian-better-finder-open-modal',
@@ -78,9 +78,11 @@ export default class ObsidianBetterFinder extends Plugin {
         this.app.vault.on('delete', (file) => {
           if (file instanceof TFile) {
             const index = this.fileCache.indexOf(file);
+
             if (index > -1) {
               this.fileCache.splice(index, 1);
             }
+
             this.searchIndex.removeFile(file);
           }
         })
@@ -106,7 +108,6 @@ export default class ObsidianBetterFinder extends Plugin {
         })
       );
     })
-
   }
 
   async activateFinderView() {
@@ -138,8 +139,6 @@ export default class ObsidianBetterFinder extends Plugin {
 
   }
 
-
-
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
@@ -147,10 +146,4 @@ export default class ObsidianBetterFinder extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
-
-
 }
-
-
-
-

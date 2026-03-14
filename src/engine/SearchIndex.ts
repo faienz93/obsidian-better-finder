@@ -1,6 +1,5 @@
 import { App, TFile, Notice } from "obsidian";
 import MiniSearch from 'minisearch';
-import { ParsedQuery } from "./QueryParser";
 
 interface IndexedDocument {
   id: string;           // file.path
@@ -63,6 +62,7 @@ export class SearchIndex {
         for (const file of batch) {
           try {
             const doc = await this.indexFile(file);
+
             if (doc) docs.push(doc);
           } catch (error) {
             console.error(`[SearchIndex] Error indexing ${file.path}:`, error);
@@ -82,11 +82,11 @@ export class SearchIndex {
 
       this.isReady = true;
       const elapsed = Date.now() - startTime;
+
       console.log(`[SearchIndex] Index built in ${elapsed}ms`);
 
       notice.hide();
       new Notice(`Index ready! (${files.length} files in ${(elapsed / 1000).toFixed(1)}s)`);
-
     } catch (error) {
       console.error('[SearchIndex] Build failed:', error);
       notice.hide();
@@ -120,10 +120,11 @@ export class SearchIndex {
       };
 
       this.indexedPaths.add(file.path);
-      return doc;
 
+      return doc;
     } catch (error) {
       console.error(`[SearchIndex] Error reading ${file.path}:`, error);
+
       return null;
     }
   }
@@ -131,9 +132,10 @@ export class SearchIndex {
   /**
    * Ricerca full-text veloce usando l'indice
    */
-  search(query: string, maxResults = 50): TFile[] {
+  search(query: string, maxResults?: number): TFile[] {
     if (!this.isReady) {
       console.warn('[SearchIndex] Index not ready yet');
+
       return [];
     }
 
@@ -146,8 +148,10 @@ export class SearchIndex {
 
       // Converti risultati in TFile oggetti
       const files: TFile[] = [];
-      for (const result of results.slice(0, maxResults)) {
+
+      for (const result of (maxResults !== undefined ? results.slice(0, maxResults) : results)) {
         const file = this.app.vault.getAbstractFileByPath(result.id);
+
         // files[0].stat.ctime
         if (file instanceof TFile) {
           files.push(file);
@@ -155,9 +159,9 @@ export class SearchIndex {
       }
 
       return files;
-
     } catch (error) {
       console.error('[SearchIndex] Search error:', error);
+
       return [];
     }
   }
@@ -176,10 +180,10 @@ export class SearchIndex {
 
       // Aggiungi nuova versione
       const doc = await this.indexFile(file);
+
       if (doc) {
         this.miniSearch.add(doc);
       }
-
     } catch (error) {
       console.error(`[SearchIndex] Error updating ${file.path}:`, error);
     }
@@ -240,13 +244,13 @@ export class SearchIndex {
    * Search files using simple text matching
    * Returns files sorted by relevance
    */
-  async searchFilesWithoutIndex(parsed: ParsedQuery, files: TFile[]): Promise<TFile[]> {
+  async searchFilesWithoutIndex(freeText: string, files: TFile[]): Promise<TFile[]> {
     // If no free text, return files as-is
-    if (!parsed.freeText) {
+    if (!freeText) {
       return files;
     }
 
-    const searchText = parsed.freeText.toLowerCase();
+    const searchText = freeText.toLowerCase();
     const scoredFiles: Array<{ file: TFile; score: number }> = [];
 
     for (const file of files) {
@@ -265,8 +269,8 @@ export class SearchIndex {
 
           // Count occurrences in content
           const occurrences = (lowerContent.match(new RegExp(searchText, 'g')) || []).length;
-          score += occurrences;
 
+          score += occurrences;
         } catch (error) {
           console.error(`Error reading file ${file.path}:`, error);
         }
@@ -297,6 +301,7 @@ export class SearchIndex {
       if (basename.includes(lowerSearch)) {
         // Simple scoring: exact match = higher score
         const score = basename === lowerSearch ? 100 : 10;
+
         scoredFiles.push({ file, score });
       }
     }

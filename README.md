@@ -60,12 +60,19 @@ npm run version  # Bump version (updates manifest.json and versions.json)
 
 ### Making Changes
 
-1. Open the project in VS Code: `<YOUR_VAULT>/.obsidian/plugins/obsidian-better-finder`
-2. Install this plugin https://github.com/pjeby/hot-reload
-   > This plugin is usefull to avoid continusly restart when develop the plugin
-3. Make your changes
-4. The plugin auto-reloads in Obsidian (thanks to `npm run dev`)
-5. Test in Obsidian
+1.  **Open the project** in VS Code:
+    `cd <YOUR_VAULT>/.obsidian/plugins`
+2.  **Enable Hot Reload**:
+    - Install the [Hot Reload](https://github.com/pjeby/hot-reload) plugin in your Obsidian vault.
+    - Ensure a `.git` folder or an empty `.hotreload` file exists in this plugin's directory to trigger the auto-reload.
+    - Enable the plugin into Obsidian
+3.  **Start the compiler**:
+    - Run `npm install` (if you haven't already).
+    - Run `npm run dev` to start the build in watch mode.
+4.  **Develop**:
+    - Make your changes in the source code.
+    - The plugin will automatically recompile, and Obsidian will reload it instantly without requiring a manual restart.
+5.  **Test**: Verify your changes directly in Obsidian.
 
 ## Usage
 
