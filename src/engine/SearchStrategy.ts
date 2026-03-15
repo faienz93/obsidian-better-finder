@@ -5,7 +5,7 @@ import {
   ParsedQuery, SearchFilter, isFilterable,
   TagsFilter, TodayFilter, ThisWeekFilter, ThisMonthFilter,
   FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
-  TitleFilter, CommandFilter, TaskFilter,
+  TitleFilter, CommandFilter, TaskFilter, PathFilter,
 } from "./search-filters";
 
 // Re-export per compatibilità con i file che importano da qui
@@ -30,6 +30,7 @@ export class SearchStrategyFactory {
     this.strategyMap.set('canvas', new CanvasFilter());
     this.strategyMap.set('json', new JsonFilter());
     this.strategyMap.set('base', new BaseFilter());
+    this.strategyMap.set('path', new PathFilter());
   }
 
   get hints(): HintsType[] {
@@ -75,10 +76,22 @@ export class SearchStrategyFactory {
       }
     }
 
-    // Apply file type filter (always applied - filters to markdown if no types specified)
-    const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
+    // Apply path filter (before file type filter to work on all files)
+    if (parsed.pathFilter) {
+      const strategy = this.strategyMap.get('path');
 
-    results = fileTypeStrategy.filter(results, parsed.fileTypes, app);
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, parsed.pathFilter, app);
+      }
+    }
+
+    // Apply file type filter (skip markdown-only default when path filter is active)
+    const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
+    const effectiveFileTypes = parsed.pathFilter && parsed.fileTypes.length === 0
+      ? ['*']
+      : parsed.fileTypes;
+
+    results = fileTypeStrategy.filter(results, effectiveFileTypes, app);
 
     // Apply task filter
     if (parsed.taskFilter) {
@@ -194,7 +207,13 @@ export class SearchStrategyFactory {
     result.taskFilter = taskStrategy.extract(remainingText);
     remainingText = taskStrategy.removeFrom(remainingText);
 
-    // 7. What's left is free text
+    // 7. Extract path filter (in:cartella)
+    const pathStrategy = this.getStrategy('path') as PathFilter;
+
+    result.pathFilter = pathStrategy.extract(remainingText);
+    remainingText = pathStrategy.removeFrom(remainingText);
+
+    // 8. What's left is free text
     result.freeText = remainingText.trim();
 
     return result;

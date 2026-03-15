@@ -11,4 +11,5 @@ export const i18n = {
   commands: 'comandi',
   title: 'titolo',
   images: 'immagini',
+  path: 'cartella',
 };

@@ -10,6 +10,7 @@ export interface ParsedQuery {
   fileTypes: string[];
   scope?: 'title' | 'content';
   taskFilter?: 'all' | 'todo' | 'done';
+  pathFilter?: string;
   freeText: string;
 }
 

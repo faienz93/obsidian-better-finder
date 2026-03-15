@@ -21,6 +21,10 @@ export abstract class FileTypeFilter extends SearchFilter<string[]> {
       return files.filter(f => f.extension === 'md');
     }
 
+    if (types.includes('*')) {
+      return files;
+    }
+
     return files.filter(f => types.some(ext => f.extension === ext.slice(1)));
   }
 }

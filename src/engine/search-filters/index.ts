@@ -7,3 +7,4 @@ export { FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseF
 export { TitleFilter } from './TitleFilter';
 export { CommandFilter } from './CommandFilter';
 export { TaskFilter } from './TaskFilter';
+export { PathFilter } from './PathFilter';
