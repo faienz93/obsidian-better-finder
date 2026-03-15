@@ -9,15 +9,16 @@ quindi io cerco qualcosa per fare in mdoo che possa trovarlo dovunque, anche nei
 
 ### Modal - Search Features
 
-- [ ] **Preview** Add support for Bases with preview
-- [ ] **Preview** Search highliths. i.e `==Example==`
 - [ ] **Preview** Date ranges: `created:2024-01-01 2024-12-31` or `modified:2024-01-01 2024-12-31`. If not upper limit are not specified, then consider `today`
   - Supported data range
     - `today`
     - `yesterday`
     - `this-month`
+    - date base on format selected in settings: for example '2024-01-01' or '2024/01/01'
   - Remove actual behaviour "today" and "modified"
   - Support absolute dates: `2024-01-15`, `last week`, `yesterday`
+- [ ] **Preview** Add support for Bases with preview
+- [ ] **Preview** Search highliths. i.e `==Example==`
 - [ ] **Content Preview**: Add content snippet in cards with highlighted search terms
 - [ ] **Fuzzy Search**: Implement smart matching (e.g., "mtg" → "meeting")
 - [ ] **Search History**: Track recent searches
