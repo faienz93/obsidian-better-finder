@@ -60,6 +60,9 @@ export class Finder {
       return this.getCommandSuggestions(parsed.commandText || '');
     }
 
+    // Aggiorna la lista file ad ogni ricerca per riflettere create/delete
+    this.allFiles = this.app.vault.getFiles();
+
     // Apply all filters
     let results = this.factory.filter(this.allFiles, parsed, this.app);
 
