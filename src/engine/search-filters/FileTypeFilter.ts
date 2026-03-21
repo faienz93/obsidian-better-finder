@@ -17,11 +17,7 @@ export abstract class FileTypeFilter extends SearchFilter<string[]> {
   }
 
   filter(files: TFile[], types: string[], _app: App): TFile[] {
-    if (types.length === 0) {
-      return files.filter(f => f.extension === 'md');
-    }
-
-    if (types.includes('*')) {
+    if (types.length === 0 || types.includes('*')) {
       return files;
     }
 
