@@ -1,10 +1,12 @@
 import { ItemView, WorkspaceLeaf, TFile, Menu, MarkdownRenderer } from "obsidian";
 import { Finder, SearchResult, isCommand } from "./Finder";
+import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { i18n } from "./const";
 import { Card, SearchBar } from "./component/Card";
 import { ResultsContainer } from "./component/ui/ResultsContainer";
 import { CodePreview } from "./component/ui/CodePreview";
 import { HintBar } from "./component/ui/HintBar";
+import { SubHintBar } from "./component/ui/SubHintBar";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -15,6 +17,7 @@ export class FinderCard extends ItemView {
   private resultsContainer: ResultsContainer;
   private searchBar: SearchBar;
   private hintBar: HintBar;
+  private subHintBar: SubHintBar;
   private allResults: SearchResult[] = [];
   private renderedCount = 0;
   private sentinel: HTMLElement | null = null;
@@ -58,6 +61,19 @@ export class FinderCard extends ItemView {
       });
     });
 
+    this.subHintBar = new SubHintBar(this.searchBar.containerEl, (value) => {
+      const current = this.searchBar.getValue();
+      const match = /\b(modified|created):(\S*)/.exec(current);
+
+      if (match) {
+        this.searchBar.setValue(current.slice(0, match.index) + match[1] + ':' + value + current.slice(match.index + match[0].length));
+      } else {
+        this.searchBar.setValue(current.trimEnd() + ' modified:' + value + ' ');
+      }
+
+      this.searchBar.onFocus();
+    });
+
     const toggle = this.searchBar.createToggle();
 
     this.resultsContainer = new ResultsContainer(this.searchBar.containerEl, toggle);
@@ -66,8 +82,22 @@ export class FinderCard extends ItemView {
   }
 
   private async onSearch(): Promise<void> {
-    this.hintBar.highlightChips(this.core.getActiveHints(this.searchBar.getValue()));
-    const results = await this.core.search(this.searchBar.getValue());
+    const query = this.searchBar.getValue();
+    const factory = SearchStrategyFactory.getInstance();
+
+    this.hintBar.highlightChips(this.core.getActiveHints(query));
+
+    const parsed = factory.parse(query);
+
+    if (parsed.dateFilter) {
+      this.subHintBar.show(parsed.dateFilter.value);
+    } else if (/\b(modified|created):/.test(query)) {
+      this.subHintBar.show();
+    } else {
+      this.subHintBar.hide();
+    }
+
+    const results = await this.core.search(query);
 
     this.prepareScrollResult(results);
   }

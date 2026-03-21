@@ -1,135 +1,143 @@
-# Piano implementato: Date Filter con prefisso+suffisso
+# Piano: Date Filter con prefisso `modified:` / `created:`
 
 ## Obiettivo
 
-Sostituire i filtri data piatti (`today`, `this week`, `this month`) con una sintassi
-`modified:VALUE` / `created:VALUE`, dove VALUE è uno di `today`, `yesterday`, `this-week`, `this-month`.
+Sostituire i filtri data piatti (`today`, `this week`, `this month`) con la sintassi
+`modified:VALUE` / `created:VALUE`, dove VALUE è uno tra:
+`today`, `yesterday`, `this-week`, `last-week`, `this-month`, oppure una data assoluta
+nei formati `YYYY-MM-DD` o `YYYY/MM/DD`.
 
 La UI mostra prima i chip principali (`modified:`, `created:`), poi — quando uno è presente
 nella query — mostra una seconda riga di **subhint chip** con i valori possibili.
 
 ---
 
-## Scelte architetturali
+## Architettura
 
-### 1. Tipo `DateRange` da stringa a oggetto strutturato
+### 1. Tipi (`src/engine/search-filters/types.ts`)
 
-**Prima:** `DateRange = 'today' | 'this-week' | 'this-month'`
+Sostituire:
 
-**Dopo:** `DateRange = { field: DateField; value: DateValue }`
+```ts
+// VECCHIO
+export type DateRange = 'today' | 'this-week' | 'this-month';
+```
 
-dove `DateField = 'modified' | 'created'` e `DateValue = 'today' | 'yesterday' | 'this-week' | 'this-month'`.
+Con:
 
-**Perché:** il vecchio tipo non portava informazione sul campo da filtrare (mtime vs ctime).
-Con l'oggetto strutturato, `filter()` sa esattamente su quale stat agire e con quale range temporale,
-senza bisogno di dispatching esterno.
+```ts
+export type DateField = 'created' | 'modified';
+export type DateValue = 'today' | 'yesterday' | 'this-week' | 'last-week' | 'this-month' | string; // string = data assoluta
+export type DateRange = { field: DateField; value: DateValue };
+```
 
----
+Aggiornare `ParsedQuery`:
 
-### 2. `subHints?` in `SearchFilter` (base class)
-
-Aggiunto `readonly subHints?: HintsType[]` come campo opzionale in `SearchFilter<TResult>`.
-
-**Perché:** i subhint sono dati della strategia stessa, non della UI. Centralizzare qui permette
-alla UI (`FinderModal`, `FinderCard`) di interrogare la strategia e ottenerli senza hardcoding.
-Le strategie che non hanno subhint (tag, title, task, ecc.) ignorano semplicemente il campo.
-
----
-
-### 3. Due classi `ModifiedFilter` e `CreatedFilter` al posto di tre classi piatte
-
-**Prima:** `TodayFilter`, `ThisWeekFilter`, `ThisMonthFilter` — tre classi, stessa logica di base,
-ognuna riconosceva tutti e tre i pattern e restituiva una stringa.
-
-**Dopo:** `ModifiedFilter` e `CreatedFilter` — due classi, stessa logica di base condivisa
-via `abstract class DateFilter`. Ogni classe riconosce il proprio prefisso (`modified:` / `created:`)
-seguito da qualsiasi dei quattro valori.
-
-**Perché:** la granularità non è più "quale range temporale" ma "quale campo + quale range".
-Due classi corrispondono esattamente ai due chip principali nella UI.
-
-**Regex usata:** `/\bmodified:(today|yesterday|this-week|this-month)\b/`
-
-`removeFrom()` rimuove anche il prefisso nudo (`modified:` senza valore) così non finisce
-nel free text quando l'utente ha digitato il prefisso ma non ancora il valore.
+```ts
+// VECCHIO
+dateFilter?: 'today' | 'this-week' | 'this-month';
+// NUOVO
+dateFilter?: DateRange;
+```
 
 ---
 
-### 4. `SearchStrategyFactory`: strategyMap con chiavi `'modified'` e `'created'`
+### 2. Filter (`src/engine/search-filters/DateFilter.ts`)
 
-Le chiavi nella map sono `'modified'` e `'created'` (senza i due punti), così
-`getStrategy('modified')` funziona nel `parse()` e nel `filter()`.
-
-Nel `filter()`: si usa `parsed.dateFilter.field` come chiave per recuperare la strategia giusta
-dalla map — non più hardcoded su `'today'`.
-
-Nel `parse()`: si provano entrambe le strategie; se nessuna ha estratto un risultato completo
-(prefisso+valore), si chiama comunque `removeFrom()` su entrambe per pulire eventuali prefissi
-nudi dal remaining text prima del free text search.
-
----
-
-### 5. `HintBar`: doppia barra con `showSubHints` / `hideSubHints`
-
-Aggiunto un secondo `HTMLElement` (`subHintBar`) creato nel costruttore, nascosto di default
-(`display: none`). I metodi pubblici:
-
-- `showSubHints(subHints, onClick)` — svuota e ripopola la subHintBar, la rende visibile
-- `hideSubHints()` — nasconde e svuota
-- `highlightSubChips(activeLabels)` — evidenzia il chip del valore attivo (es. `today`)
-
-**Perché non riusare `addHint`:** i subhint sono temporanei e cambiano in base al prefisso
-attivo; i chip principali sono permanenti. Mantenere i due set separati evita di mescolare
-stato e semplifica il clear.
+- **Eliminare** le classi `TodayFilter`, `ThisWeekFilter`, `ThisMonthFilter` e la classe astratta `DateFilter`
+- **Creare** due nuove classi concrete `ModifiedFilter` e `CreatedFilter` che estendono `SearchFilter<DateRange | undefined>`:
+  - `extract(query)` cerca il pattern `modified:VALUE` o `created:VALUE` rispettivamente
+  - `removeFrom(query)` rimuove il token estratto dalla query
+  - `filter(files, dateRange, app)` usa `file.stat.mtime` (ModifiedFilter) o `file.stat.ctime` (CreatedFilter)
+  - I risultati sono ordinati dal più recente al meno recente
+- Valori supportati: `today`, `yesterday`, `this-week`, `last-week`, `this-month`, `YYYY-MM-DD`, `YYYY/MM/DD`
+- `last-week`: dal lunedì precedente alla domenica (settimana completa passata), last month dal primo del mese precedente al 31 del mese precedente etc..
 
 ---
 
-### 6. `Finder`: tre nuovi metodi
+### 3. Index (`src/engine/search-filters/index.ts`)
 
-- `getActiveDatePrefix(query)`: restituisce `'modified:'` o `'created:'` se presenti nella query
-  (con regex `/\bmodified:/`), altrimenti `undefined`. Usato per decidere se mostrare i subhint.
-- `getActiveSubHints(query)`: fa parse della query e restituisce il valore attivo (es. `['today']`)
-  per evidenziare il subhint chip corretto.
-- `getSubHintsForPrefix(prefix)`: estrae la strategia dalla factory tramite chiave (rimuovendo
-  i due punti), restituisce i suoi `subHints`. Fa da bridge tra UI e strategie.
+- Rimuovere export di `TodayFilter`, `ThisWeekFilter`, `ThisMonthFilter`
+- Aggiungere export di `ModifiedFilter`, `CreatedFilter`
 
 ---
 
-### 7. `FinderModal` e `FinderCard`: gestione subhint
+### 4. SearchStrategy (`src/engine/SearchStrategy.ts`)
 
-Sull'evento `input`:
-1. `getActiveDatePrefix(query)` — c'è un prefisso attivo?
-2. Se sì: `showSubHints(...)` con callback che sostituisce nella query il token
-   `prefix+oldValue` (o solo `prefix`) con `prefix+newValue` via regex, poi appende uno spazio.
-3. Se no: `hideSubHints()`
-
-Il click su subhint usa una regex per sostituire in-place il token data esistente nella query,
-evitando duplicati (es. passare da `modified:today` a `modified:this-week` funziona correttamente).
+- Rimuovere import e registrazione di `TodayFilter`, `ThisWeekFilter`, `ThisMonthFilter`
+- Aggiungere registrazione di `ModifiedFilter` (chiave `'modified'`) e `CreatedFilter` (chiave `'created'`)
+- Nel metodo `parse()`: sostituire il blocco "Extract date filters" con chiamate a entrambe le strategy; i due filtri sono mutuamente esclusivi — se l'utente scrive `modified:today created:yesterday` vince il primo trovato
+- Nel metodo `filter()`: usare la chiave `parsed.dateFilter.field` per scegliere quale strategy applicare
 
 ---
 
-## File modificati
+### 5. Costanti (`src/const.ts`)
 
-| File | Tipo di cambiamento |
-|------|---------------------|
-| `src/const.ts` | Aggiunte stringhe i18n: `yesterday`, `modified`, `created` |
-| `src/engine/search-filters/types.ts` | Nuovi tipi `DateField`, `DateValue`, `DateRange`; `subHints?` in `SearchFilter` |
-| `src/engine/search-filters/DateFilter.ts` | Riscritto: `ModifiedFilter` + `CreatedFilter`, supporto `yesterday`, filtro su `mtime`/`ctime` |
-| `src/engine/search-filters/index.ts` | Export aggiornati (rimossi vecchi, aggiunti nuovi) |
-| `src/engine/SearchStrategy.ts` | `strategyMap`, `parse()`, `filter()` aggiornati |
-| `src/component/ui/HintBar.ts` | Aggiunto `subHintBar`, `showSubHints`, `hideSubHints`, `highlightSubChips` |
-| `src/Finder.ts` | Aggiunti `getActiveDatePrefix`, `getActiveSubHints`, `getSubHintsForPrefix` |
-| `src/FinderModal.ts` | Gestione subhint sull'evento input + click |
-| `src/FinderCard.ts` | Stessa gestione subhint per la sidebar |
+- Rimuovere `today`, `thisWeek`, `thisMonth`
+- Aggiungere `modified` e `created` (label per i chip della HintBar)
 
 ---
 
-## Comportamento atteso
+### 6. SubHintBar (`src/component/ui/SubHintBar.ts`) — file nuovo
 
-1. Apertura modal/sidebar → chip `modified:` e `created:` visibili nella hint bar principale
-2. Digitare `modified:` → appare seconda riga con chip `today / yesterday / this-week / this-month`
-3. Click su `today` → query diventa `modified:today ` → risultati filtrati per file modificati oggi
-4. Passare da `modified:today` a `modified:this-week` → sostituzione in-place, nessun duplicato
-5. `created:this-week` → filtra per `file.stat.ctime` invece di `mtime`
-6. Free text funziona combinato: `modified:today react` → filtra per data E full-text search
-7. Rimuovere il prefisso dalla query → subhint spariscono, tutti i file visibili
+Classe standalone (non dentro `HintBar`), con visibilità controllata dall'esterno.
+
+```ts
+export class SubHintBar {
+  constructor(parentEl: HTMLElement, onClick: (value: string) => void);
+  show(activeValue?: string): void; // mostra la barra, evidenzia activeValue se presente
+  hide(): void; // nasconde la barra
+}
+```
+
+I chip fissi mostrati sono: `today`, `yesterday`, `this-week`, `last-week`, `this-month`.
+Il click su un chip appende il valore alla query corrente (es. se la query è `modified:` il click su `today` completa in `modified:today`).
+
+**Colori**: i chip `modified:` e `created:` nella HintBar principale usano lo stile standard
+(`hint-chip` / `hint-chip-active`). I chip della SubHintBar hanno una classe aggiuntiva
+`hint-chip-sub` per distinguerli visivamente — piccola differenza CSS, vale la pena farlo subito.
+
+---
+
+### 7. HintBar (`src/component/ui/HintBar.ts`)
+
+Nessuna modifica strutturale. La `SubHintBar` è indipendente.
+
+---
+
+### 8. FinderModal e FinderCard — gestione SubHintBar
+
+Ogni classe gestisce la propria `SubHintBar` in modo indipendente (duplicazione accettata per ora).
+La logica è identica in entrambe: va applicata dopo ogni aggiornamento della query.
+
+```ts
+const parsed = factory.parse(query);
+if (parsed.dateFilter) {
+  subHintBar.show(parsed.dateFilter.value);
+} else if (query.includes('modified:') || query.includes('created:')) {
+  subHintBar.show(); // nessun chip attivo
+} else {
+  subHintBar.hide();
+}
+```
+
+---
+
+## File da modificare / creare
+
+| File                                      | Azione                                                  |
+| ----------------------------------------- | ------------------------------------------------------- |
+| `src/engine/search-filters/types.ts`      | Aggiornare `DateRange`, `ParsedQuery`                   |
+| `src/engine/search-filters/DateFilter.ts` | Riscrivere interamente                                  |
+| `src/engine/search-filters/index.ts`      | Aggiornare export                                       |
+| `src/engine/SearchStrategy.ts`            | Aggiornare import, registrazione, `parse()`, `filter()` |
+| `src/const.ts`                            | Sostituire costanti date                                |
+| `src/component/ui/SubHintBar.ts`          | **Creare**                                              |
+| `src/FinderModal.ts`                      | Integrare SubHintBar, gestire show/hide                 |
+| `src/FinderCard.ts`                       | Integrare SubHintBar (ha anch'essa una HintBar)         |
+
+---
+
+## Cosa NON implementare ora
+
+- Range di date (`created:2024-01-01 2024-12-31`) — rimandato

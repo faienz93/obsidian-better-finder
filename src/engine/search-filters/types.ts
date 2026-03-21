@@ -6,7 +6,7 @@ export interface ParsedQuery {
   isCommandMode: boolean;
   commandText?: string;
   tags: string[];
-  dateFilter?: 'today' | 'this-week' | 'this-month';
+  dateFilter?: DateRange;
   fileTypes: string[];
   scope?: 'title' | 'content';
   taskFilter?: 'all' | 'todo' | 'done';
@@ -23,7 +23,9 @@ export interface Filterable<TResult> {
   filter(files: TFile[], extracted: TResult, app: App): TFile[];
 }
 
-export type DateRange = 'today' | 'this-week' | 'this-month';
+export type DateField = 'created' | 'modified';
+export type DateValue = 'today' | 'yesterday' | 'this-week' | 'last-week' | 'this-month' | string;
+export type DateRange = { field: DateField; value: DateValue };
 export type TaskStatus = 'all' | 'todo' | 'done';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

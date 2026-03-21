@@ -3,7 +3,7 @@ import { HintsType } from "src/component/ui/HintBar";
 import { SearchIndex } from "./SearchIndex";
 import {
   ParsedQuery, SearchFilter, isFilterable,
-  TagsFilter, TodayFilter, ThisWeekFilter, ThisMonthFilter,
+  TagsFilter, ModifiedFilter, CreatedFilter,
   FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
   TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter,
 } from "./search-filters";
@@ -19,9 +19,8 @@ export class SearchStrategyFactory {
   private constructor() {
     // L'ordine definisce l'ordine degli hints nella UI
     this.strategyMap.set('tag', new TagsFilter());
-    this.strategyMap.set('today', new TodayFilter());
-    this.strategyMap.set('this week', new ThisWeekFilter());
-    this.strategyMap.set('this month', new ThisMonthFilter());
+    this.strategyMap.set('created', new CreatedFilter());
+    this.strategyMap.set('modified', new ModifiedFilter());
     this.strategyMap.set('command', new CommandFilter());
     this.strategyMap.set('title', new TitleFilter());
     this.strategyMap.set('task', new TaskFilter());
@@ -68,9 +67,9 @@ export class SearchStrategyFactory {
       }
     }
 
-    // Apply date filter (any of the 3 date strategies share the same logic)
+    // Apply date filter
     if (parsed.dateFilter) {
-      const strategy = this.strategyMap.get('today');
+      const strategy = this.strategyMap.get(parsed.dateFilter.field);
 
       if (strategy && isFilterable(strategy)) {
         results = strategy.filter(results, parsed.dateFilter, app);
@@ -192,11 +191,13 @@ export class SearchStrategyFactory {
     result.tags = tagStrategy.extract(remainingText);
     remainingText = tagStrategy.removeFrom(remainingText);
 
-    // 3. Extract date filters (today, this week, this month)
-    const dateStrategy = this.getStrategy('today') as TodayFilter;
+    // 3. Extract date filters (modified:VALUE or created:VALUE)
+    const modifiedStrategy = this.getStrategy('modified') as ModifiedFilter;
+    const createdStrategy = this.getStrategy('created') as CreatedFilter;
 
-    result.dateFilter = dateStrategy.extract(remainingText);
-    remainingText = dateStrategy.removeFrom(remainingText);
+    result.dateFilter = modifiedStrategy.extract(remainingText) ?? createdStrategy.extract(remainingText);
+    remainingText = modifiedStrategy.removeFrom(remainingText);
+    remainingText = createdStrategy.removeFrom(remainingText);
 
     // 4. Extract file type filters (pdf, image, canvas, json, base)
     const fileTypeKeys = ['pdf', 'image', 'canvas', 'json', 'base'];
