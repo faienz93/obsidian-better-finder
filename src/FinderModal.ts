@@ -40,6 +40,12 @@ class FinderModal extends SuggestModal<SearchResult> {
     return this.core.search(query);
   }
 
+  // Renders each suggestion item (called by older Obsidian versions)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  renderSuggestion(result: SearchResult, el: HTMLElement) {
+    this.renderModalItem(result, el);
+  }
+
   // Renders each suggestion item
   renderModalItem(result: SearchResult, el: HTMLElement) {
     el.empty();

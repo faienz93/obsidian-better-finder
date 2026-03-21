@@ -5,11 +5,6 @@ import { HintsType } from "./component/ui/HintBar";
 
 export type SearchResult = TFile | Command;
 
-// TODO non usato. NON CANCELLARE
-export function isFile(result: SearchResult): result is TFile {
-  return 'stat' in result;
-}
-
 export function isCommand(result: SearchResult): result is Command {
   return 'id' in result && 'name' in result;
 }
