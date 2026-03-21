@@ -6,13 +6,16 @@ export class HighlightFilter extends SearchFilterAsync<string | undefined> {
   readonly desc = 'highlight';
 
   extract(query: string): string | undefined {
-    const match = /\bhighlight:(\S+)/.exec(query);
+    // Supporta highlight:"frase con spazi" e highlight:parola
+    const match = /\bhighlight:(?:"([^"]+)"|(\S+))/.exec(query);
 
-    return match ? match[1] : undefined;
+    if (!match) return undefined;
+
+    return match[1] ?? match[2];
   }
 
   removeFrom(query: string): string {
-    return query.replace(/\bhighlight:\S*/gi, '').trim();
+    return query.replace(/\bhighlight:(?:"[^"]*"|\S*)/gi, '').trim();
   }
 
   async filterAsync(files: TFile[], term: string | undefined, app: App): Promise<TFile[]> {
