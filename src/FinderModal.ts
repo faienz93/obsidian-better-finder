@@ -3,12 +3,12 @@ import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { Finder, SearchResult, isCommand } from "./Finder";
 import { ModalItem } from "./component/ModalItem";
 import { HintBar } from "./component/ui/HintBar";
-import { SubHintBar } from "./component/ui/SubHintBar";
+import { HintBarSub } from "./component/ui/HintBarSub";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
   private hintBar: HintBar;
-  private subHintBar: SubHintBar;
+  private subHintBar: HintBarSub;
 
   constructor(app: App) {
     super(app);
@@ -32,7 +32,7 @@ class FinderModal extends SuggestModal<SearchResult> {
         });
       });
 
-      this.subHintBar = new SubHintBar(hintWrapper, (value) => {
+      this.subHintBar = new HintBarSub(hintWrapper, (value) => {
         const current = this.inputEl.value;
         const match = /\b(modified|created):(\S*)/.exec(current);
 

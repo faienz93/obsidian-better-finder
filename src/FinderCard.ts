@@ -6,7 +6,7 @@ import { Card, SearchBar } from "./component/Card";
 import { ResultsContainer } from "./component/ui/ResultsContainer";
 import { CodePreview } from "./component/ui/CodePreview";
 import { HintBar } from "./component/ui/HintBar";
-import { SubHintBar } from "./component/ui/SubHintBar";
+import { HintBarSub } from "./component/ui/HintBarSub";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -17,7 +17,7 @@ export class FinderCard extends ItemView {
   private resultsContainer: ResultsContainer;
   private searchBar: SearchBar;
   private hintBar: HintBar;
-  private subHintBar: SubHintBar;
+  private subHintBar: HintBarSub;
   private allResults: SearchResult[] = [];
   private renderedCount = 0;
   private sentinel: HTMLElement | null = null;
@@ -61,7 +61,7 @@ export class FinderCard extends ItemView {
       });
     });
 
-    this.subHintBar = new SubHintBar(this.searchBar.containerEl, (value) => {
+    this.subHintBar = new HintBarSub(this.searchBar.containerEl, (value) => {
       const current = this.searchBar.getValue();
       const match = /\b(modified|created):(\S*)/.exec(current);
 
