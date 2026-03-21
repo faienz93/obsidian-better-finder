@@ -5,8 +5,7 @@ export class SubHintBar {
   private chips: Map<string, HTMLElement> = new Map();
 
   constructor(parentEl: HTMLElement, onClick: (value: string) => void) {
-    this.container = parentEl.createDiv({ cls: 'sub-hint-bar' });
-    this.container.style.display = 'none';
+    this.container = parentEl.createDiv({ cls: 'sub-hint-bar is-hidden' });
 
     for (const value of DATE_VALUES) {
       const chip = this.container.createSpan({ cls: 'hint-chip hint-chip-sub' });
@@ -18,13 +17,13 @@ export class SubHintBar {
   }
 
   show(activeValue?: string): void {
-    this.container.style.display = '';
+    this.container.removeClass('is-hidden');
     this.chips.forEach((chip, value) => {
       chip.toggleClass('hint-chip-active', value === activeValue);
     });
   }
 
   hide(): void {
-    this.container.style.display = 'none';
+    this.container.addClass('is-hidden');
   }
 }
