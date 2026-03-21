@@ -41,7 +41,7 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   // Renders each suggestion item
-  renderSuggestion(result: SearchResult, el: HTMLElement) {
+  renderModalItem(result: SearchResult, el: HTMLElement) {
     el.empty();
 
     if (isCommand(result)) {

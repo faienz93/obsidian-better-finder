@@ -42,11 +42,11 @@ export class Card {
     metadata.setContent(date, path)
   }
 
-  public onClick(func: (event: PointerEvent) => void) {
+  public onClick(func: (event: MouseEvent) => void) {
     this.card.addEventListener('click', (event) => func(event));
   }
 
-  public onContextMenu(func: (event: PointerEvent) => void) {
+  public onContextMenu(func: (event: MouseEvent) => void) {
     this.card.addEventListener('contextmenu', (event) => func(event));
   }
 }

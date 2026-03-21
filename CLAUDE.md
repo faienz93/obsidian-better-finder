@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Whenever working with any third-party library or something similar, you MUST look up the official documentation to ensure that you're working with up-to-date information. Use the DocsExplorer subagent for efficient documentation lookup.
+
 ## Commands
 
 ```bash
@@ -73,6 +75,14 @@ The `>` prefix triggers **command mode** — `FinderCore.getCommandSuggestions()
 `SearchIndex` is a lazy singleton initialized in `main.ts` after layout is ready. It indexes only markdown files with MiniSearch (basename weighted 5×, content truncated to 10 000 chars). The index is kept live via vault events (`create`, `delete`, `rename`) and `metadataCache.on('changed')` registered in `main.ts`.
 
 When the index is not ready (or free text search is over non-markdown files), `searchFilesWithoutIndex()` is used as fallback (slower, scans file content directly).
+
+## Obsidian API — inherited methods
+
+When extending an Obsidian class, always use the exact method names required by the installed API version. Never rename abstract methods, even if the name seems unusual. Always check the TypeScript compiler error: if it reports an abstract method as not implemented, use exactly the name indicated in the error.
+
+Known cases:
+
+- `SuggestModal<T>` requires `renderModalItem(result: T, el: HTMLElement)` (not `renderSuggestion`)
 
 ## Coding conventions
 
