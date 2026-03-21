@@ -169,6 +169,14 @@ export class FinderCard extends ItemView {
     const ext = file.extension.toLowerCase();
 
     try {
+      const cache = this.app.metadataCache.getFileCache(file);
+
+      if (cache?.frontmatter?.['excalidraw-plugin'] === 'parsed') {
+        await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, '', this);
+
+        return;
+      }
+
       if (ext === 'md') {
         const rawContent = await this.app.vault.cachedRead(file);
         const cleaned = rawContent.replace(/^---[\s\S]*?---\n?/, '').slice(0, 500);

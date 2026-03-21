@@ -5,7 +5,7 @@ import {
   ParsedQuery, SearchFilter, isFilterable,
   TagsFilter, TodayFilter, ThisWeekFilter, ThisMonthFilter,
   FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
-  TitleFilter, CommandFilter, TaskFilter, PathFilter,
+  TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter,
 } from "./search-filters";
 
 // Re-export per compatibilità con i file che importano da qui
@@ -31,6 +31,7 @@ export class SearchStrategyFactory {
     this.strategyMap.set('json', new JsonFilter());
     this.strategyMap.set('base', new BaseFilter());
     this.strategyMap.set('path', new PathFilter());
+    this.strategyMap.set('excalidraw', new ExcalidrawFilter());
   }
 
   get hints(): HintsType[] {
@@ -85,11 +86,21 @@ export class SearchStrategyFactory {
       }
     }
 
+    // Apply excalidraw filter (frontmatter-based, separate from extension types)
+    const excalidrawTypes = parsed.fileTypes.filter(t => t === 'excalidraw');
+    const extensionTypes = parsed.fileTypes.filter(t => t !== 'excalidraw');
+
+    if (excalidrawTypes.length > 0) {
+      const strategy = this.strategyMap.get('excalidraw') as ExcalidrawFilter;
+
+      results = strategy.filter(results, excalidrawTypes, app);
+    }
+
     // Apply file type filter (skip markdown-only default when path filter is active)
     const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
-    const effectiveFileTypes = parsed.pathFilter && parsed.fileTypes.length === 0
+    const effectiveFileTypes = parsed.pathFilter && extensionTypes.length === 0
       ? ['*']
-      : parsed.fileTypes;
+      : extensionTypes;
 
     results = fileTypeStrategy.filter(results, effectiveFileTypes, app);
 
@@ -196,6 +207,12 @@ export class SearchStrategyFactory {
       result.fileTypes.push(...strategy.extract(remainingText));
       remainingText = strategy.removeFrom(remainingText);
     }
+
+    // Extract excalidraw filter (frontmatter-based, not extension-based)
+    const excalidrawStrategy = this.getStrategy('excalidraw') as ExcalidrawFilter;
+
+    result.fileTypes.push(...excalidrawStrategy.extract(remainingText));
+    remainingText = excalidrawStrategy.removeFrom(remainingText);
 
     result.fileTypes = [...new Set(result.fileTypes)];
 
