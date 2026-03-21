@@ -1,5 +1,6 @@
 export { SearchFilter, isFilterable } from './types';
-export type { SearchStrategyInterface, Filterable, ParsedQuery, DateRange, DateField, DateValue, TaskStatus } from './types';
+export type { SearchStrategyInterface, Filterable, AsyncFilterable, ParsedQuery, DateRange, DateField, DateValue, TaskStatus } from './types';
+export { HighlightFilter } from './HighlightFilter';
 
 export { TagsFilter } from './TagsFilter';
 export { ModifiedFilter, CreatedFilter } from './DateFilter';

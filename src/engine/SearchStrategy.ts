@@ -5,7 +5,7 @@ import {
   ParsedQuery, SearchFilter, isFilterable,
   TagsFilter, ModifiedFilter, CreatedFilter,
   FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
-  TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter,
+  TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter, HighlightFilter,
 } from "./search-filters";
 
 // Re-export per compatibilità con i file che importano da qui
@@ -14,6 +14,7 @@ export { SearchFilter, isFilterable } from "./search-filters";
 
 export class SearchStrategyFactory {
   private readonly strategyMap: Map<string, SearchFilter<unknown>> = new Map();
+  private readonly highlightFilter = new HighlightFilter();
   private static _instance: SearchStrategyFactory;
 
   private constructor() {
@@ -34,7 +35,7 @@ export class SearchStrategyFactory {
   }
 
   get hints(): HintsType[] {
-    return Array.from(this.strategyMap.values());
+    return [...Array.from(this.strategyMap.values()), this.highlightFilter];
   }
 
   public static getInstance(): SearchStrategyFactory {
@@ -130,6 +131,11 @@ export class SearchStrategyFactory {
   }
 
   async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<TFile[]> {
+    // Apply highlight filter (async, reads file content)
+    if (parsed.highlightFilter) {
+      return this.highlightFilter.filterAsync(files, parsed.highlightFilter, app);
+    }
+
     if (!parsed.freeText) {
       return files.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }
@@ -236,7 +242,11 @@ export class SearchStrategyFactory {
     result.pathFilter = pathStrategy.extract(remainingText);
     remainingText = pathStrategy.removeFrom(remainingText);
 
-    // 8. What's left is free text
+    // 8. Extract highlight filter (highlight:parola)
+    result.highlightFilter = this.highlightFilter.extract(remainingText);
+    remainingText = this.highlightFilter.removeFrom(remainingText);
+
+    // 9. What's left is free text
     result.freeText = remainingText.trim();
 
     return result;

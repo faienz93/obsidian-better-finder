@@ -11,6 +11,7 @@ export interface ParsedQuery {
   scope?: 'title' | 'content';
   taskFilter?: 'all' | 'todo' | 'done';
   pathFilter?: string;
+  highlightFilter?: string;
   freeText: string;
 }
 
@@ -37,6 +38,19 @@ export abstract class SearchFilter<TResult> implements SearchStrategyInterface<T
   abstract readonly label: string;
   abstract readonly desc: string;
   abstract filter(files: TFile[], extracted: TResult, app: App): TFile[]
+
+  abstract extract(query: string): TResult
+  abstract removeFrom(query: string): string
+}
+
+export interface AsyncFilterable<TResult> {
+  filterAsync(files: TFile[], extracted: TResult, app: App): Promise<TFile[]>;
+}
+
+export abstract class SearchFilterAsync<TResult> implements SearchStrategyInterface<TResult>, AsyncFilterable<TResult>, HintsType {
+  abstract readonly label: string;
+  abstract readonly desc: string;
+  abstract filterAsync(files: TFile[], extracted: TResult, app: App): Promise<TFile[]>
 
   abstract extract(query: string): TResult
   abstract removeFrom(query: string): string
