@@ -4,6 +4,7 @@ import { FinderCore, SearchResult, isCommand } from "./FinderCore";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: FinderCore;
+  private tagPreviewEl: HTMLElement | null = null;
 
   constructor(app: App) {
     super(app);
@@ -21,11 +22,55 @@ class FinderModal extends SuggestModal<SearchResult> {
         this.inputEl.focus();
         this.inputEl.dispatchEvent(new Event('input'));
       });
+
+      this.tagPreviewEl = createDiv({ cls: 'tag-preview-panel' });
+      hintWrapper.insertAdjacentElement('afterend', this.tagPreviewEl);
     }
 
     // Update hints on input
     this.inputEl.addEventListener('input', () => {
       this.core.updateHintHighlights(this.inputEl.value);
+      if (this.tagPreviewEl) this.updateTagPreview(this.tagPreviewEl);
+    });
+  }
+
+  private updateTagPreview(container: HTMLElement): void {
+    const value = this.inputEl.value;
+    const partialTagMatch = value.match(/#([a-zA-Z0-9\-/]*)$/);
+
+    if (!partialTagMatch) {
+      container.empty();
+      container.removeClass('tag-preview-panel--visible');
+      return;
+    }
+
+    const partialTag = partialTagMatch[1].toLowerCase();
+    const allTagsMap: Record<string, number> = (this.app.metadataCache as any).getTags() || {};
+    let tags = Object.keys(allTagsMap);
+
+    if (partialTag) {
+      tags = tags.filter(tag => tag.toLowerCase().slice(1).startsWith(partialTag));
+    }
+
+    tags.sort((a, b) => (allTagsMap[b] || 0) - (allTagsMap[a] || 0));
+    tags = tags.slice(0, 20);
+
+    if (tags.length === 0) {
+      container.empty();
+      container.removeClass('tag-preview-panel--visible');
+      return;
+    }
+
+    container.empty();
+    container.addClass('tag-preview-panel--visible');
+
+    tags.forEach(tag => {
+      const chip = container.createSpan({ cls: 'tag-preview-chip', text: tag });
+      chip.addEventListener('click', () => {
+        this.inputEl.value = value.replace(/#([a-zA-Z0-9\-/]*)$/, tag + ' ');
+        this.inputEl.focus();
+        this.inputEl.dispatchEvent(new Event('input'));
+      });
     });
   }
 
