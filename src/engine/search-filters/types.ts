@@ -6,10 +6,12 @@ export interface ParsedQuery {
   isCommandMode: boolean;
   commandText?: string;
   tags: string[];
-  dateFilter?: 'today' | 'this-week' | 'this-month';
+  dateFilter?: DateRange;
   fileTypes: string[];
   scope?: 'title' | 'content';
   taskFilter?: 'all' | 'todo' | 'done';
+  pathFilter?: string;
+  highlightFilter?: string;
   freeText: string;
 }
 
@@ -22,7 +24,9 @@ export interface Filterable<TResult> {
   filter(files: TFile[], extracted: TResult, app: App): TFile[];
 }
 
-export type DateRange = 'today' | 'this-week' | 'this-month';
+export type DateField = 'created' | 'modified';
+export type DateValue = 'today' | 'yesterday' | 'this-week' | 'last-week' | 'this-month' | string;
+export type DateRange = { field: DateField; value: DateValue };
 export type TaskStatus = 'all' | 'todo' | 'done';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -34,6 +38,19 @@ export abstract class SearchFilter<TResult> implements SearchStrategyInterface<T
   abstract readonly label: string;
   abstract readonly desc: string;
   abstract filter(files: TFile[], extracted: TResult, app: App): TFile[]
+
+  abstract extract(query: string): TResult
+  abstract removeFrom(query: string): string
+}
+
+export interface AsyncFilterable<TResult> {
+  filterAsync(files: TFile[], extracted: TResult, app: App): Promise<TFile[]>;
+}
+
+export abstract class SearchFilterAsync<TResult> implements SearchStrategyInterface<TResult>, AsyncFilterable<TResult>, HintsType {
+  abstract readonly label: string;
+  abstract readonly desc: string;
+  abstract filterAsync(files: TFile[], extracted: TResult, app: App): Promise<TFile[]>
 
   abstract extract(query: string): TResult
   abstract removeFrom(query: string): string

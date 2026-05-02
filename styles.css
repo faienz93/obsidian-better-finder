@@ -59,6 +59,65 @@ If your plugin does not need CSS, delete this file.
   color: var(--text-on-accent);
 }
 
+/* ============================ TAG PREVIEW PANEL  ============================ */
+/* Tag preview panel - shown when typing # in the search input */
+.tag-preview-panel {
+  display: none;
+  flex-wrap: wrap;
+  gap: 4px;
+  padding: 8px 12px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+
+.tag-preview-panel--visible {
+  display: flex;
+}
+
+.tag-preview-chip {
+  background: var(--tag-background);
+  color: var(--tag-color);
+  padding: 2px 8px;
+  border-radius: 10px;
+  font-size: 12px;
+  cursor: pointer;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.tag-preview-chip:hover {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+/* File type badge (PNG, PDF, ecc.) */
+.suggestion-flair {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+}
+
+/* Sub hint bar (valori data: today, yesterday, ecc.) */
+.sub-hint-bar {
+  display: flex;
+  gap: 6px;
+  padding: 4px 12px 8px;
+  flex-wrap: wrap;
+}
+
+.sub-hint-bar.is-hidden {
+  display: none;
+}
+
+.hint-chip-sub {
+  opacity: 0.85;
+}
+
 /* Selected item styling - uses theme accent color */
 .better-finder-modal .suggestion-item.is-selected {
   background: var(--interactive-accent);

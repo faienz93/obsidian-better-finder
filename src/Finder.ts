@@ -5,11 +5,6 @@ import { HintsType } from "./component/ui/HintBar";
 
 export type SearchResult = TFile | Command;
 
-// TODO non usato. NON CANCELLARE
-export function isFile(result: SearchResult): result is TFile {
-  return 'stat' in result;
-}
-
 export function isCommand(result: SearchResult): result is Command {
   return 'id' in result && 'name' in result;
 }
@@ -59,6 +54,9 @@ export class Finder {
     if (parsed.isCommandMode) {
       return this.getCommandSuggestions(parsed.commandText || '');
     }
+
+    // Aggiorna la lista file ad ogni ricerca per riflettere create/delete
+    this.allFiles = this.app.vault.getFiles();
 
     // Apply all filters
     let results = this.factory.filter(this.allFiles, parsed, this.app);

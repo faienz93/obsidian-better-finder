@@ -2,15 +2,16 @@
   "root": true,
   "parser": "@typescript-eslint/parser",
   "env": { "node": true },
-  "plugins": ["@typescript-eslint"],
+  "plugins": ["@typescript-eslint", "sonarjs"],
   "extends": [
     "eslint:recommended",
     "plugin:@typescript-eslint/eslint-recommended",
     "plugin:@typescript-eslint/recommended",
-    "prettier"
+    "prettier",
+    "plugin:sonarjs/recommended-legacy",
   ],
   "parserOptions": {
-    "sourceType": "module"
+    "sourceType": "module",
   },
   "rules": {
     "no-unused-vars": "off",
@@ -34,9 +35,9 @@
       { "blankLine": "always", "prev": ["const", "let"], "next": "*" },
       { "blankLine": "any", "prev": ["const", "let"], "next": ["const", "let"] },
       { "blankLine": "always", "prev": "block-like", "next": "*" },
-      { "blankLine": "always", "prev": "*", "next": "block-like" }
+      { "blankLine": "always", "prev": "*", "next": "block-like" },
     ],
     "@typescript-eslint/no-explicit-any": "warn",
-    "@typescript-eslint/no-non-null-assertion": "warn"
-  }
+    "@typescript-eslint/no-non-null-assertion": "warn",
+  },
 }

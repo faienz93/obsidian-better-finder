@@ -2,6 +2,8 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+Whenever working with any third-party library or something similar, you MUST look up the official documentation to ensure that you're working with up-to-date information. Use the DocsExplorer subagent for efficient documentation lookup.
+
 ## Commands
 
 ```bash
@@ -20,6 +22,16 @@ There are no automated tests. Manual testing requires running `npm run dev`, ena
 
 The plugin is a TypeScript Obsidian plugin bundled to `main.js` via esbuild. The real entry point is `main.ts` (root), which instantiates `SearchIndex`, registers commands/views, and wires vault events. `src/main.ts` is an **unused sample file** left from the template — ignore it.
 
+This is an Obsidian plugin project written in TypeScript. Always preserve existing architectural patterns: UI components handle rendering only, controllers handle logic, and strategy patterns are used for search/filtering.
+
+When implementing UI changes, prefer lazy-loading and IntersectionObserver patterns over pagination or result limiting. Never cap the number of displayed results unless explicitly asked.
+
+Before making code edits, confirm the approach with the user if the task is exploratory or the user says they want to do it themselves. Watch for signals like 'faccio io' or minimal responses.
+
+Always run `npm run build` after making changes and check for TypeScript errors. If the build fails, fix errors before committing.
+
+When adding support for new file types (pdf, canvas, base, json), ensure both preview/thumbnail rendering AND search indexing are updated together.
+
 ### Core data flow
 
 ```
@@ -34,21 +46,22 @@ User types in FinderModal or FinderView
 
 ### Key modules
 
-| File | Role |
-|------|------|
-| `main.ts` (root) | Plugin lifecycle, registers commands/view, owns `SearchIndex` singleton |
-| `src/FinderCore.ts` | Search orchestration, hint rendering, debounce, result selection |
-| `src/SearchStrategy.ts` | All filter strategies + `SearchStrategyFactory` singleton |
-| `src/SearchIndex.ts` | MiniSearch wrapper (singleton); builds/maintains full-text index of markdown files |
-| `src/FinderModal.ts` | `SuggestModal` UI — the keyboard-driven search popup |
-| `src/FinderView.ts` | `ItemView` (sidebar panel) using `Card` components |
-| `src/component/Card.ts` | Reusable UI components: `Card`, `SearchBar`, `ToggleButton` |
-| `src/FinderSetting.ts` | Settings tab (currently only ribbon icon toggle) |
-| `src/const.ts` | i18n strings and emoji constants |
+| File                    | Role                                                                               |
+| ----------------------- | ---------------------------------------------------------------------------------- |
+| `main.ts` (root)        | Plugin lifecycle, registers commands/view, owns `SearchIndex` singleton            |
+| `src/FinderCore.ts`     | Search orchestration, hint rendering, debounce, result selection                   |
+| `src/SearchStrategy.ts` | All filter strategies + `SearchStrategyFactory` singleton                          |
+| `src/SearchIndex.ts`    | MiniSearch wrapper (singleton); builds/maintains full-text index of markdown files |
+| `src/FinderModal.ts`    | `SuggestModal` UI — the keyboard-driven search popup                               |
+| `src/FinderView.ts`     | `ItemView` (sidebar panel) using `Card` components                                 |
+| `src/component/Card.ts` | Reusable UI components: `Card`, `SearchBar`, `ToggleButton`                        |
+| `src/FinderSetting.ts`  | Settings tab (currently only ribbon icon toggle)                                   |
+| `src/const.ts`          | i18n strings and emoji constants                                                   |
 
 ### Strategy pattern (`SearchStrategy.ts`)
 
 Each query modifier is a strategy implementing `SearchStrategyInterface<T>`:
+
 - `extract(query)` → parses the relevant token(s) from query text
 - `removeFrom(query)` → strips those tokens, leaving free text for full-text search
 - Strategies that also implement `Filterable<T>` have a `filter(files, extracted, app)` method
@@ -62,6 +75,14 @@ The `>` prefix triggers **command mode** — `FinderCore.getCommandSuggestions()
 `SearchIndex` is a lazy singleton initialized in `main.ts` after layout is ready. It indexes only markdown files with MiniSearch (basename weighted 5×, content truncated to 10 000 chars). The index is kept live via vault events (`create`, `delete`, `rename`) and `metadataCache.on('changed')` registered in `main.ts`.
 
 When the index is not ready (or free text search is over non-markdown files), `searchFilesWithoutIndex()` is used as fallback (slower, scans file content directly).
+
+## Obsidian API — inherited methods
+
+When extending an Obsidian class, always use the exact method names required by the installed API version. Never rename abstract methods, even if the name seems unusual. Always check the TypeScript compiler error: if it reports an abstract method as not implemented, use exactly the name indicated in the error.
+
+Known cases:
+
+- `SuggestModal<T>` requires `renderModalItem(result: T, el: HTMLElement)` (not `renderSuggestion`)
 
 ## Coding conventions
 

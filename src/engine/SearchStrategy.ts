@@ -3,9 +3,9 @@ import { HintsType } from "src/component/ui/HintBar";
 import { SearchIndex } from "./SearchIndex";
 import {
   ParsedQuery, SearchFilter, isFilterable,
-  TagsFilter, TodayFilter, ThisWeekFilter, ThisMonthFilter,
+  TagsFilter, ModifiedFilter, CreatedFilter,
   FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
-  TitleFilter, CommandFilter, TaskFilter,
+  TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter, HighlightFilter,
 } from "./search-filters";
 
 // Re-export per compatibilità con i file che importano da qui
@@ -14,14 +14,14 @@ export { SearchFilter, isFilterable } from "./search-filters";
 
 export class SearchStrategyFactory {
   private readonly strategyMap: Map<string, SearchFilter<unknown>> = new Map();
+  private readonly highlightFilter = new HighlightFilter();
   private static _instance: SearchStrategyFactory;
 
   private constructor() {
     // L'ordine definisce l'ordine degli hints nella UI
     this.strategyMap.set('tag', new TagsFilter());
-    this.strategyMap.set('today', new TodayFilter());
-    this.strategyMap.set('this week', new ThisWeekFilter());
-    this.strategyMap.set('this month', new ThisMonthFilter());
+    this.strategyMap.set('created', new CreatedFilter());
+    this.strategyMap.set('modified', new ModifiedFilter());
     this.strategyMap.set('command', new CommandFilter());
     this.strategyMap.set('title', new TitleFilter());
     this.strategyMap.set('task', new TaskFilter());
@@ -30,10 +30,12 @@ export class SearchStrategyFactory {
     this.strategyMap.set('canvas', new CanvasFilter());
     this.strategyMap.set('json', new JsonFilter());
     this.strategyMap.set('base', new BaseFilter());
+    this.strategyMap.set('path', new PathFilter());
+    this.strategyMap.set('excalidraw', new ExcalidrawFilter());
   }
 
   get hints(): HintsType[] {
-    return Array.from(this.strategyMap.values());
+    return [...Array.from(this.strategyMap.values()), this.highlightFilter];
   }
 
   public static getInstance(): SearchStrategyFactory {
@@ -66,19 +68,41 @@ export class SearchStrategyFactory {
       }
     }
 
-    // Apply date filter (any of the 3 date strategies share the same logic)
+    // Apply date filter
     if (parsed.dateFilter) {
-      const strategy = this.strategyMap.get('today');
+      const strategy = this.strategyMap.get(parsed.dateFilter.field);
 
       if (strategy && isFilterable(strategy)) {
         results = strategy.filter(results, parsed.dateFilter, app);
       }
     }
 
-    // Apply file type filter (always applied - filters to markdown if no types specified)
-    const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
+    // Apply path filter (before file type filter to work on all files)
+    if (parsed.pathFilter) {
+      const strategy = this.strategyMap.get('path');
 
-    results = fileTypeStrategy.filter(results, parsed.fileTypes, app);
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, parsed.pathFilter, app);
+      }
+    }
+
+    // Apply excalidraw filter (frontmatter-based, separate from extension types)
+    const excalidrawTypes = parsed.fileTypes.filter(t => t === 'excalidraw');
+    const extensionTypes = parsed.fileTypes.filter(t => t !== 'excalidraw');
+
+    if (excalidrawTypes.length > 0) {
+      const strategy = this.strategyMap.get('excalidraw') as ExcalidrawFilter;
+
+      results = strategy.filter(results, excalidrawTypes, app);
+    }
+
+    // Apply file type filter (skip markdown-only default when path filter is active)
+    const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
+    const effectiveFileTypes = parsed.pathFilter && extensionTypes.length === 0
+      ? ['*']
+      : extensionTypes;
+
+    results = fileTypeStrategy.filter(results, effectiveFileTypes, app);
 
     // Apply task filter
     if (parsed.taskFilter) {
@@ -107,18 +131,28 @@ export class SearchStrategyFactory {
   }
 
   async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<TFile[]> {
+    // Apply highlight filter (async, reads file content)
+    if (parsed.highlightFilter) {
+      return this.highlightFilter.filterAsync(files, parsed.highlightFilter, app);
+    }
+
     if (!parsed.freeText) {
       return files.sort((a, b) => b.stat.mtime - a.stat.mtime);
     }
 
     const searchIndex = SearchIndex.getInstance(app);
-    const isMarkdownOnly = parsed.fileTypes.length === 0;
+    const hasExplicitFileTypes = parsed.fileTypes.length > 0;
 
-    if (searchIndex.isIndexReady() && isMarkdownOnly) {
-      const indexResults = searchIndex.search(parsed.freeText);
-      const resultPaths = new Set(files.map(f => f.path));
+    // No explicit file type filter: use MiniSearch for markdown + basename search for the rest
+    if (!hasExplicitFileTypes && searchIndex.isIndexReady()) {
+      const markdownFiles = files.filter(f => f.extension === 'md');
+      const otherFiles = files.filter(f => f.extension !== 'md');
 
-      return indexResults.filter(f => resultPaths.has(f.path));
+      const resultPaths = new Set(markdownFiles.map(f => f.path));
+      const indexResults = searchIndex.search(parsed.freeText).filter(f => resultPaths.has(f.path));
+      const otherResults = searchIndex.searchInTitlesWithoutIndex(parsed.freeText, otherFiles);
+
+      return [...indexResults, ...otherResults];
     }
 
     return searchIndex.searchFilesWithoutIndex(parsed.freeText, files);
@@ -163,11 +197,13 @@ export class SearchStrategyFactory {
     result.tags = tagStrategy.extract(remainingText);
     remainingText = tagStrategy.removeFrom(remainingText);
 
-    // 3. Extract date filters (today, this week, this month)
-    const dateStrategy = this.getStrategy('today') as TodayFilter;
+    // 3. Extract date filters (modified:VALUE or created:VALUE)
+    const modifiedStrategy = this.getStrategy('modified') as ModifiedFilter;
+    const createdStrategy = this.getStrategy('created') as CreatedFilter;
 
-    result.dateFilter = dateStrategy.extract(remainingText);
-    remainingText = dateStrategy.removeFrom(remainingText);
+    result.dateFilter = modifiedStrategy.extract(remainingText) ?? createdStrategy.extract(remainingText);
+    remainingText = modifiedStrategy.removeFrom(remainingText);
+    remainingText = createdStrategy.removeFrom(remainingText);
 
     // 4. Extract file type filters (pdf, image, canvas, json, base)
     const fileTypeKeys = ['pdf', 'image', 'canvas', 'json', 'base'];
@@ -178,6 +214,12 @@ export class SearchStrategyFactory {
       result.fileTypes.push(...strategy.extract(remainingText));
       remainingText = strategy.removeFrom(remainingText);
     }
+
+    // Extract excalidraw filter (frontmatter-based, not extension-based)
+    const excalidrawStrategy = this.getStrategy('excalidraw') as ExcalidrawFilter;
+
+    result.fileTypes.push(...excalidrawStrategy.extract(remainingText));
+    remainingText = excalidrawStrategy.removeFrom(remainingText);
 
     result.fileTypes = [...new Set(result.fileTypes)];
 
@@ -194,7 +236,17 @@ export class SearchStrategyFactory {
     result.taskFilter = taskStrategy.extract(remainingText);
     remainingText = taskStrategy.removeFrom(remainingText);
 
-    // 7. What's left is free text
+    // 7. Extract path filter (in:cartella)
+    const pathStrategy = this.getStrategy('path') as PathFilter;
+
+    result.pathFilter = pathStrategy.extract(remainingText);
+    remainingText = pathStrategy.removeFrom(remainingText);
+
+    // 8. Extract highlight filter (highlight:parola)
+    result.highlightFilter = this.highlightFilter.extract(remainingText);
+    remainingText = this.highlightFilter.removeFrom(remainingText);
+
+    // 9. What's left is free text
     result.freeText = remainingText.trim();
 
     return result;

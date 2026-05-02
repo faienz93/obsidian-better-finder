@@ -31,6 +31,10 @@ export class SearchBar {
     return this.inputEl.value;
   }
 
+  public getInputEl(): HTMLInputElement {
+    return this.inputEl;
+  }
+
   public setCounterElement(result: string) {
     this.resultCountEl.setText(result);
   }
