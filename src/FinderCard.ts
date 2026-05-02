@@ -7,6 +7,7 @@ import { ResultsContainer } from "./component/ui/ResultsContainer";
 import { CodePreview } from "./component/ui/CodePreview";
 import { HintBar } from "./component/ui/HintBar";
 import { HintBarSub } from "./component/ui/HintBarSub";
+import { TagsPreview } from "./component/ui/TagsPreview";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -18,6 +19,7 @@ export class FinderCard extends ItemView {
   private searchBar: SearchBar;
   private hintBar: HintBar;
   private subHintBar: HintBarSub;
+  private tagsPreview: TagsPreview | null = null;
   private allResults: SearchResult[] = [];
   private renderedCount = 0;
   private sentinel: HTMLElement | null = null;
@@ -76,6 +78,7 @@ export class FinderCard extends ItemView {
 
     const toggle = this.searchBar.createToggle();
 
+    this.tagsPreview = new TagsPreview(this.searchBar.containerEl);
     this.resultsContainer = new ResultsContainer(this.searchBar.containerEl, toggle);
     this.searchBar.onInput(() => this.onSearch());
     this.searchBar.onFocus();
@@ -86,6 +89,8 @@ export class FinderCard extends ItemView {
     const factory = SearchStrategyFactory.getInstance();
 
     this.hintBar.highlightChips(this.core.getActiveHints(query));
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    this.tagsPreview?.updateTagPreview((this.app.metadataCache as any).getTags() || {}, this.searchBar.getInputEl());
 
     const parsed = factory.parse(query);
 

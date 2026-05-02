@@ -4,11 +4,13 @@ import { Finder, SearchResult, isCommand } from "./Finder";
 import { ModalItem } from "./component/ModalItem";
 import { HintBar } from "./component/ui/HintBar";
 import { HintBarSub } from "./component/ui/HintBarSub";
+import { TagsPreview } from "./component/ui/TagsPreview";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
   private hintBar: HintBar;
   private subHintBar: HintBarSub;
+  private tagsPreview: TagsPreview | null = null;
 
   constructor(app: App) {
     super(app);
@@ -32,14 +34,16 @@ class FinderModal extends SuggestModal<SearchResult> {
         });
       });
 
+      this.tagsPreview = new TagsPreview(hintWrapper);
+
       this.subHintBar = new HintBarSub(hintWrapper, (value) => {
         const current = this.inputEl.value;
         const match = /\b(modified|created):(\S*)/.exec(current);
 
         if (match) {
-          this.inputEl.value = current.slice(0, match.index) + match[1] + ':' + value + current.slice(match.index + match[0].length);
+          this.inputEl.value = `${current.slice(0, match.index) + match[1]}:${value}${current.slice(match.index + match[0].length)}`;
         } else {
-          this.inputEl.value = current.trimEnd() + ' modified:' + value + ' ';
+          this.inputEl.value = `${current.trimEnd()} modified:${value} `;
         }
 
         this.inputEl.focus();
@@ -52,6 +56,8 @@ class FinderModal extends SuggestModal<SearchResult> {
       const factory = SearchStrategyFactory.getInstance();
 
       this.hintBar?.highlightChips(this.core.getActiveHints(query));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.tagsPreview?.updateTagPreview((this.app.metadataCache as any).getTags() || {}, this.inputEl);
 
       const parsed = factory.parse(query);
 
