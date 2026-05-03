@@ -2,7 +2,7 @@ import { ItemView, WorkspaceLeaf, TFile, Menu, getAllTags } from "obsidian";
 import { Finder, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
 import { Card } from "./component/interface/Card";
-import { CardContainer } from "./component/Card/CardUI";
+import { CardUI } from "./component/Card/CardUI";
 import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
 
@@ -12,7 +12,7 @@ const PAGE_SIZE = 20;
 
 export class FinderCard extends ItemView {
   private core: Finder;
-  private container!: CardContainer;
+  private cardContainer!: CardUI;
   private searchBar!: SearchBar;
   private uiHelper!: SearchUIHelper;
   private allResults: SearchResult[] = [];
@@ -55,7 +55,7 @@ export class FinderCard extends ItemView {
 
     const toggle = this.searchBar.createToggle();
 
-    this.container = new CardContainer(this.searchBar.containerEl, toggle, this.app, this);
+    this.cardContainer = new CardUI(this.searchBar.containerEl, toggle, this.app, this);
     this.searchBar.onInput(() => this.onSearch());
   }
 
@@ -70,7 +70,7 @@ export class FinderCard extends ItemView {
     this.destroyObserver();
     this.allResults = results;
     this.renderedCount = 0;
-    this.container.empty();
+    this.cardContainer.empty();
     this.sentinel = null;
     this.searchBar.setCounterElement(`${this.core.lastResultCount} ${i18n.results}`);
     this.loadMoreItems();
@@ -98,14 +98,14 @@ export class FinderCard extends ItemView {
 
   private renderResult(result: SearchResult): void {
     if (isCommand(result)) {
-      this.core.renderCommand(result, this.container.getElement().createDiv());
+      this.core.renderCommand(result, this.cardContainer.getElement().createDiv());
 
       return;
     }
 
     const file = result as TFile;
 
-    this.container.addResult(
+    this.cardContainer.render(
       this.buildCardData(file),
       () => this.core.openResult(file),
       (event) => this.showContextMenu(event, file)
@@ -139,7 +139,7 @@ export class FinderCard extends ItemView {
       this.sentinel.remove();
     }
 
-    this.sentinel = this.container.getElement().createDiv({ cls: 'finder-scroll-sentinel' });
+    this.sentinel = this.cardContainer.getElement().createDiv({ cls: 'finder-scroll-sentinel' });
     this.observer = new IntersectionObserver(this.handleIntersection.bind(this), { threshold: 0 });
     this.observer.observe(this.sentinel);
   }

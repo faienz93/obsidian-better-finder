@@ -4,7 +4,7 @@ import { GridCard } from "./GridCard";
 import { ListCard } from "./ListCard";
 import { ToggleButton } from "../ui/ToggleButton";
 
-export class CardContainer {
+export class CardUI {
   private el: HTMLElement;
   private mode: CardViewMode = 'grid';
   private app: App;
@@ -22,7 +22,7 @@ export class CardContainer {
     });
   }
 
-  public addResult(
+  public render(
     data: Card,
     onOpen: () => void,
     onContextMenu: (event: MouseEvent) => void
