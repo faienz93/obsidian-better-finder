@@ -63,7 +63,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];
     const doneCount = tasks.filter((t: any) => t.task === 'x' || t.task === 'X').length;
 
-    new ModalUI(el).render({
+    new ModalUI(el, this.app).render({
       file,
       tags: fileTags,
       searchedTags: parsed.tags,

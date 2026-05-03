@@ -1,19 +1,26 @@
+import { App, Component } from "obsidian";
 import { Card } from "../interface/Card";
+import { ImagePreview } from "../ui/ImagePreview";
 import { SuggestionItem } from "../ui/SuggestionItem";
 import { Title } from "../ui/Title";
 
 export type { Card as ModalData };
 
+const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
+
 export class ModalUI {
   private item: SuggestionItem;
   private title!: Title;
+  private app: App;
 
-  constructor(el: HTMLElement) {
+  constructor(el: HTMLElement, app: App) {
+    this.app = app;
     this.item = new SuggestionItem(el);
   }
 
   public render(data: Card): void {
     const { file, tags, searchedTags, taskInfo } = data;
+    const ext = file.extension.toLowerCase();
 
     this.title = this.item.setTitle(file.basename);
 
@@ -25,6 +32,12 @@ export class ModalUI {
       new Date(file.stat.mtime).toLocaleDateString(),
       file.parent?.path || '/'
     );
+
+    if (IMAGE_EXTENSIONS.includes(ext)) {
+      this.item.setPreview((previewEl) => {
+        new ImagePreview(this.app, new Component()).load(file, previewEl);
+      });
+    }
 
     if (file.extension !== 'md') return;
 

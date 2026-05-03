@@ -53,4 +53,10 @@ export class SuggestionItem {
 
     badge.setContent(done, total);
   }
+
+  public setPreview(fill: (previewEl: HTMLElement) => void) {
+    const previewEl = this.el.createDiv({ cls: 'modal-item-preview' });
+
+    fill(previewEl);
+  }
 }
