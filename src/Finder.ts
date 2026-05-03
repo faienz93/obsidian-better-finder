@@ -1,6 +1,6 @@
 import { App, TFile, Command } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
-import { SuggestionItem } from "./component/Card";
+import { SuggestionItem } from "./component/ui/SuggestionItem";
 import { HintsType } from "./component/ui/HintBar";
 
 export type SearchResult = TFile | Command;

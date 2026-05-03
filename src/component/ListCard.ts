@@ -2,14 +2,18 @@ import { CardData } from "./CardData";
 import { SuggestionItem } from "./ui/SuggestionItem";
 import { Title } from "./ui/Title";
 
-export type { CardData as ModalData };
-
-export class ModalItem {
+export class ListCard {
   private item: SuggestionItem;
+  private card: HTMLElement;
   private title!: Title;
 
-  constructor(el: HTMLElement) {
-    this.item = new SuggestionItem(el);
+  constructor(parentEl: HTMLElement) {
+    this.card = parentEl.createDiv({ cls: 'finder-view-result' });
+    this.item = new SuggestionItem(this.card);
+  }
+
+  public getElement(): HTMLElement {
+    return this.card;
   }
 
   public render(data: CardData): void {
@@ -35,5 +39,13 @@ export class ModalItem {
     if (taskInfo && taskInfo.total > 0) {
       this.item.setTaskBadge(taskInfo.done, taskInfo.total);
     }
+  }
+
+  public onClick(fn: (event: MouseEvent) => void): void {
+    this.card.addEventListener('click', (event) => fn(event));
+  }
+
+  public onContextMenu(fn: (event: MouseEvent) => void): void {
+    this.card.addEventListener('contextmenu', (event) => fn(event));
   }
 }

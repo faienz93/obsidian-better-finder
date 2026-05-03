@@ -1,9 +1,9 @@
-import { ItemView, WorkspaceLeaf, TFile, Menu } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Menu, getAllTags } from "obsidian";
 import { Finder, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
-import { Card, SearchBar } from "./component/Card";
-import { ResultsContainer } from "./component/ui/ResultsContainer";
-import { ImagePreview } from "./component/ui/ImagePreview";
+import { CardData } from "./component/CardData";
+import { CardContainer } from "./component/ui/CardContainer";
+import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
@@ -12,7 +12,7 @@ const PAGE_SIZE = 20;
 
 export class FinderCard extends ItemView {
   private core: Finder;
-  private resultsContainer!: ResultsContainer;
+  private container!: CardContainer;
   private searchBar!: SearchBar;
   private uiHelper!: SearchUIHelper;
   private allResults: SearchResult[] = [];
@@ -55,7 +55,7 @@ export class FinderCard extends ItemView {
 
     const toggle = this.searchBar.createToggle();
 
-    this.resultsContainer = new ResultsContainer(this.searchBar.containerEl, toggle);
+    this.container = new CardContainer(this.searchBar.containerEl, toggle, this.app, this);
     this.searchBar.onInput(() => this.onSearch());
   }
 
@@ -70,7 +70,7 @@ export class FinderCard extends ItemView {
     this.destroyObserver();
     this.allResults = results;
     this.renderedCount = 0;
-    this.resultsContainer.empty();
+    this.container.empty();
     this.sentinel = null;
     this.searchBar.setCounterElement(`${this.core.lastResultCount} ${i18n.results}`);
     this.loadMoreItems();
@@ -85,11 +85,7 @@ export class FinderCard extends ItemView {
   private loadMoreItems(): void {
     const batch = this.allResults.slice(this.renderedCount, this.renderedCount + PAGE_SIZE);
 
-    batch.forEach(result => {
-      const el = this.resultsContainer.getElement().createDiv();
-
-      this.renderResult(result, el);
-    });
+    batch.forEach(result => this.renderResult(result));
     this.renderedCount += batch.length;
 
     if (this.renderedCount < this.allResults.length) {
@@ -100,50 +96,42 @@ export class FinderCard extends ItemView {
     }
   }
 
-  private renderResult(result: SearchResult, el: HTMLElement): void {
-    const card = new Card(el);
-
+  private renderResult(result: SearchResult): void {
     if (isCommand(result)) {
-      this.core.renderCommand(result, card.getElement());
-    } else {
-      this.renderCard(result as TFile, card);
+      this.core.renderCommand(result, this.container.getElement().createDiv());
+
+      return;
     }
 
-    card.onClick(() => this.core.openResult(result));
+    const file = result as TFile;
 
-    if (!isCommand(result)) {
-      card.onContextMenu((event) => {
-        event.preventDefault();
-        const menu = new Menu();
-
-        this.app.workspace.trigger('file-menu', menu, result as TFile, 'file-explorer-context-menu');
-        menu.showAtMouseEvent(event);
-      });
-    }
-  }
-
-  private renderCard(file: TFile, card: Card): void {
-    card.setSuggestionItem();
-
-    const title = card.setTitle(file.basename);
-
-    if (file.extension !== 'md') {
-      card.setBadge(title, file.extension.toUpperCase());
-    }
-
-    new ImagePreview(this.app, this).load(file, card.getPreviewContainer());
-
-    card.setMetadata(
-      new Date(file.stat.mtime).toLocaleDateString(),
-      file.parent?.path || '/'
+    this.container.addResult(
+      this.buildCardData(file),
+      () => this.core.openResult(file),
+      (event) => this.showContextMenu(event, file)
     );
   }
 
-  private addElements(sentinel: HTMLElement): void {
-    const options: IntersectionObserverInit = { threshold: 0 };
+  private buildCardData(file: TFile): CardData {
+    const fileCache = this.app.metadataCache.getFileCache(file);
+    const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
+    const tasks = fileCache?.listItems?.filter(i => i.task) || [];
+    const doneCount = tasks.filter(t => (t.task as string) === 'x' || (t.task as string) === 'X').length;
 
-    this.observer = new IntersectionObserver(this.handleIntersection.bind(this), options);
-    this.observer.observe(sentinel);
+    return {
+      file,
+      tags: fileTags,
+      searchedTags: [],
+      taskInfo: tasks.length > 0 ? { done: doneCount, total: tasks.length } : undefined,
+    };
+  }
+
+  private showContextMenu(event: MouseEvent, file: TFile): void {
+    event.preventDefault();
+    const menu = new Menu();
+
+    this.app.workspace.trigger('file-menu', menu, file, 'file-explorer-context-menu');
+    menu.showAtMouseEvent(event);
   }
 
   private attachSentinel(): void {
@@ -151,8 +139,9 @@ export class FinderCard extends ItemView {
       this.sentinel.remove();
     }
 
-    this.sentinel = this.resultsContainer.getElement().createDiv({ cls: 'finder-scroll-sentinel' });
-    this.addElements(this.sentinel);
+    this.sentinel = this.container.getElement().createDiv({ cls: 'finder-scroll-sentinel' });
+    this.observer = new IntersectionObserver(this.handleIntersection.bind(this), { threshold: 0 });
+    this.observer.observe(this.sentinel);
   }
 
   private appendToQuery(token: string): void {
