@@ -1,16 +1,12 @@
 import { App, SuggestModal, getAllTags, TFile } from "obsidian";
-import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { Finder, SearchResult, isCommand } from "./Finder";
 import { ModalItem } from "./component/ModalItem";
-import { HintBar } from "./component/ui/HintBar";
-import { HintBarSub } from "./component/ui/HintBarSub";
-import { TagsPreview } from "./component/ui/TagsPreview";
+import { SearchStrategyFactory } from "./engine/SearchStrategy";
+import { SearchUIHelper } from "./SearchUIHelper";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
-  private hintBar: HintBar;
-  private subHintBar: HintBarSub;
-  private tagsPreview: TagsPreview | null = null;
+  private uiHelper!: SearchUIHelper;
 
   constructor(app: App) {
     super(app);
@@ -24,65 +20,34 @@ class FinderModal extends SuggestModal<SearchResult> {
       const hintWrapper = createDiv();
 
       promptEl.insertAdjacentElement('afterend', hintWrapper);
-      this.hintBar = new HintBar(hintWrapper);
-      this.core.hints.forEach(hint => {
-        this.hintBar.addHint(hint, (label) => {
-          // eslint-disable-next-line prefer-template
-          this.inputEl.value = label + ' ';
-          this.inputEl.focus();
-          this.inputEl.dispatchEvent(new Event('input'));
-        });
-      });
-
-      this.tagsPreview = new TagsPreview(hintWrapper);
-
-      this.subHintBar = new HintBarSub(hintWrapper, (value) => {
-        const current = this.inputEl.value;
-        const match = /\b(modified|created):(\S*)/.exec(current);
-
-        if (match) {
-          this.inputEl.value = `${current.slice(0, match.index) + match[1]}:${value}${current.slice(match.index + match[0].length)}`;
-        } else {
-          this.inputEl.value = `${current.trimEnd()} modified:${value} `;
-        }
-
-        this.inputEl.focus();
-        this.inputEl.dispatchEvent(new Event('input'));
+      this.uiHelper = new SearchUIHelper(this.app, this.core, hintWrapper, {
+        onHintClick: (label) => this.appendToQuery(label),
+        onDateFilterClick: (value) => this.appendToQuery(value),
       });
     }
 
     this.inputEl.addEventListener('input', () => {
-      const query = this.inputEl.value;
-      const factory = SearchStrategyFactory.getInstance();
-
-      this.hintBar?.highlightChips(this.core.getActiveHints(query));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.tagsPreview?.updateTagPreview((this.app.metadataCache as any).getTags() || {}, this.inputEl);
-
-      const parsed = factory.parse(query);
-
-      if (parsed.dateFilter) {
-        this.subHintBar?.show(parsed.dateFilter.value);
-      } else if (/\b(modified|created):/.test(query)) {
-        this.subHintBar?.show();
-      } else {
-        this.subHintBar?.hide();
-      }
+      this.uiHelper?.onInput(this.inputEl.value, this.inputEl);
     });
+  }
+
+  renderSuggestion(result: SearchResult, el: HTMLElement) {
+    this.renderResult(result, el);
   }
 
   async getSuggestions(query: string): Promise<SearchResult[]> {
     return this.core.search(query);
   }
 
-  // Renders each suggestion item (called by older Obsidian versions)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  renderSuggestion(result: SearchResult, el: HTMLElement) {
-    this.renderModalItem(result, el);
+  renderModalItem(result: SearchResult, el: HTMLElement) {
+    this.renderResult(result, el);
   }
 
-  // Renders each suggestion item
-  renderModalItem(result: SearchResult, el: HTMLElement) {
+  onChooseSuggestion(result: SearchResult) {
+    this.core.openResult(result);
+  }
+
+  private renderResult(result: SearchResult, el: HTMLElement): void {
     el.empty();
 
     if (isCommand(result)) {
@@ -96,20 +61,26 @@ class FinderModal extends SuggestModal<SearchResult> {
     const fileCache = this.app.metadataCache.getFileCache(file);
     const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];
-    const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
+    const doneCount = tasks.filter((t: any) => t.task === 'x' || t.task === 'X').length;
 
-    const modal = new ModalItem(el);
-
-    modal.render({
+    new ModalItem(el).render({
       file,
       tags: fileTags,
       searchedTags: parsed.tags,
-      taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined
+      taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined,
     });
   }
 
-  onChooseSuggestion(result: SearchResult) {
-    this.core.openResult(result);
+  private appendToQuery(token: string): void {
+    const current = this.inputEl.value.split(' ').filter((w, i, arr) => w || i < arr.length - 1).join(' ');
+    const alreadyPresent = current.toLowerCase().includes(token.toLowerCase());
+
+    if (!alreadyPresent) {
+      this.inputEl.value = current ? `${current} ${token} ` : `${token} `;
+    }
+
+    this.inputEl.dispatchEvent(new Event('input'));
+    this.inputEl.focus();
   }
 }
 
