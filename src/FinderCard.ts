@@ -1,9 +1,9 @@
-import { ItemView, WorkspaceLeaf, TFile, MarkdownRenderer, Menu } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Menu } from "obsidian";
 import { Finder, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
 import { Card, SearchBar } from "./component/Card";
 import { ResultsContainer } from "./component/ui/ResultsContainer";
-import { CodePreview } from "./component/ui/CodePreview";
+import { ImagePreview } from "./component/ui/ImagePreview";
 import { SearchUIHelper } from "./SearchUIHelper";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
@@ -131,7 +131,7 @@ export class FinderCard extends ItemView {
       card.setBadge(title, file.extension.toUpperCase());
     }
 
-    this.loadPreview(file, card.getPreviewContainer());
+    new ImagePreview(this.app, this).load(file, card.getPreviewContainer());
 
     card.setMetadata(
       new Date(file.stat.mtime).toLocaleDateString(),
@@ -169,44 +169,6 @@ export class FinderCard extends ItemView {
     if (this.observer) {
       this.observer.disconnect();
       this.observer = null;
-    }
-  }
-
-  private async loadPreview(file: TFile, containerEl: HTMLElement): Promise<void> {
-    containerEl.empty();
-    const ext = file.extension.toLowerCase();
-
-    try {
-      const cache = this.app.metadataCache.getFileCache(file);
-
-      if (cache?.frontmatter?.['excalidraw-plugin'] === 'parsed') {
-        await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, '', this);
-
-        return;
-      }
-
-      if (ext === 'md') {
-        const rawContent = await this.app.vault.cachedRead(file);
-        const cleaned = rawContent.replace(/^---[\s\S]*?---\n?/, '').slice(0, 500);
-
-        await MarkdownRenderer.render(this.app, cleaned, containerEl, file.path, this);
-
-        return;
-      }
-
-      if (ext === 'json') {
-        containerEl.addClass('code-thumbnail');
-        const rawContent = await this.app.vault.cachedRead(file);
-
-        new CodePreview(containerEl, rawContent.slice(0, 300));
-
-        return;
-      }
-
-      await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, '', this);
-    } catch (e) {
-      console.error('Preview error:', e);
-      containerEl.setText('Preview not available');
     }
   }
 }
