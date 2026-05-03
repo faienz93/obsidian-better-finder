@@ -1,6 +1,6 @@
-import { CardData } from "./CardData";
-import { SuggestionItem } from "./ui/SuggestionItem";
-import { Title } from "./ui/Title";
+import { Card } from "../interface/Card";
+import { SuggestionItem } from "../ui/SuggestionItem";
+import { Title } from "../ui/Title";
 
 export class ListCard {
   private item: SuggestionItem;
@@ -16,7 +16,7 @@ export class ListCard {
     return this.card;
   }
 
-  public render(data: CardData): void {
+  public render(data: Card): void {
     const { file, tags, searchedTags, taskInfo } = data;
 
     this.title = this.item.setTitle(file.basename);

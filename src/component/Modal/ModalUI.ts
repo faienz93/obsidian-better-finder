@@ -1,10 +1,10 @@
-import { CardData } from "./CardData";
-import { SuggestionItem } from "./ui/SuggestionItem";
-import { Title } from "./ui/Title";
+import { Card } from "../interface/Card";
+import { SuggestionItem } from "../ui/SuggestionItem";
+import { Title } from "../ui/Title";
 
-export type { CardData as ModalData };
+export type { Card as ModalData };
 
-export class ModalItem {
+export class ModalUI {
   private item: SuggestionItem;
   private title!: Title;
 
@@ -12,7 +12,7 @@ export class ModalItem {
     this.item = new SuggestionItem(el);
   }
 
-  public render(data: CardData): void {
+  public render(data: Card): void {
     const { file, tags, searchedTags, taskInfo } = data;
 
     this.title = this.item.setTitle(file.basename);

@@ -1,8 +1,8 @@
 import { ItemView, WorkspaceLeaf, TFile, Menu, getAllTags } from "obsidian";
 import { Finder, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
-import { CardData } from "./component/CardData";
-import { CardContainer } from "./component/ui/CardContainer";
+import { Card } from "./component/interface/Card";
+import { CardContainer } from "./component/Card/CardUI";
 import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
 
@@ -112,7 +112,7 @@ export class FinderCard extends ItemView {
     );
   }
 
-  private buildCardData(file: TFile): CardData {
+  private buildCardData(file: TFile): Card {
     const fileCache = this.app.metadataCache.getFileCache(file);
     const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];

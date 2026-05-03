@@ -1,8 +1,8 @@
 import { App, Component } from "obsidian";
-import { CardData } from "./CardData";
-import { ImagePreview } from "./ui/ImagePreview";
-import { Metadata } from "./ui/Metadata";
-import { Title } from "./ui/Title";
+import { Card } from "../interface/Card";
+import { ImagePreview } from "../ui/ImagePreview";
+import { Metadata } from "../ui/Metadata";
+import { Title } from "../ui/Title";
 
 export class GridCard {
   private card: HTMLElement;
@@ -16,7 +16,7 @@ export class GridCard {
     return this.card;
   }
 
-  public render(data: CardData, app: App, component: Component): void {
+  public render(data: Card, app: App, component: Component): void {
     const { file, tags, searchedTags, taskInfo } = data;
 
     this.title = new Title(this.card, file.basename);

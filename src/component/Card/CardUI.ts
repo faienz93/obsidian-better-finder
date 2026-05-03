@@ -1,14 +1,12 @@
 import { App, Component } from "obsidian";
-import { CardData } from "../CardData";
-import { GridCard } from "../GridCard";
-import { ListCard } from "../ListCard";
-import { ToggleButton } from "./ToggleButton";
-
-type ViewMode = 'grid' | 'list';
+import { Card, CardViewMode } from "../interface/Card";
+import { GridCard } from "./GridCard";
+import { ListCard } from "./ListCard";
+import { ToggleButton } from "../ui/ToggleButton";
 
 export class CardContainer {
   private el: HTMLElement;
-  private mode: ViewMode = 'grid';
+  private mode: CardViewMode = 'grid';
   private app: App;
   private component: Component;
 
@@ -25,7 +23,7 @@ export class CardContainer {
   }
 
   public addResult(
-    data: CardData,
+    data: Card,
     onOpen: () => void,
     onContextMenu: (event: MouseEvent) => void
   ): void {

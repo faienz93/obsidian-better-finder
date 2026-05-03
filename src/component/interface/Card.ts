@@ -1,6 +1,6 @@
 import { TFile } from "obsidian";
-
-export interface CardData {
+export type CardViewMode = 'grid' | 'list';
+export interface Card {
   file: TFile;
   tags: string[];
   searchedTags: string[];
