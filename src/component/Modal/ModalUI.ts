@@ -1,7 +1,7 @@
 import { App, Component } from "obsidian";
 import { Card } from "../interface/Card";
 import { ImagePreview } from "../ui/ImagePreview";
-import { SuggestionItem } from "../ui/SuggestionItem";
+import { ModalItem } from "./ModalItem";
 import { Title } from "../ui/Title";
 
 export type { Card as ModalData };
@@ -9,13 +9,13 @@ export type { Card as ModalData };
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
 
 export class ModalUI {
-  private item: SuggestionItem;
+  private item: ModalItem;
   private title!: Title;
   private app: App;
 
   constructor(el: HTMLElement, app: App) {
     this.app = app;
-    this.item = new SuggestionItem(el);
+    this.item = new ModalItem(el);
   }
 
   public render(data: Card): void {

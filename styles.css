@@ -131,25 +131,27 @@ If your plugin does not need CSS, delete this file.
 }
 
 /* Modal image preview */
-.better-finder-modal .suggestion-item:has(.modal-item-preview) {
-  position: relative;
-  padding-right: 72px;
+.better-finder-modal .suggestion-item.has-modal-preview {
+  display: flex !important;
+  align-items: center;
+  gap: 8px;
+  white-space: normal;
+}
+
+.better-finder-modal .modal-item-text {
+  flex: 1;
+  min-width: 0;
 }
 
 .better-finder-modal .modal-item-preview {
-  position: absolute;
-  top: 50%;
-  right: 8px;
-  transform: translateY(-50%);
-  width: 56px;
-  height: 56px;
-  border-radius: 4px;
-  overflow: hidden;
   flex-shrink: 0;
+  width: 32px;
+  height: 32px;
+  border-radius: 3px;
+  overflow: hidden;
 }
 
-.better-finder-modal .modal-item-preview img,
-.better-finder-modal .modal-item-preview .internal-embed {
+.better-finder-modal .modal-item-preview img {
   width: 100%;
   height: 100%;
   object-fit: cover;

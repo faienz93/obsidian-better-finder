@@ -1,10 +1,10 @@
-import { Hotkey } from "./Hotkey";
-import { Metadata } from "./Metadata";
-import { Tags } from "./Tags";
-import { TaskBadge } from "./TaskBadge";
-import { Title } from "./Title";
+import { Hotkey } from "../ui/Hotkey";
+import { Metadata } from "../ui/Metadata";
+import { Tags } from "../ui/Tags";
+import { TaskBadge } from "../ui/TaskBadge";
+import { Title } from "../ui/Title";
 
-export class SuggestionItem {
+export class ModalItem {
   private el: HTMLElement;
   private metadata: Metadata;
 
@@ -55,6 +55,16 @@ export class SuggestionItem {
   }
 
   public setPreview(fill: (previewEl: HTMLElement) => void) {
+    this.el.addClass('has-modal-preview');
+
+    const textWrapper = createDiv({ cls: 'modal-item-text' });
+
+    while (this.el.firstChild) {
+      textWrapper.appendChild(this.el.firstChild);
+    }
+
+    this.el.appendChild(textWrapper);
+
     const previewEl = this.el.createDiv({ cls: 'modal-item-preview' });
 
     fill(previewEl);

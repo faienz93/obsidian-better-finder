@@ -1,6 +1,6 @@
 import { App, TFile, Command } from "obsidian";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
-import { SuggestionItem } from "./component/ui/SuggestionItem";
+import { ModalItem } from "./component/Modal/ModalItem";
 import { HintsType } from "./component/ui/HintBar";
 
 export type SearchResult = TFile | Command;
@@ -67,7 +67,7 @@ export class Finder {
   }
 
   renderCommand(command: Command, el: HTMLElement): void {
-    const item = new SuggestionItem(el);
+    const item = new ModalItem(el);
     const title = item.setTitle(command.name);
 
     if (command.icon) {
