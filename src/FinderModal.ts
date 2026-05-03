@@ -31,12 +31,12 @@ class FinderModal extends SuggestModal<SearchResult> {
     });
   }
 
-  renderSuggestion(result: SearchResult, el: HTMLElement) {
-    this.renderResult(result, el);
-  }
-
   async getSuggestions(query: string): Promise<SearchResult[]> {
     return this.core.search(query);
+  }
+
+  renderSuggestion(result: SearchResult, el: HTMLElement) {
+    this.renderResult(result, el);
   }
 
   renderModalItem(result: SearchResult, el: HTMLElement) {
