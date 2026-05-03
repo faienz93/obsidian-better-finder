@@ -17,6 +17,7 @@ export default class MyPlugin extends Plugin {
 
 		// This adds a status bar item to the bottom of the app. Does not work on mobile apps.
 		const statusBarItemEl = this.addStatusBarItem();
+
 		statusBarItemEl.setText('Status bar text');
 
 		// This adds a simple command that can be triggered anywhere
@@ -42,6 +43,7 @@ export default class MyPlugin extends Plugin {
 			checkCallback: (checking: boolean) => {
 				// Conditions to check
 				const markdownView = this.app.workspace.getActiveViewOfType(MarkdownView);
+
 				if (markdownView) {
 					// If checking is true, we're simply "checking" if the command can be run.
 					// If checking is false, then we want to actually perform the operation.
@@ -52,6 +54,7 @@ export default class MyPlugin extends Plugin {
 					// This command will only show up in Command Palette when the check function returns true
 					return true;
 				}
+
 				return false;
 			}
 		});
@@ -67,7 +70,6 @@ export default class MyPlugin extends Plugin {
 
 		// When registering intervals, this function will automatically clear the interval when the plugin is disabled.
 		this.registerInterval(window.setInterval(() => console.log('setInterval'), 5 * 60 * 1000));
-
 	}
 
 	onunload() {
@@ -88,12 +90,14 @@ class SampleModal extends Modal {
 	}
 
 	onOpen() {
-		let {contentEl} = this;
+		const {contentEl} = this;
+
 		contentEl.setText('Woah!');
 	}
 
 	onClose() {
 		const {contentEl} = this;
+
 		contentEl.empty();
 	}
 }

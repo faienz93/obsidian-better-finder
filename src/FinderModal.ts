@@ -1,31 +1,73 @@
-import { App, SuggestModal, getAllTags } from "obsidian";
-import { QueryParser } from "./QueryParser";
-import { FinderCore, SearchResult, isCommand } from "./FinderCore";
+import { App, SuggestModal, getAllTags, TFile } from "obsidian";
+import { SearchStrategyFactory } from "./engine/SearchStrategy";
+import { Finder, SearchResult, isCommand } from "./Finder";
+import { ModalItem } from "./component/ModalItem";
+import { HintBar } from "./component/ui/HintBar";
+import { HintBarSub } from "./component/ui/HintBarSub";
+import { TagsPreview } from "./component/ui/TagsPreview";
 
 class FinderModal extends SuggestModal<SearchResult> {
-  private core: FinderCore;
+  private core: Finder;
+  private hintBar: HintBar;
+  private subHintBar: HintBarSub;
+  private tagsPreview: TagsPreview | null = null;
 
   constructor(app: App) {
     super(app);
-    this.core = new FinderCore(app);
+    this.core = new Finder(app);
   }
 
   onOpen(): void {
-    // Hint bar - inserita dopo .prompt-input-container
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
+
     if (promptEl) {
       const hintWrapper = createDiv();
+
       promptEl.insertAdjacentElement('afterend', hintWrapper);
-      this.core.renderHints(hintWrapper, (hint) => {
-        this.inputEl.value = hint + ' ';
+      this.hintBar = new HintBar(hintWrapper);
+      this.core.hints.forEach(hint => {
+        this.hintBar.addHint(hint, (label) => {
+          // eslint-disable-next-line prefer-template
+          this.inputEl.value = label + ' ';
+          this.inputEl.focus();
+          this.inputEl.dispatchEvent(new Event('input'));
+        });
+      });
+
+      this.tagsPreview = new TagsPreview(hintWrapper);
+
+      this.subHintBar = new HintBarSub(hintWrapper, (value) => {
+        const current = this.inputEl.value;
+        const match = /\b(modified|created):(\S*)/.exec(current);
+
+        if (match) {
+          this.inputEl.value = `${current.slice(0, match.index) + match[1]}:${value}${current.slice(match.index + match[0].length)}`;
+        } else {
+          this.inputEl.value = `${current.trimEnd()} modified:${value} `;
+        }
+
         this.inputEl.focus();
         this.inputEl.dispatchEvent(new Event('input'));
       });
     }
 
-    // Update hints on input
     this.inputEl.addEventListener('input', () => {
-      this.core.updateHintHighlights(this.inputEl.value);
+      const query = this.inputEl.value;
+      const factory = SearchStrategyFactory.getInstance();
+
+      this.hintBar?.highlightChips(this.core.getActiveHints(query));
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      this.tagsPreview?.updateTagPreview((this.app.metadataCache as any).getTags() || {}, this.inputEl);
+
+      const parsed = factory.parse(query);
+
+      if (parsed.dateFilter) {
+        this.subHintBar?.show(parsed.dateFilter.value);
+      } else if (/\b(modified|created):/.test(query)) {
+        this.subHintBar?.show();
+      } else {
+        this.subHintBar?.hide();
+      }
     });
   }
 
@@ -33,115 +75,41 @@ class FinderModal extends SuggestModal<SearchResult> {
     return this.core.search(query);
   }
 
-  // Renders each suggestion item
+  // Renders each suggestion item (called by older Obsidian versions)
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   renderSuggestion(result: SearchResult, el: HTMLElement) {
-    // Clear the element
+    this.renderModalItem(result, el);
+  }
+
+  // Renders each suggestion item
+  renderModalItem(result: SearchResult, el: HTMLElement) {
     el.empty();
 
     if (isCommand(result)) {
       this.core.renderCommand(result, el);
+
       return;
     }
 
-    // RENDER FILE (existing code)
-    // const file = result as TFile;
+    const file = result as TFile;
+    const parsed = SearchStrategyFactory.getInstance().parse(this.inputEl.value);
+    const fileCache = this.app.metadataCache.getFileCache(file);
+    const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
+    const tasks = fileCache?.listItems?.filter(i => i.task) || [];
+    const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
 
-    // Parse query once at the beginning
-    const parsed = QueryParser.parse(this.inputEl.value);
+    const modal = new ModalItem(el);
 
-    // Add class to el directly instead of creating nested container
-    el.addClass('suggestion-item');
-
-    // File name (title)
-    const titleEl = el.createDiv({ cls: 'suggestion-title' });
-    titleEl.createSpan({ text: result.basename });
-
-    // File extension badge (if not markdown)
-    if (result.extension !== 'md') {
-      const extBadge = titleEl.createSpan({
-        text: result.extension.toUpperCase(),
-        cls: 'suggestion-flair'
-      });
-      extBadge.style.marginLeft = '8px';
-      extBadge.style.fontSize = '10px';
-      extBadge.style.padding = '2px 6px';
-      extBadge.style.background = 'var(--background-modifier-success)';
-      extBadge.style.borderRadius = '3px';
-    }
-
-    // Metadata row (date + path)
-    const metaRow = el.createDiv({ cls: 'suggestion-note' });
-    metaRow.style.display = 'flex';
-    metaRow.style.gap = '12px';
-    metaRow.style.fontSize = '11px';
-    metaRow.style.color = 'var(--text-muted)';
-    metaRow.style.marginTop = '4px';
-
-    // Date
-    const dateEl = metaRow.createSpan();
-    dateEl.setText(new Date(result.stat.mtime).toLocaleDateString());
-
-    // Path
-    const pathEl = metaRow.createSpan();
-    pathEl.setText(result.parent?.path || '/');
-
-    // Tags (only for markdown files)
-    if (result.extension === 'md') {
-      const fileCache = this.app.metadataCache.getFileCache(result);
-      if (fileCache) {
-        const fileTags = getAllTags(fileCache) || [];
-
-        if (fileTags.length > 0) {
-          const tagsContainer = el.createDiv();
-          tagsContainer.style.marginTop = '8px';
-          tagsContainer.style.display = 'flex';
-          tagsContainer.style.gap = '4px';
-          tagsContainer.style.flexWrap = 'wrap';
-
-          // Use parsed tags from the beginning of the method
-          const searchedTags = parsed.tags;
-
-          fileTags.forEach(tag => {
-            const tagEl = tagsContainer.createSpan({ text: tag });
-            tagEl.style.background = 'var(--tag-background)';
-            tagEl.style.color = 'var(--tag-color)';
-            tagEl.style.padding = '2px 6px';
-            tagEl.style.borderRadius = '4px';
-            tagEl.style.fontSize = '11px';
-
-            // Highlight if tag matches search
-            const isMatched = searchedTags.some(searchTag =>
-              tag.toLowerCase() === searchTag.toLowerCase()
-            );
-
-            if (isMatched) {
-              tagEl.style.background = 'var(--interactive-accent)';
-              tagEl.style.color = 'var(--text-on-accent)';
-              tagEl.style.fontWeight = '600';
-            }
-          });
-        }
-
-        // Show task count if filtering by tasks
-        if (parsed.taskFilter && fileCache.listItems) {
-          const tasks = fileCache.listItems.filter(item => item.task);
-          // const todoCount = tasks.filter(t => t.task !== 'x' && t.task !== 'X').length;
-          const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
-
-          if (tasks.length > 0) {
-            const taskBadge = el.createDiv();
-            taskBadge.style.marginTop = '6px';
-            taskBadge.style.fontSize = '11px';
-            taskBadge.style.color = 'var(--text-muted)';
-            taskBadge.setText(`✓ ${doneCount}/${tasks.length} tasks completed`);
-          }
-        }
-      }
-    }
+    modal.render({
+      file,
+      tags: fileTags,
+      searchedTags: parsed.tags,
+      taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined
+    });
   }
 
   onChooseSuggestion(result: SearchResult) {
-    this.core.handleSelection(result);
+    this.core.openResult(result);
   }
 }
 

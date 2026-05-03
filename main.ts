@@ -1,7 +1,8 @@
-import { Plugin } from 'obsidian';
+import { Platform, Plugin, TFile } from 'obsidian';
 import FinderModal from './src/FinderModal'
 import FinderSetting from './src/FinderSetting'
-import { FinderView, FINDER_VIEW_TYPE } from './src/FinderView'
+import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
+import { SearchIndex } from './src/engine/SearchIndex';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
@@ -14,16 +15,22 @@ const DEFAULT_SETTINGS: ObsidianBetterFinderSettings = {
 }
 
 export default class ObsidianBetterFinder extends Plugin {
+  private fileCache: TFile[] = [];
   settings: ObsidianBetterFinderSettings;
   private ribbonIconEl: HTMLElement | null = null;
+  private searchIndex: SearchIndex;
 
   async onload() {
     console.log("AdvancedSearch loaded 🚀");
 
+    if (!Platform.isMobile) {
+      console.log('Plugin runned from Mobile!')
+    }
+
     await this.loadSettings();
 
     // Register the FinderView
-    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderView(leaf));
+    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderCard(leaf));
 
     this.addCommand({
       id: 'obsidian-better-finder-open-modal',
@@ -49,6 +56,58 @@ export default class ObsidianBetterFinder extends Plugin {
     // This adds a settings tab so the user can configure various aspects of the plugin
     this.addSettingTab(new FinderSetting(this.app, this));
 
+    this.app.workspace.onLayoutReady(async () => {
+      this.searchIndex = SearchIndex.getInstance(this.app);
+      await this.searchIndex.buildIndex();
+
+      this.registerEvent(
+        this.app.vault.on('create', async (file) => {
+          if (file instanceof TFile) {
+            this.fileCache.push(file);
+
+            // Aggiungi all'indice se è markdown
+            if (file.extension === 'md') {
+              await this.searchIndex.updateFile(file);
+            }
+          }
+        })
+      );
+
+      // File CANCELLATO
+      this.registerEvent(
+        this.app.vault.on('delete', (file) => {
+          if (file instanceof TFile) {
+            const index = this.fileCache.indexOf(file);
+
+            if (index > -1) {
+              this.fileCache.splice(index, 1);
+            }
+
+            this.searchIndex.removeFile(file);
+          }
+        })
+      );
+
+      // File RINOMINATO
+      this.registerEvent(
+        this.app.vault.on('rename', async (file, oldPath) => {
+          if (file instanceof TFile) {
+            // La reference del file rimane la stessa, aggiorna solo l'indice
+            await this.searchIndex.renameFile(file, oldPath);
+          }
+        })
+      );
+
+      // File MODIFICATO (contenuto cambiato)
+      // Usiamo metadataCache.on('changed') invece di vault.on('modify')
+      // perché è più affidabile per i markdown
+      this.registerEvent(
+        this.app.metadataCache.on('changed', async (file: TFile) => {
+          // Aggiorna l'indice con il nuovo contenuto
+          await this.searchIndex.updateFile(file);
+        })
+      );
+    })
   }
 
   async activateFinderView() {
@@ -80,8 +139,6 @@ export default class ObsidianBetterFinder extends Plugin {
 
   }
 
-
-
   async loadSettings() {
     this.settings = Object.assign({}, DEFAULT_SETTINGS, await this.loadData());
   }
@@ -89,10 +146,4 @@ export default class ObsidianBetterFinder extends Plugin {
   async saveSettings() {
     await this.saveData(this.settings);
   }
-
-
 }
-
-
-
-
