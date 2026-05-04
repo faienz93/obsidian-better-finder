@@ -1,3 +1,5 @@
+import "./HintBarSub.css";
+
 // TODO non dovrebbe contenere la logica ma solo "parsarsi" il contenuto
 const DATE_VALUES = ['today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month'];
 

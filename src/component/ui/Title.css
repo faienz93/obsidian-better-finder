@@ -1,0 +1,13 @@
+/* File type badge (PNG, PDF, ecc.) */
+.suggestion-flair {
+  display: inline-block;
+  margin-left: 6px;
+  padding: 1px 5px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  vertical-align: middle;
+  letter-spacing: 0.03em;
+}

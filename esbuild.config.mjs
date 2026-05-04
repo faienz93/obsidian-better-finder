@@ -1,6 +1,7 @@
 import esbuild from "esbuild";
 import process from "process";
 import builtins from "builtin-modules";
+import { rename, access } from "fs/promises";
 
 const banner =
 	`/*
@@ -10,6 +11,20 @@ if you want to view the source, please visit the github repository of this plugi
 `;
 
 const prod = (process.argv[2] === "production");
+
+const renameCssPlugin = {
+	name: "rename-css",
+	setup(build) {
+		build.onEnd(async () => {
+			try {
+				await access("main.css");
+				await rename("main.css", "styles.css");
+			} catch {
+				// no css emitted (no CSS imports yet) — ignore
+			}
+		});
+	},
+};
 
 const context = await esbuild.context({
 	banner: {
@@ -39,6 +54,7 @@ const context = await esbuild.context({
 	treeShaking: true,
 	outfile: "main.js",
 	minify: prod,
+	plugins: [renameCssPlugin],
 });
 
 if (prod) {

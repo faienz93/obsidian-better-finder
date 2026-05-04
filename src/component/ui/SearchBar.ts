@@ -1,4 +1,5 @@
 import { ToggleButton } from "./ToggleButton";
+import "./SearchBar.css";
 
 export class SearchBar {
   private inputEl: HTMLInputElement;

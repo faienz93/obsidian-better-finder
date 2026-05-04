@@ -3,6 +3,7 @@ import { Card, CardViewMode } from "../interface/Card";
 import { GridCard } from "./GridCard";
 import { ListCard } from "./ListCard";
 import { ToggleButton } from "../ui/ToggleButton";
+import "./CardUI.css";
 
 export class CardUI {
   private el: HTMLElement;

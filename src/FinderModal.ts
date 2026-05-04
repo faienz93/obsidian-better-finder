@@ -3,6 +3,7 @@ import { Finder, SearchResult, isCommand } from "./Finder";
 import { ModalUI } from "./component/Modal/ModalUI";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { SearchUIHelper } from "./SearchUIHelper";
+import "./FinderModal.css";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;

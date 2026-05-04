@@ -3,6 +3,7 @@ import { Metadata } from "./Metadata";
 import { Tags } from "./Tags";
 import { TaskBadge } from "./TaskBadge";
 import { Title } from "./Title";
+import "./SuggestionItem.css";
 
 export class SuggestionItem {
   private el: HTMLElement;
