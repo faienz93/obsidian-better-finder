@@ -15,6 +15,7 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   onOpen(): void {
+    this.modalEl.addClass('better-finder-modal');
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
 
     if (promptEl) {
