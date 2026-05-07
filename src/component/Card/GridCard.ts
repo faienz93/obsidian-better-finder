@@ -26,7 +26,6 @@ export class GridCard {
     }
 
     const previewEl = this.card.createDiv({ cls: 'finder-view-preview' });
-
     new ImagePreview(app, component).load(file, previewEl);
 
     const metadata = new Metadata(this.card);

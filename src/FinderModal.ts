@@ -5,6 +5,8 @@ import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { SearchUIHelper } from "./SearchUIHelper";
 import "./FinderModal.css";
 
+const PREVIEW_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'canvas', 'pdf'];
+
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
   private uiHelper!: SearchUIHelper;
@@ -64,12 +66,16 @@ class FinderModal extends SuggestModal<SearchResult> {
     const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];
     const doneCount = tasks.filter((t: any) => t.task === 'x' || t.task === 'X').length;
+    const ext = file.extension.toLowerCase();
+    const isExcalidraw = ext === 'md' && fileCache?.frontmatter?.['excalidraw-plugin'] === 'parsed';
+    const renderPreview = PREVIEW_EXTENSIONS.includes(ext) || isExcalidraw;
 
     new ModalUI(el, this.app).render({
       file,
       tags: fileTags,
       searchedTags: parsed.tags,
       taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined,
+      renderPreview,
     });
   }
 

@@ -8,4 +8,5 @@ export interface Card {
     done: number;
     total: number;
   };
+  renderPreview?: boolean;
 }

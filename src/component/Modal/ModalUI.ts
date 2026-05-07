@@ -6,8 +6,6 @@ import { Title } from "../ui/Title";
 
 export type { Card as ModalData };
 
-const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp'];
-
 export class ModalUI {
   private item: SuggestionItem;
   private title!: Title;
@@ -19,8 +17,7 @@ export class ModalUI {
   }
 
   public render(data: Card): void {
-    const { file, tags, searchedTags, taskInfo } = data;
-    const ext = file.extension.toLowerCase();
+    const { file, tags, searchedTags, taskInfo, renderPreview } = data;
 
     this.title = this.item.setTitle(file.basename);
 
@@ -33,7 +30,7 @@ export class ModalUI {
       file.parent?.path || '/'
     );
 
-    if (IMAGE_EXTENSIONS.includes(ext)) {
+    if (renderPreview) {
       this.item.setPreview((previewEl) => {
         new ImagePreview(this.app, new Component()).load(file, previewEl);
       });
