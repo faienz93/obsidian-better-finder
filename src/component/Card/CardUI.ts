@@ -37,7 +37,7 @@ export class CardUI {
     } else {
       const card = new ListCard(this.el);
 
-      card.render(data);
+      card.render(data, this.app, this.component);
       card.onClick(onOpen);
       card.onContextMenu(onContextMenu);
     }
