@@ -3,6 +3,7 @@ import { Metadata } from "./Metadata";
 import { Tags } from "./Tags";
 import { TaskBadge } from "./TaskBadge";
 import { Title } from "./Title";
+import "./SuggestionItem.css";
 
 export class SuggestionItem {
   private el: HTMLElement;
@@ -52,5 +53,11 @@ export class SuggestionItem {
     const badge = new TaskBadge(this.el);
 
     badge.setContent(done, total);
+  }
+
+  public setPreview(fill: (previewEl: HTMLElement) => void) {
+    const previewEl = this.el.createDiv({ cls: 'modal-item-preview' });
+
+    fill(previewEl);
   }
 }

@@ -1,3 +1,5 @@
+import "./TagsPreview.css";
+
 export class TagsPreview {
   private container: HTMLElement;
 

@@ -1,3 +1,5 @@
+import "./Title.css";
+
 export class Title {
   private title: HTMLElement
 
