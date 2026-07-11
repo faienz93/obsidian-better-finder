@@ -6,6 +6,7 @@ import {
   TagsFilter, ModifiedFilter, CreatedFilter,
   FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
   TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter, HighlightFilter,
+  NegationFilter,
 } from "./search-filters";
 
 // Re-export per compatibilità con i file che importano da qui
@@ -32,6 +33,7 @@ export class SearchStrategyFactory {
     this.strategyMap.set('base', new BaseFilter());
     this.strategyMap.set('path', new PathFilter());
     this.strategyMap.set('excalidraw', new ExcalidrawFilter());
+    this.strategyMap.set('not', new NegationFilter());
   }
 
   get hints(): HintsType[] {
@@ -103,6 +105,15 @@ export class SearchStrategyFactory {
       : extensionTypes;
 
     results = fileTypeStrategy.filter(results, effectiveFileTypes, app);
+
+    // Apply negations (esclusioni -x)
+    if (parsed.negations) {
+      const strategy = this.strategyMap.get('not');
+
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, parsed.negations, app);
+      }
+    }
 
     // Apply task filter
     if (parsed.taskFilter) {
@@ -190,6 +201,13 @@ export class SearchStrategyFactory {
     }
 
     let remainingText = trimmedInput;
+
+    // 1.5 Extract negations (-image, -#tag) PRIMA delle altre strategy:
+    // "-image" verrebbe altrimenti catturato da FileTypeFilter, "-#tag" da TagsFilter
+    const negationStrategy = this.getStrategy('not') as NegationFilter;
+
+    result.negations = negationStrategy.extract(remainingText);
+    remainingText = negationStrategy.removeFrom(remainingText);
 
     // 2. Extract tags (#react #css)
     const tagStrategy = this.getStrategy('tag') as TagsFilter;

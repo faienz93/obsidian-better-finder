@@ -12,6 +12,7 @@ export interface ParsedQuery {
   taskFilter?: 'all' | 'todo' | 'done';
   pathFilter?: string;
   highlightFilter?: string;
+  negations?: { extensions: string[]; tags: string[] };
   freeText: string;
 }
 

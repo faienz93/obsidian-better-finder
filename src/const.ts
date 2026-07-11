@@ -12,4 +12,5 @@ export const i18n = {
   images: 'immagini',
   path: 'cartella',
   dateFormatPlaceholder: 'oppure YYYY/MM/DD',
+  exclude: 'escludi',
 };
