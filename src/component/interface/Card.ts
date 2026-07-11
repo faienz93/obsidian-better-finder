@@ -9,4 +9,6 @@ export interface Card {
     total: number;
   };
   renderPreview?: boolean;
+  /** Termine di ricerca libero da evidenziare nello snippet di contenuto */
+  snippetTerm?: string;
 }

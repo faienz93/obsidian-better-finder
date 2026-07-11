@@ -55,6 +55,12 @@ export class ModalItem {
     badge.setContent(done, total);
   }
 
+  public setSnippet(fill: (snippetEl: HTMLElement) => void) {
+    const snippetEl = this.el.createDiv({ cls: 'modal-item-snippet' });
+
+    fill(snippetEl);
+  }
+
   public setPreview(fill: (previewEl: HTMLElement) => void) {
     this.el.addClass('has-modal-preview');
 

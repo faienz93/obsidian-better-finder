@@ -1,6 +1,7 @@
 import { App, Component } from "obsidian";
 import { Card } from "../interface/Card";
 import { ImagePreview } from "../ui/ImagePreview";
+import { SnippetPreview } from "../ui/SnippetPreview";
 import { ModalItem } from "./ModalItem";
 import { Title } from "../ui/Title";
 
@@ -17,7 +18,7 @@ export class ModalUI {
   }
 
   public render(data: Card): void {
-    const { file, tags, searchedTags, taskInfo, renderPreview } = data;
+    const { file, tags, searchedTags, taskInfo, renderPreview, snippetTerm } = data;
 
     this.title = this.item.setTitle(file.basename);
 
@@ -29,6 +30,12 @@ export class ModalUI {
       new Date(file.stat.mtime).toLocaleDateString(),
       file.parent?.path || '/'
     );
+
+    if (snippetTerm) {
+      this.item.setSnippet((snippetEl) => {
+        new SnippetPreview(this.app).load(file, snippetTerm, snippetEl);
+      });
+    }
 
     if (renderPreview) {
       this.item.setPreview((previewEl) => {

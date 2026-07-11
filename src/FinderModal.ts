@@ -76,6 +76,7 @@ class FinderModal extends SuggestModal<SearchResult> {
       searchedTags: parsed.tags,
       taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined,
       renderPreview,
+      snippetTerm: ext === 'md' && parsed.freeText ? parsed.freeText : undefined,
     });
   }
 
