@@ -5,15 +5,18 @@ import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
 import { SearchIndex } from './src/engine/SearchIndex';
 import { CanvasTagCache } from './src/engine/CanvasTagCache';
 import { XbergExtractor, XBERG_EXTENSIONS } from './src/engine/XbergExtractor';
+import { SearchHistory } from './src/engine/SearchHistory';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
   showRibbonIcon: boolean;
+  searchHistory: string[];
 }
 
 const DEFAULT_SETTINGS: ObsidianBetterFinderSettings = {
   mySetting: 'default',
-  showRibbonIcon: true
+  showRibbonIcon: true,
+  searchHistory: []
 }
 
 export default class ObsidianBetterFinder extends Plugin {
@@ -30,6 +33,12 @@ export default class ObsidianBetterFinder extends Plugin {
     }
 
     await this.loadSettings();
+
+    // Cronologia ricerche: carica le voci salvate e collega la persistenza
+    SearchHistory.getInstance().init(this.settings.searchHistory, (entries) => {
+      this.settings.searchHistory = entries;
+      void this.saveSettings();
+    });
 
     // Register the FinderView
     this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderCard(leaf));

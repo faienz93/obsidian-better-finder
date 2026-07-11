@@ -5,6 +5,7 @@ import { Card } from "./component/interface/Card";
 import { CardUI } from "./component/Card/CardUI";
 import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
+import { SearchHistory } from "./engine/SearchHistory";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -19,6 +20,7 @@ export class FinderCard extends ItemView {
   private renderedCount = 0;
   private sentinel: HTMLElement | null = null;
   private observer: IntersectionObserver | null = null;
+  private historyIndex = -1;
 
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
@@ -59,7 +61,36 @@ export class FinderCard extends ItemView {
     const toggle = this.searchBar.createToggle();
 
     this.cardContainer = new CardUI(this.searchBar.containerEl, toggle, this.app, this);
-    this.searchBar.onInput(() => this.onSearch());
+    this.searchBar.onInput((event) => {
+      // La digitazione manuale (evento trusted) esce dalla navigazione cronologia
+      if (event?.isTrusted) {
+        this.historyIndex = -1;
+      }
+
+      this.onSearch();
+    });
+    this.attachHistoryNavigation();
+  }
+
+  /** ↑/↓ navigano la cronologia ricerche, stile terminale */
+  private attachHistoryNavigation(): void {
+    this.searchBar.getInputEl().addEventListener('keydown', (event) => {
+      if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+
+      const history = SearchHistory.getInstance().getAll();
+
+      if (history.length === 0) return;
+
+      event.preventDefault();
+
+      if (event.key === 'ArrowUp') {
+        this.historyIndex = Math.min(this.historyIndex + 1, history.length - 1);
+      } else {
+        this.historyIndex = Math.max(this.historyIndex - 1, -1);
+      }
+
+      this.searchBar.setValue(this.historyIndex === -1 ? '' : history[this.historyIndex]);
+    });
   }
 
   private async onSearch(): Promise<void> {
@@ -110,7 +141,10 @@ export class FinderCard extends ItemView {
 
     this.cardContainer.render(
       this.buildCardData(file),
-      () => this.core.openResult(file),
+      () => {
+        SearchHistory.getInstance().add(this.searchBar.getValue());
+        this.core.openResult(file);
+      },
       (event) => this.showContextMenu(event, file)
     );
   }

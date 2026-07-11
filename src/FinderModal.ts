@@ -3,6 +3,7 @@ import { Finder, SearchResult, isCommand } from "./Finder";
 import { ModalUI } from "./component/Modal/ModalUI";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { SearchUIHelper } from "./SearchUIHelper";
+import { SearchHistory } from "./engine/SearchHistory";
 import "./FinderModal.css";
 
 const PREVIEW_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'canvas', 'pdf', 'docx', 'xlsx'];
@@ -48,6 +49,7 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   onChooseSuggestion(result: SearchResult) {
+    SearchHistory.getInstance().add(this.inputEl.value);
     this.core.openResult(result);
   }
 
