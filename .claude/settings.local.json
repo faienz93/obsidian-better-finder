@@ -23,7 +23,13 @@
       "Bash(git branch *)",
       "Bash(npm run *)",
       "Bash(git add *)",
-      "Bash(git commit *)"
+      "Bash(git commit *)",
+      "Bash(git stash *)",
+      "Bash(python3 -c \"import json; json.load\\(open\\('package.json'\\)\\); print\\('JSON valido'\\)\")",
+      "Bash(npx jest *)",
+      "Bash(sed -i -e 's|void this.saveSettings\\(\\);|this.saveSettings\\(\\).catch\\(console.error\\);|' -e 's|void xbergExtractor.indexAll\\(\\);|xbergExtractor.indexAll\\(\\).catch\\(console.error\\);|' -e 's|void xbergExtractor.indexFile\\(file\\);|xbergExtractor.indexFile\\(file\\).catch\\(console.error\\);|g' main.ts)",
+      "Bash(sed -i 's|void this.core.exportResults\\(this.allResults, this.searchBar.getValue\\(\\)\\);|this.core.exportResults\\(this.allResults, this.searchBar.getValue\\(\\)\\).catch\\(console.error\\);|' src/FinderCard.ts)",
+      "Bash(sed -i 's|void this.updateFile\\(file\\);|this.updateFile\\(file\\).catch\\(console.error\\);|' src/engine/CanvasTagCache.ts)"
     ],
     "deny": [
       "Bash(**/*.env)",
