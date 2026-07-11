@@ -63,7 +63,20 @@ export class Finder {
 
     results = await this.factory.filterFreeText(results, parsed, this.app);
 
-    return results;
+    return this.dedupeByPath(results);
+  }
+
+  /** Rimuove i duplicati mantenendo la prima occorrenza (= ranking più alto) */
+  private dedupeByPath(files: TFile[]): TFile[] {
+    const seen = new Set<string>();
+
+    return files.filter(file => {
+      if (seen.has(file.path)) return false;
+
+      seen.add(file.path);
+
+      return true;
+    });
   }
 
   renderCommand(command: Command, el: HTMLElement): void {
