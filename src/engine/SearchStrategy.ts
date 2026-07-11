@@ -61,6 +61,11 @@ export class SearchStrategyFactory {
   filter(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
     let results = files;
 
+    // Tag speciale #archive: gli archiviati sono fuori dai risultati di default
+    const archiveStrategy = this.strategyMap.get('tag') as TagsFilter;
+
+    results = archiveStrategy.excludeArchived(results, parsed.tags, app);
+
     // Apply tag filter
     if (parsed.tags.length > 0) {
       const strategy = this.strategyMap.get('tag');
