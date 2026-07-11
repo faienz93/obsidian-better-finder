@@ -1,0 +1,30 @@
+/* Testo dei task dentro il risultato (filtro task: attivo) */
+.task-snippet {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.task-snippet-item {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-snippet-check {
+  flex-shrink: 0;
+}
+
+.task-snippet-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-snippet-more {
+  font-size: 11px;
+  color: var(--text-faint);
+}

@@ -51,20 +51,27 @@ export class TagsFilter extends SearchFilter<string[]> {
     return files.filter(file => {
       const fileTags = this.getFileTags(file, app);
 
+      // Match esatto o gerarchico (#tag/figlio). Il vecchio startsWith(tag + '-')
+      // faceva matchare tag "cugini" (#prompt pigliava #prompt-engineering): bug B2.
       return tags.every(tag =>
-        fileTags.some(ft => ft === tag || ft.startsWith(tag + '/') || ft.startsWith(tag + '-'))
+        fileTags.some(ft => ft === tag || ft.startsWith(tag + '/'))
       );
     });
   }
 
-  /** Tag di un file: dal metadataCache per i md, dalla CanvasTagCache per i canvas */
+  /**
+   * Tag di un file, normalizzati in lowercase (la query è già lowercase:
+   * senza normalizzazione i tag maiuscoli tipo #WAF non matchano — bug B3).
+   * Md dal metadataCache, canvas dalla CanvasTagCache.
+   */
   private getFileTags(file: TFile, app: App): string[] {
     if (file.extension === 'canvas') {
       return CanvasTagCache.getInstance(app).getTags(file);
     }
 
     const cache = app.metadataCache.getFileCache(file);
+    const fileTags = cache ? getAllTags(cache) || [] : [];
 
-    return cache ? getAllTags(cache) || [] : [];
+    return fileTags.map(t => t.toLowerCase());
   }
 }

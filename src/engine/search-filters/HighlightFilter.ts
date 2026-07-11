@@ -21,7 +21,10 @@ export class HighlightFilter extends SearchFilterAsync<string | undefined> {
   async filterAsync(files: TFile[], term: string | undefined, app: App): Promise<TFile[]> {
     if (!term) return files;
 
-    const lowerTerm = term.toLowerCase();
+    // Match a confine di parola: il vecchio includes() (substring) faceva
+    // matchare troppe evidenziazioni (bug B5)
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wordPattern = new RegExp(`\\b${escaped}\\b`, 'i');
     const pattern = /==([^=]+)==/g;
     const results: TFile[] = [];
 
@@ -36,7 +39,7 @@ export class HighlightFilter extends SearchFilterAsync<string | undefined> {
             pattern.lastIndex = 0;
 
             while ((match = pattern.exec(content)) !== null) {
-              if (match[1].toLowerCase().includes(lowerTerm)) {
+              if (wordPattern.test(match[1])) {
                 results.push(file);
                 break;
               }

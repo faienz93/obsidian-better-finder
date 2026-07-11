@@ -25,8 +25,12 @@ export class SearchIndex {
       storeFields: ['id', 'mtime', 'extension'],  // Campi salvati per retrieval
       searchOptions: {
         boost: { basename: 5 },         // Titolo pesa 5x più del contenuto
-        fuzzy: 0.2,                     // Tolleranza errori di battitura
-        prefix: true,                   // "gat" trova "gatto"
+        // Fuzzy solo su termini lunghi: su parole corte produce falsi positivi
+        // (es. "Bacca" → "becca"). Vedi bug B1.
+        fuzzy: (term) => term.length >= 6 ? 0.2 : false,
+        // Prefix solo sull'ultimo token: è quello che l'utente sta ancora
+        // digitando; i precedenti sono parole complete.
+        prefix: (term, index, terms) => index === terms.length - 1,
         combineWith: 'AND'              // Tutte le parole devono essere presenti
       }
     });

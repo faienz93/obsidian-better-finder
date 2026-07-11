@@ -2,6 +2,7 @@ import { App, Component } from "obsidian";
 import { Card } from "../interface/Card";
 import { ImagePreview } from "../ui/ImagePreview";
 import { SnippetPreview } from "../ui/SnippetPreview";
+import { TaskSnippet } from "../ui/TaskSnippet";
 import { ModalItem } from "./ModalItem";
 import { Title } from "../ui/Title";
 
@@ -18,7 +19,7 @@ export class ModalUI {
   }
 
   public render(data: Card): void {
-    const { file, tags, searchedTags, taskInfo, renderPreview, snippetTerm } = data;
+    const { file, tags, searchedTags, taskInfo, renderPreview, snippetTerm, taskSnippet } = data;
 
     this.title = this.item.setTitle(file.basename);
 
@@ -31,7 +32,12 @@ export class ModalUI {
       file.parent?.path || '/'
     );
 
-    if (snippetTerm) {
+    // Con filtro task attivo il testo dei task ha priorità sullo snippet generico
+    if (taskSnippet) {
+      this.item.setSnippet((snippetEl) => {
+        new TaskSnippet(this.app).load(file, taskSnippet, snippetEl);
+      });
+    } else if (snippetTerm) {
       this.item.setSnippet((snippetEl) => {
         new SnippetPreview(this.app).load(file, snippetTerm, snippetEl);
       });

@@ -8,18 +8,20 @@ export class TaskFilter extends SearchFilter<TaskStatus | undefined> {
   extract(query: string): TaskStatus | undefined {
     const lowerQuery = query.toLowerCase();
 
-    if (/\btask-todo:\b/.test(lowerQuery)) return 'todo';
-    if (/\btask-done:\b/.test(lowerQuery)) return 'done';
-    if (/\btask:\b/.test(lowerQuery)) return 'all';
+    // NB: niente \b finale — dopo ":" non c'è confine di parola se il token è
+    // seguito da spazio o fine stringa (il click sull'hint produce "task: "): bug B4.
+    if (/\btask-todo:/.test(lowerQuery)) return 'todo';
+    if (/\btask-done:/.test(lowerQuery)) return 'done';
+    if (/\btask:/.test(lowerQuery)) return 'all';
 
     return undefined;
   }
 
   removeFrom(query: string): string {
     return query
-      .replace(/\btask-todo:\b/gi, '')
-      .replace(/\btask-done:\b/gi, '')
-      .replace(/\btask:\b/gi, '')
+      .replace(/\btask-todo:/gi, '')
+      .replace(/\btask-done:/gi, '')
+      .replace(/\btask:/gi, '')
       .trim();
   }
 

@@ -11,4 +11,6 @@ export interface Card {
   renderPreview?: boolean;
   /** Termine di ricerca libero da evidenziare nello snippet di contenuto */
   snippetTerm?: string;
+  /** Se il filtro task è attivo: mostra il testo dei task con questo stato */
+  taskSnippet?: 'all' | 'todo' | 'done';
 }
