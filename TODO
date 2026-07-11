@@ -8,7 +8,6 @@ Obiettivo: ricerca snella nei file del vault, inclusi PDF e altri tipi.
 - [ ] Preview: supporto Bases, Word, Excel
 - [ ] Preview: evidenziazione highlights `==testo==`
 - [ ] Snippet di contenuto nelle card con termine evidenziato
-- [ ] Fuzzy search (es. "mtg" → "meeting")
 - [ ] Cronologia ricerche
 - [ ] Modalità comandi (`>`): filtrare, eseguire, evidenziare token come `#`
 - [ ] Query parser: operatori `AND`, `OR`, `NOT`
