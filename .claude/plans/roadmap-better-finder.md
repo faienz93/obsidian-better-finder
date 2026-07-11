@@ -1,7 +1,37 @@
 # Plan — Roadmap Better Finder
 
 > Creato il: 2026-07-11
-> Stato: draft
+> Stato: implementato (branch `feature/roadmap-better-finder`) — in attesa di test manuale
+
+## Stato esecuzione — 2026-07-11
+
+Tutte le voci implementate e committate (un commit per voce, build + 30 unit test verdi).
+
+| Voce | Stato | Note |
+| ---- | ----- | ---- |
+| 1. Navigazione indietro | ✅ | `navigation = true` su FinderCard |
+| 2. HintBarSub dumb | ✅ | valori da `DATE_VALUES` (DateFilter) + anno corrente + placeholder |
+| 3. UX chip | ✅ | `toggleDateValue`: mutua esclusione, deselezione, no spazio |
+| 4. Snippet con highlight | ✅ | nuovo `SnippetPreview`, campo `snippetTerm` su Card |
+| 5. Dedup risultati | ✅ | per path in `Finder.getResults` |
+| 6. NegationFilter | ✅ | `-image`, `-#tag`, `-docx` (estensione letterale) |
+| 7. Tag #archive | ✅ | esclusi di default, visibili con `#archive` esplicito |
+| 8. Tag nei canvas | ✅ | nuova `CanvasTagCache` + eventi vault |
+| 9. Xberg PDF+OCR | ⚠️ codice fatto | **binario non installato**: flag CLI da verificare al primo uso reale (`extract --format json`); cache mtime persistente in `xberg-cache.json` |
+| 10. Preview Word/Excel | ✅ | icona+badge; estratto testuale via Xberg se disponibile |
+| 11. MetadataFilter | ✅ | `author:x` + `key:value` generico su frontmatter |
+| 12. Cronologia ricerche | ⚠️ parziale | persistita + frecce ↑/↓ nella sidebar; **non nel modal** (frecce già usate dai suggerimenti) |
+| 13. Export MD | ✅ | bottone ⤓ nella sidebar |
+| 14. Jest | ✅ | 30 test (strategy + parse); E2E wdio non fatto (opzionale) |
+| B1 falsi positivi | ✅ | fuzzy solo ≥6 char, prefix solo ultimo token |
+| B2 tag cugini | ✅ | rimosso `startsWith(tag+'-')` |
+| B3 #WAF | ✅ | tag file normalizzati lowercase |
+| B4 task: | ✅ | regex fixata (`\b` dopo `:`) + nuovo `TaskSnippet` mostra il testo dei task |
+| B5 highlights | ✅ | match a confine di parola |
+
+**Per testare la voce 9**: installare il binario (`cargo install xberg-cli` o release GitHub
+di xberg-io/xberg) e riavviare il plugin; verificare i flag CLI effettivi e correggere
+`XbergExtractor.extractText` se necessario.
 
 ## Obiettivo
 
@@ -257,9 +287,12 @@ Es. `-image` esclude le immagini, `-#tag` esclude un tag.
 
 ## Punti aperti
 
-- [ ] B4: chiarire il rendering atteso "solo il testo" del task (lista task nella card?)
-- [ ] Voce 10: la preview Word/Excel minima (badge) è sufficiente come prima iterazione?
+- [x] B4: rendering "solo il testo" → implementato con `TaskSnippet` (max 3 task per card)
+- [x] Voce 10: prima iterazione badge+icona, con estratto testuale se Xberg presente
+- [ ] Voce 9: installare il binario xberg e verificare i flag CLI reali
 - [ ] Voce 9: backend OCR — Candle (zero dipendenze) vs Tesseract (maturo): provare Candle per primo
+- [ ] Voce 12: cronologia nel modal (le frecce sono occupate dai suggerimenti — serve altra UX)
+- [ ] Test manuale complessivo in Obsidian (`npm run dev` + esercizio UI)
 - [ ] Le due voci "Da valutare"
 
 ## Dipendenze
