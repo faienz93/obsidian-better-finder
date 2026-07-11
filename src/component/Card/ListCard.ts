@@ -1,17 +1,17 @@
 import { App, Component } from "obsidian";
 import { Card } from "../interface/Card";
+import { ModalItem } from "../Modal/ModalItem";
 import { ImagePreview } from "../ui/ImagePreview";
-import { SuggestionItem } from "../ui/SuggestionItem";
 import { Title } from "../ui/Title";
 
 export class ListCard {
-  private item: SuggestionItem;
+  private item: ModalItem;
   private card: HTMLElement;
   private title!: Title;
 
   constructor(parentEl: HTMLElement) {
     this.card = parentEl.createDiv({ cls: 'finder-view-result' });
-    this.item = new SuggestionItem(this.card);
+    this.item = new ModalItem(this.card);
   }
 
   public getElement(): HTMLElement {

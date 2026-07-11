@@ -28,7 +28,24 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 
 ## 🚧 In Progress
 
-- [ ] Migliorare la visualizzazioen della lista. Apporro un immagine sulla destra
+- [ ] Filtro date avanzato: `created:2024-01-01 2024-12-31`, `modified:yesterday`, `this-month`
+- [ ] Preview: supporto Bases, Word, Excel
+- [ ] Preview: evidenziazione highlights `==testo==`
+- [ ] Snippet di contenuto nelle card con termine evidenziato
+- [ ] Cronologia ricerche
+- [ ] Modalità comandi (`>`): filtrare, eseguire, evidenziare token come `#`
+- [ ] Query parser: operatori `AND`, `OR`, `NOT`
+- [ ] Query parser: `folder:Projects`, ricerca per autore/metadati
+- [ ] Sidebar comandi: lista, categorie, preferiti, esecuzione
+- [ ] UI: tema dark/light, animazioni, shortcut personalizzabili, stato vuoto, loading
+- [ ] Impostazioni: tipi file default, contenuto on/off, max risultati, ordinamento
+- [ ] Ricerche salvate, preferiti, statistiche uso
+- [ ] Esportazione risultati in MD
+- [ ] Ricerca nel contenuto PDF
+- [ ] OCR immagini (complesso) — https://github.com/kreuzberg-dev/kreuzberg
+- [ ] Ottimizzazione mobile
+- [ ] Test unitari, refactoring UI/logica, JSDoc, i18n
+- [ ] Migliorare la visualizzazione della lista. Apporrò un'immagine sulla destra
 
 ## ✅ Completato
 
