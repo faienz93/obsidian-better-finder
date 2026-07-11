@@ -2,6 +2,12 @@ import { App, TFile } from "obsidian";
 import { i18n } from "src/const";
 import { DateRange, DateValue, SearchFilter } from "./types";
 
+// Valori relativi supportati: unica fonte di verità, usata anche dalla sub-hint bar.
+export const DATE_VALUES = ['today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month'] as const;
+
+// Pattern dei valori data riconosciuti: keyword relative, YYYY-MM-DD / YYYY/MM/DD, YYYY.
+export const DATE_VALUE_PATTERN = `(?:${DATE_VALUES.join('|')}|\\d{4}[-/]\\d{2}[-/]\\d{2}|\\d{4})`;
+
 function parseAbsoluteDate(value: string): Date | null {
   // Supporta YYYY-MM-DD e YYYY/MM/DD
   const match = /^(\d{4})[-/](\d{2})[-/](\d{2})$/.exec(value);
@@ -73,6 +79,15 @@ function getDateRange(value: DateValue): { start: Date; end: Date } | null {
     }
 
     default: {
+      // Anno secco (es. "2026") → intero anno solare
+      const yearMatch = /^(\d{4})$/.exec(value);
+
+      if (yearMatch) {
+        const year = Number(yearMatch[1]);
+
+        return { start: new Date(year, 0, 1), end: new Date(year + 1, 0, 1) };
+      }
+
       const absDate = parseAbsoluteDate(value);
 
       if (!absDate) return null;
@@ -90,16 +105,21 @@ abstract class DateFilter extends SearchFilter<DateRange | undefined> {
   protected abstract readonly field: 'created' | 'modified';
 
   extract(query: string): DateRange | undefined {
-    const pattern = new RegExp(`\\b${this.field}:(\\S+)`, 'i');
+    // Tollera uno spazio dopo i due punti ("created: today" ≡ "created:today"),
+    // ma solo per valori riconosciuti come date — il testo libero non viene toccato.
+    const pattern = new RegExp(`\\b${this.field}:\\s?(${DATE_VALUE_PATTERN})(?=\\s|$)`, 'i');
     const match = pattern.exec(query);
 
     if (!match) return undefined;
 
-    return { field: this.field, value: match[1] };
+    return { field: this.field, value: match[1].toLowerCase() };
   }
 
   removeFrom(query: string): string {
-    return query.replace(new RegExp(`\\b${this.field}:\\S+`, 'gi'), '').trim();
+    return query
+      .replace(new RegExp(`\\b${this.field}:\\s?${DATE_VALUE_PATTERN}(?=\\s|$)`, 'gi'), '')
+      .replace(new RegExp(`\\b${this.field}:\\S*`, 'gi'), '')
+      .trim();
   }
 
   filter(files: TFile[], dateRange: DateRange | undefined, _app: App): TFile[] {

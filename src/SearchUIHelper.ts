@@ -2,8 +2,10 @@ import { App } from "obsidian";
 import { HintBar } from "./component/ui/HintBar";
 import { HintBarSub } from "./component/ui/HintBarSub";
 import { TagsPreview } from "./component/ui/TagsPreview";
+import { DATE_VALUES, DATE_VALUE_PATTERN } from "./engine/search-filters/DateFilter";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { Finder } from "./Finder";
+import { i18n } from "./const";
 
 export interface SearchUICallbacks {
   onHintClick: (label: string) => void;
@@ -34,6 +36,31 @@ export class SearchUIHelper {
     this.subHintBar = new HintBarSub(containerEl, (value) => {
       callbacks.onDateFilterClick?.(value);
     });
+    // I valori mostrati arrivano dalla logica (DateFilter), non dal componente:
+    // keyword relative + anno corrente, più il placeholder del formato assoluto.
+    this.subHintBar.setContent(
+      [...DATE_VALUES, String(new Date().getFullYear())],
+      i18n.dateFormatPlaceholder
+    );
+  }
+
+  /**
+   * Applica un valore data alla query in modo idempotente:
+   * - sostituisce l'eventuale valore precedente (selezione mutuamente esclusiva)
+   * - ricliccando il valore attivo lo rimuove (deselezione)
+   * - non introduce mai lo spazio tra "campo:" e valore
+   */
+  static toggleDateValue(query: string, value: string): string {
+    const pattern = new RegExp(`\\b(created|modified):(?:\\s?(${DATE_VALUE_PATTERN}))?(?=\\s|$)`, 'i');
+    const match = pattern.exec(query);
+
+    if (!match) return query;
+
+    const field = match[1];
+    const current = match[2] ?? '';
+    const newToken = current.toLowerCase() === value.toLowerCase() ? `${field}:` : `${field}:${value}`;
+
+    return query.replace(match[0], newToken);
   }
 
   onInput(query: string, inputEl: HTMLInputElement) {

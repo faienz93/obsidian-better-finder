@@ -53,7 +53,7 @@ export class FinderCard extends ItemView {
     this.searchBar = new SearchBar(this.contentEl);
     this.uiHelper = new SearchUIHelper(this.app, this.core, this.searchBar.containerEl, {
       onHintClick: (label) => this.appendToQuery(label),
-      onDateFilterClick: (value) => this.appendToQuery(value),
+      onDateFilterClick: (value) => this.applyDateValue(value),
     });
 
     const toggle = this.searchBar.createToggle();
@@ -155,6 +155,10 @@ export class FinderCard extends ItemView {
     if (!alreadyPresent) {
       this.searchBar.setValue(current ? `${current} ${token} ` : `${token} `);
     }
+  }
+
+  private applyDateValue(value: string): void {
+    this.searchBar.setValue(SearchUIHelper.toggleDateValue(this.searchBar.getValue(), value));
   }
 
   private destroyObserver(): void {

@@ -11,4 +11,5 @@ export const i18n = {
   title: 'titolo',
   images: 'immagini',
   path: 'cartella',
+  dateFormatPlaceholder: 'oppure YYYY/MM/DD',
 };

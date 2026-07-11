@@ -26,7 +26,7 @@ class FinderModal extends SuggestModal<SearchResult> {
       promptEl.insertAdjacentElement('afterend', hintWrapper);
       this.uiHelper = new SearchUIHelper(this.app, this.core, hintWrapper, {
         onHintClick: (label) => this.appendToQuery(label),
-        onDateFilterClick: (value) => this.appendToQuery(value),
+        onDateFilterClick: (value) => this.applyDateValue(value),
       });
     }
 
@@ -87,6 +87,12 @@ class FinderModal extends SuggestModal<SearchResult> {
       this.inputEl.value = current ? `${current} ${token} ` : `${token} `;
     }
 
+    this.inputEl.dispatchEvent(new Event('input'));
+    this.inputEl.focus();
+  }
+
+  private applyDateValue(value: string): void {
+    this.inputEl.value = SearchUIHelper.toggleDateValue(this.inputEl.value, value);
     this.inputEl.dispatchEvent(new Event('input'));
     this.inputEl.focus();
   }
