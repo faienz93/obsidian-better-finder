@@ -60,6 +60,10 @@ export class FinderCard extends ItemView {
 
     const toggle = this.searchBar.createToggle();
 
+    this.searchBar.createActionButton('⤓', i18n.exportButtonTitle, () => {
+      void this.core.exportResults(this.allResults, this.searchBar.getValue());
+    });
+
     this.cardContainer = new CardUI(this.searchBar.containerEl, toggle, this.app, this);
     this.searchBar.onInput((event) => {
       // La digitazione manuale (evento trusted) esce dalla navigazione cronologia

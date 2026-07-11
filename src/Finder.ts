@@ -1,4 +1,5 @@
-import { App, TFile, Command } from "obsidian";
+import { App, TFile, Command, Notice } from "obsidian";
+import { i18n } from "./const";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { ModalItem } from "./component/Modal/ModalItem";
 import { HintsType } from "./component/ui/HintBar";
@@ -120,6 +121,37 @@ export class Finder {
         resolve(results);
       }, Finder.DEBOUNCE_MS);
     });
+  }
+
+  /** Serializza i risultati correnti in una nota markdown (wikilink + metadati) */
+  async exportResults(results: SearchResult[], query: string): Promise<void> {
+    const files = results.filter((r): r is TFile => !isCommand(r));
+
+    if (files.length === 0) {
+      new Notice(i18n.exportEmpty);
+
+      return;
+    }
+
+    const now = new Date();
+    const lines = [
+      `# ${i18n.exportTitle}`,
+      '',
+      `> ${i18n.exportQuery}: \`${query || '—'}\` — ${files.length} ${i18n.results} — ${now.toLocaleString()}`,
+      '',
+      ...files.map(f => `- [[${f.path}|${f.basename}]] — ${new Date(f.stat.mtime).toLocaleDateString()}`),
+    ];
+    const filename = `${i18n.exportTitle} ${now.toISOString().slice(0, 19).replace(/[T:]/g, '-')}.md`;
+
+    try {
+      const file = await this.app.vault.create(filename, lines.join('\n'));
+
+      new Notice(`${i18n.exportDone}: ${file.basename}`);
+      await this.app.workspace.getLeaf(false).openFile(file);
+    } catch (error) {
+      console.error('[Finder] Export failed:', error);
+      new Notice(i18n.exportFailed);
+    }
   }
 
   openResult(result: SearchResult): void {

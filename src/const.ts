@@ -14,4 +14,10 @@ export const i18n = {
   dateFormatPlaceholder: 'oppure YYYY/MM/DD',
   exclude: 'escludi',
   metadata: 'metadati',
+  exportTitle: 'Risultati ricerca',
+  exportQuery: 'Query',
+  exportDone: 'Esportazione completata',
+  exportEmpty: 'Nessun risultato da esportare',
+  exportFailed: 'Esportazione fallita',
+  exportButtonTitle: 'Esporta risultati in una nota',
 };
