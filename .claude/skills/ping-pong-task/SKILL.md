@@ -23,12 +23,16 @@ Se l'utente passa un file, leggilo prima di rispondere.
 
 ## Passo 2 — Prima risposta: orientamento
 
-Analizza il task e il contesto disponibile, poi produci:
+Produci **prima** il riassunto, poi fai le domande in un secondo momento — non tutto insieme.
 
-1. **Riassunto di ciò che hai capito** — cosa il task dovrebbe fare, in quale area del sistema si colloca
-2. **Contesto rilevante** — se hai letto file di riferimento, evidenzia le parti che vincolano o informano questo task
-3. **Prime domande aperte** — massimo 2-3 domande chiave per chiarire scope e vincoli
-4. Leggi il contenuto di  `claude/plans/`. Se contiene materiale rilevante usalo nella sessione corrente
+**2a. Riassunto iniziale** — rispondi con:
+
+1. Cosa il task dovrebbe fare, in quale area del sistema si colloca
+2. Eventuali vincoli o contesto rilevante emersi dai file di riferimento
+
+Poi leggi `.claude/plans/` e controlla se esiste materiale rilevante per questo task. Se sì, segnalalo esplicitamente prima di proseguire.
+
+**2b. Prime domande** — dopo il riassunto, fai **al massimo 2 domande** per chiarire scope e vincoli. Scegli le più bloccanti, non tutte quelle che ti vengono in mente.
 
 Aspetta la risposta prima di proseguire.
 
@@ -44,6 +48,7 @@ Conduci la conversazione in modo iterativo. Ad ogni turno:
 - **Chiedi conferma** su una decisione presa prima di andare avanti
 
 Regole del ciclo:
+
 - Non mettere più di 2-3 domande per turno — meglio andare in profondità su una cosa che sparare tutto in una volta
 - Alterna: a volte tu proponi, a volte tu chiedi — non fare solo interrogatorio
 - Se l'utente dice "vai tu" o "cosa faresti?", proponi un approccio concreto con pro/contro
@@ -51,12 +56,16 @@ Regole del ciclo:
 - Quando una decisione è presa, confermala esplicitamente ("Ok, quindi andiamo con [X]") prima di passare al punto successivo
 - Se vedi problematiche evidenti, sollevale subito senza aspettare che l'utente le scopra
 
-Aree tipiche da esplorare (adatta al contesto del task):
-- **Scope:** cosa è in e cosa è fuori da questo task?
+Prima di chiudere il ciclo, assicurati di aver esplorato almeno:
+
+- **Scope** — cosa è dentro e cosa è fuori da questo task?
+- **Edge case** — cosa succede nei casi limite o di errore?
+
+Altre aree da esplorare se pertinenti:
+
 - **Utente/attore:** chi usa questa feature e come?
 - **Approccio tecnico:** quale componente la implementa? nuova logica o estensione di esistente?
 - **Dipendenze:** blocca o è bloccato da altri task?
-- **Edge case:** cosa succede se [scenario limite]?
 - **Testabilità:** come si verifica che funzioni?
 - **Rollout:** c'è una versione minima e una completa?
 
@@ -119,9 +128,11 @@ Il file segue il formato plan mode standard:
 ## Scope
 
 **In:**
+
 - [cosa è incluso]
 
 **Out:**
+
 - [cosa è escluso esplicitamente]
 
 ## Approccio tecnico
@@ -134,13 +145,13 @@ Componenti coinvolti, pattern scelto, motivazioni delle scelte principali.]
 - [ ] [step 1]
 - [ ] [step 2]
 - [ ] [step 3]
-...
+      ...
 
 ## Decisioni prese
 
 | Decisione | Alternativa scartata | Motivazione |
-|---|---|---|
-| [scelta] | [alternativa] | [perché] |
+| --------- | -------------------- | ----------- |
+| [scelta]  | [alternativa]        | [perché]    |
 
 ## Punti aperti
 
@@ -163,7 +174,17 @@ Mostra il contenuto del file all'utente **prima** di crearlo. Scrivi su disco so
 
 Comunica il path completo del file creato e suggerisci come usarlo nelle sessioni successive:
 
-> "Plan salvato in `.claude/plans/[nome-file].md`. Nelle prossime sessioni puoi passarmelo come contesto con: `leggi .claude/plans/[nome-file].md`"
+> "Plan salvato in `.claude/plans/[nome-file].md`.
+>
+> Per usarlo nella prossima sessione hai due opzioni:
+>
+> - Passarlo esplicitamente: `leggi .claude/plans/[nome-file].md`
+> - Aggiungerlo al `CLAUDE.local.md` finché il task è in corso:
+>   ```
+>   ## Plan in corso
+>   @.claude/plans/[nome-file].md
+>   ```
+>   Ricordati di rimuoverlo quando il task è completato."
 
 ---
 

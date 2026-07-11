@@ -23,6 +23,9 @@ export class FinderCard extends ItemView {
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
     this.core = new Finder(this.app);
+    // Registra la view nella history di navigazione: aprendo un file dalla
+    // stessa leaf, il pulsante "indietro" riporta al finder.
+    this.navigation = true;
   }
 
   getViewType(): string {

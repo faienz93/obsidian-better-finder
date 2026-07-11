@@ -10,7 +10,20 @@
       "WebFetch(domain:github.com)",
       "WebFetch(domain:marcus.se.net)",
       "WebFetch(domain:marcusolsson.dev)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "Read(//opt/**)",
+      "Bash(flatpak list *)",
+      "Bash(snap list *)",
+      "WebFetch(domain:publish.obsidian.md)",
+      "WebFetch(domain:www.npmjs.com)",
+      "WebFetch(domain:webdriver.io)",
+      "WebFetch",
+      "WebSearch",
+      "WebFetch(domain:jesse-r-s-hines.github.io)",
+      "Bash(git branch *)",
+      "Bash(npm run *)",
+      "Bash(git add *)",
+      "Bash(git commit *)"
     ],
     "deny": [
       "Bash(**/*.env)",
@@ -19,6 +32,6 @@
     ]
   },
   "model": "opus",
-  "plansDirectory": ".claude/plans",
-  "alwaysThinkingEnabled": false
+  "alwaysThinkingEnabled": false,
+  "plansDirectory": ".claude/plans"
 }
