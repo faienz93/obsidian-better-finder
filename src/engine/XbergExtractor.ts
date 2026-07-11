@@ -2,11 +2,12 @@ import { execFile } from "child_process";
 import { App, FileSystemAdapter, TFile } from "obsidian";
 import { SearchIndex } from "./SearchIndex";
 
-// Estensioni gestite dall'extractor: PDF (testo nativo) e immagini (OCR)
+// Estensioni gestite dall'extractor: PDF (testo nativo), immagini (OCR), office
 const PDF_EXTENSIONS = ['pdf'];
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
+const OFFICE_EXTENSIONS = ['docx', 'xlsx'];
 
-export const XBERG_EXTENSIONS = [...PDF_EXTENSIONS, ...IMAGE_EXTENSIONS];
+export const XBERG_EXTENSIONS = [...PDF_EXTENSIONS, ...IMAGE_EXTENSIONS, ...OFFICE_EXTENSIONS];
 
 // Il progetto è in transizione kreuzberg→xberg: proviamo entrambi i nomi.
 const BINARY_CANDIDATES = ['xberg', 'kreuzberg'];
@@ -109,6 +110,24 @@ export class XbergExtractor {
       SearchIndex.getInstance(this.app).addExternalDocument(file, text);
       this.scheduleSaveCache();
     }
+  }
+
+  /**
+   * Testo estratto di un file (per preview testuali).
+   * null se il binario manca o l'estensione non è supportata.
+   */
+  async getText(file: TFile): Promise<string | null> {
+    if (!XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) return null;
+
+    const binary = await this.detectBinary();
+
+    if (!binary) return null;
+
+    const text = await this.extractText(file);
+
+    if (text) this.scheduleSaveCache();
+
+    return text;
   }
 
   /** Estrae il testo (con cache su mtime: nessuna riestrazione se il file non è cambiato). */

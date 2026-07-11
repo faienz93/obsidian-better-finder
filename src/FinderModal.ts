@@ -5,7 +5,7 @@ import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { SearchUIHelper } from "./SearchUIHelper";
 import "./FinderModal.css";
 
-const PREVIEW_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'canvas', 'pdf'];
+const PREVIEW_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'canvas', 'pdf', 'docx', 'xlsx'];
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
