@@ -14,17 +14,18 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 - [ ] Snippet di contenuto nelle card con termine evidenziato
 - [ ] aggiungere un tag speciale `archive` per non visualizzare quelli archiviati
 - [ ] tra i tag devono essere cercati anche quelli all'interno del canvas. As esempio `#spring` mi deve mostrare il canvas di spring
-- [ ] se Cerco "Bacca" il plugin mi prende cose a caso. la ricerca vera invece funziona bene
-- [ ] il tag `#WAF` non funziona
-- [ ] se scelgo `created:today` poi deve sovrascrivermi `created:yestraday`. e senza spazio
+- [ ] **BUG**: se Cerco "Bacca" il plugin mi prende cose a caso. la ricerca vera invece funziona bene
+- [ ] **BUG**: il tag `#WAF` non funziona
 - [ ] in finder card deve mostrami tutte le card?
 - [ ] Aggiungere ricerca per cercare i backlink?? Aggiungere il linked file dalla ricerca
 - [ ] Ricerca nel contenuto PDF
 	- [ ] OCR immagini (complesso) — https://github.com/kreuzberg-dev/kreuzberg
 - [ ] **BUG** se cerco printenv mi da risultati quando in realtà non ho niente
-- [ ] La Subhintbar non deve conoscere la logica
-	- [ ] devo anche poter mostrare 2026
 - [ ] Se cerco `#pattern` mi mostra due risultati in meno
+- [ ] se riclicco su un pulsante devo fare in modo che mi deselezioni quanto selezionato
+- [ ] se clicco su created e poi today, funziona usando `created:today` ma con i click mi fa `created: today` con lo spazio. Questo porta a un comportamento sbagliato.
+	- [ ] Direi che deve essere indifferente e avere lo stesso comportamento
+	- [ ] se scelgo `created:today` poi deve sovrascrivermi `created:yestraday`. e senza spazio
 
 ## 🚧 In Progress
 
@@ -46,6 +47,10 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 - [ ] Ottimizzazione mobile
 - [ ] Test unitari, refactoring UI/logica, JSDoc, i18n
 - [ ] Migliorare la visualizzazione della lista. Apporrò un'immagine sulla destra
+- [ ] La Subhintbar non deve conoscere la logica
+	- [ ] devo anche poter mostrare anche l'anno corrente
+	- [ ] un placeholder per indicare che supporta YYYY/MM/DD
+	- [ ] La selezione è mutualmente esclusiva
 
 ## ✅ Completato
 
@@ -71,6 +76,7 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 - [x] poter visualizzare l'highliths 
 - [x] mi deve dare la preview dei tag e di quello che cerco.. se inizio a cercare `#not` mi deve mostrare `#notion, note`
 - [x] Query parser: `folder:Projects`
+- [x] Migliorare la visualizzazioen della lista. Apporro un immagine sulla destra
 
 
 ## Non previste
