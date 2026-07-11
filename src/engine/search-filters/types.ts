@@ -13,6 +13,7 @@ export interface ParsedQuery {
   pathFilter?: string;
   highlightFilter?: string;
   negations?: { extensions: string[]; tags: string[] };
+  metadataFilters?: Array<{ key: string; value: string }>;
   freeText: string;
 }
 

@@ -13,4 +13,5 @@ export const i18n = {
   path: 'cartella',
   dateFormatPlaceholder: 'oppure YYYY/MM/DD',
   exclude: 'escludi',
+  metadata: 'metadati',
 };

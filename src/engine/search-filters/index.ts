@@ -12,3 +12,5 @@ export { PathFilter } from './PathFilter';
 export { ExcalidrawFilter } from './ExcalidrawFilter';
 export { NegationFilter } from './NegationFilter';
 export type { NegationResult } from './NegationFilter';
+export { MetadataFilter } from './MetadataFilter';
+export type { MetadataPair } from './MetadataFilter';

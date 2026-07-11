@@ -6,7 +6,7 @@ import {
   TagsFilter, ModifiedFilter, CreatedFilter,
   FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
   TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter, HighlightFilter,
-  NegationFilter,
+  NegationFilter, MetadataFilter,
 } from "./search-filters";
 
 // Re-export per compatibilità con i file che importano da qui
@@ -34,6 +34,7 @@ export class SearchStrategyFactory {
     this.strategyMap.set('path', new PathFilter());
     this.strategyMap.set('excalidraw', new ExcalidrawFilter());
     this.strategyMap.set('not', new NegationFilter());
+    this.strategyMap.set('meta', new MetadataFilter());
   }
 
   get hints(): HintsType[] {
@@ -110,6 +111,15 @@ export class SearchStrategyFactory {
       : extensionTypes;
 
     results = fileTypeStrategy.filter(results, effectiveFileTypes, app);
+
+    // Apply metadata filters (frontmatter key:value)
+    if (parsed.metadataFilters && parsed.metadataFilters.length > 0) {
+      const strategy = this.strategyMap.get('meta');
+
+      if (strategy && isFilterable(strategy)) {
+        results = strategy.filter(results, parsed.metadataFilters, app);
+      }
+    }
 
     // Apply negations (esclusioni -x)
     if (parsed.negations) {
@@ -268,6 +278,13 @@ export class SearchStrategyFactory {
     // 8. Extract highlight filter (highlight:parola)
     result.highlightFilter = this.highlightFilter.extract(remainingText);
     remainingText = this.highlightFilter.removeFrom(remainingText);
+
+    // 8.5 Extract metadata filters (author:rossi, status:draft, ...).
+    // Va per ultimo tra i key:value: le chiavi riservate sono già state consumate.
+    const metadataStrategy = this.getStrategy('meta') as MetadataFilter;
+
+    result.metadataFilters = metadataStrategy.extract(remainingText);
+    remainingText = metadataStrategy.removeFrom(remainingText);
 
     // 9. What's left is free text
     result.freeText = remainingText.trim();
