@@ -3,6 +3,7 @@ import FinderModal from './src/FinderModal'
 import FinderSetting from './src/FinderSetting'
 import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
 import { SearchIndex } from './src/engine/SearchIndex';
+import { CanvasTagCache } from './src/engine/CanvasTagCache';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
@@ -60,6 +61,11 @@ export default class ObsidianBetterFinder extends Plugin {
       this.searchIndex = SearchIndex.getInstance(this.app);
       await this.searchIndex.buildIndex();
 
+      // Cache dei tag nei canvas (non passano dal metadataCache)
+      const canvasTagCache = CanvasTagCache.getInstance(this.app);
+
+      await canvasTagCache.buildCache();
+
       this.registerEvent(
         this.app.vault.on('create', async (file) => {
           if (file instanceof TFile) {
@@ -68,6 +74,10 @@ export default class ObsidianBetterFinder extends Plugin {
             // Aggiungi all'indice se è markdown
             if (file.extension === 'md') {
               await this.searchIndex.updateFile(file);
+            }
+
+            if (file.extension === 'canvas') {
+              await canvasTagCache.updateFile(file);
             }
           }
         })
@@ -84,6 +94,7 @@ export default class ObsidianBetterFinder extends Plugin {
             }
 
             this.searchIndex.removeFile(file);
+            canvasTagCache.removeFile(file.path);
           }
         })
       );
@@ -94,6 +105,19 @@ export default class ObsidianBetterFinder extends Plugin {
           if (file instanceof TFile) {
             // La reference del file rimane la stessa, aggiorna solo l'indice
             await this.searchIndex.renameFile(file, oldPath);
+
+            if (file.extension === 'canvas') {
+              await canvasTagCache.renameFile(file, oldPath);
+            }
+          }
+        })
+      );
+
+      // I canvas non emettono metadataCache 'changed': serve vault 'modify'
+      this.registerEvent(
+        this.app.vault.on('modify', async (file) => {
+          if (file instanceof TFile && file.extension === 'canvas') {
+            await canvasTagCache.updateFile(file);
           }
         })
       );

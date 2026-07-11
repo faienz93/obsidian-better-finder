@@ -1,4 +1,5 @@
 import { App, getAllTags, TFile } from "obsidian";
+import { CanvasTagCache } from "../CanvasTagCache";
 import { SearchFilter } from "./types";
 
 export class TagsFilter extends SearchFilter<string[]> {
@@ -48,14 +49,22 @@ export class TagsFilter extends SearchFilter<string[]> {
     if (tags.length === 0) return files;
 
     return files.filter(file => {
-      const cache = app.metadataCache.getFileCache(file);
-
-      if (!cache) return false;
-      const fileTags = getAllTags(cache) || [];
+      const fileTags = this.getFileTags(file, app);
 
       return tags.every(tag =>
         fileTags.some(ft => ft === tag || ft.startsWith(tag + '/') || ft.startsWith(tag + '-'))
       );
     });
+  }
+
+  /** Tag di un file: dal metadataCache per i md, dalla CanvasTagCache per i canvas */
+  private getFileTags(file: TFile, app: App): string[] {
+    if (file.extension === 'canvas') {
+      return CanvasTagCache.getInstance(app).getTags(file);
+    }
+
+    const cache = app.metadataCache.getFileCache(file);
+
+    return cache ? getAllTags(cache) || [] : [];
   }
 }
