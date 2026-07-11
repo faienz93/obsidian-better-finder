@@ -65,7 +65,7 @@ export class NegationFilter extends SearchFilter<NegationResult> {
         const cache = app.metadataCache.getFileCache(file);
         const fileTags = (cache ? getAllTags(cache) || [] : []).map(t => t.toLowerCase());
         const excluded = negations.tags.some(tag =>
-          fileTags.some(ft => ft === tag || ft.startsWith(tag + '/'))
+          fileTags.some(ft => ft === tag || ft.startsWith(`${tag  }/`))
         );
 
         if (excluded) return false;

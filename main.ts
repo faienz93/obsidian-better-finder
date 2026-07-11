@@ -37,7 +37,7 @@ export default class ObsidianBetterFinder extends Plugin {
     // Cronologia ricerche: carica le voci salvate e collega la persistenza
     SearchHistory.getInstance().init(this.settings.searchHistory, (entries) => {
       this.settings.searchHistory = entries;
-      void this.saveSettings();
+      this.saveSettings().catch(console.error);
     });
 
     // Register the FinderView
@@ -80,7 +80,7 @@ export default class ObsidianBetterFinder extends Plugin {
       // Se il binario non è installato l'extractor si disattiva da solo.
       const xbergExtractor = XbergExtractor.getInstance(this.app);
 
-      void xbergExtractor.indexAll();
+      xbergExtractor.indexAll().catch(console.error);
 
       this.registerEvent(
         this.app.vault.on('create', async (file) => {
@@ -97,7 +97,7 @@ export default class ObsidianBetterFinder extends Plugin {
             }
 
             if (XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) {
-              void xbergExtractor.indexFile(file);
+              xbergExtractor.indexFile(file).catch(console.error);
             }
           }
         })
@@ -131,7 +131,7 @@ export default class ObsidianBetterFinder extends Plugin {
             }
 
             if (XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) {
-              void xbergExtractor.indexFile(file);
+              xbergExtractor.indexFile(file).catch(console.error);
             }
           }
         })

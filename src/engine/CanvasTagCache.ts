@@ -66,7 +66,7 @@ export class CanvasTagCache {
     const entry = this.cache.get(file.path);
 
     if (!entry || entry.mtime !== file.stat.mtime) {
-      void this.updateFile(file);
+      this.updateFile(file).catch(console.error);
 
       return entry?.tags ?? [];
     }

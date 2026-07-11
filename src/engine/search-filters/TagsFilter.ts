@@ -14,7 +14,7 @@ export class TagsFilter extends SearchFilter<string[]> {
    */
   excludeArchived(files: TFile[], searchedTags: string[], app: App): TFile[] {
     const archiveRequested = searchedTags.some(
-      t => t === TagsFilter.ARCHIVE_TAG || t.startsWith(TagsFilter.ARCHIVE_TAG + '/')
+      t => t === TagsFilter.ARCHIVE_TAG || t.startsWith(`${TagsFilter.ARCHIVE_TAG  }/`)
     );
 
     if (archiveRequested) return files;
@@ -29,7 +29,7 @@ export class TagsFilter extends SearchFilter<string[]> {
       const fileTags = (getAllTags(cache) || []).map(t => t.toLowerCase());
 
       return !fileTags.some(
-        ft => ft === TagsFilter.ARCHIVE_TAG || ft.startsWith(TagsFilter.ARCHIVE_TAG + '/')
+        ft => ft === TagsFilter.ARCHIVE_TAG || ft.startsWith(`${TagsFilter.ARCHIVE_TAG  }/`)
       );
     });
   }
@@ -54,7 +54,7 @@ export class TagsFilter extends SearchFilter<string[]> {
       // Match esatto o gerarchico (#tag/figlio). Il vecchio startsWith(tag + '-')
       // faceva matchare tag "cugini" (#prompt pigliava #prompt-engineering): bug B2.
       return tags.every(tag =>
-        fileTags.some(ft => ft === tag || ft.startsWith(tag + '/'))
+        fileTags.some(ft => ft === tag || ft.startsWith(`${tag  }/`))
       );
     });
   }

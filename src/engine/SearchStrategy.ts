@@ -67,34 +67,54 @@ export class SearchStrategyFactory {
 
     results = archiveStrategy.excludeArchived(results, parsed.tags, app);
 
-    // Apply tag filter
     if (parsed.tags.length > 0) {
-      const strategy = this.strategyMap.get('tag');
-
-      if (strategy && isFilterable(strategy)) {
-        results = strategy.filter(results, parsed.tags, app);
-      }
+      results = this.applyStrategy('tag', results, parsed.tags, app);
     }
 
-    // Apply date filter
     if (parsed.dateFilter) {
-      const strategy = this.strategyMap.get(parsed.dateFilter.field);
-
-      if (strategy && isFilterable(strategy)) {
-        results = strategy.filter(results, parsed.dateFilter, app);
-      }
+      results = this.applyStrategy(parsed.dateFilter.field, results, parsed.dateFilter, app);
     }
 
-    // Apply path filter (before file type filter to work on all files)
+    // Path filter prima del file type filter, così lavora su tutti i file
     if (parsed.pathFilter) {
-      const strategy = this.strategyMap.get('path');
-
-      if (strategy && isFilterable(strategy)) {
-        results = strategy.filter(results, parsed.pathFilter, app);
-      }
+      results = this.applyStrategy('path', results, parsed.pathFilter, app);
     }
 
-    // Apply excalidraw filter (frontmatter-based, separate from extension types)
+    results = this.applyFileTypes(results, parsed, app);
+
+    if (parsed.metadataFilters && parsed.metadataFilters.length > 0) {
+      results = this.applyStrategy('meta', results, parsed.metadataFilters, app);
+    }
+
+    if (parsed.negations) {
+      results = this.applyStrategy('not', results, parsed.negations, app);
+    }
+
+    if (parsed.taskFilter) {
+      results = this.applyStrategy('task', results, parsed.taskFilter, app);
+    }
+
+    if (parsed.scope === 'title') {
+      results = this.applyTitleScope(results, parsed, app);
+    }
+
+    return results;
+  }
+
+  /** Applica una strategy filterable se registrata, altrimenti restituisce i file invariati */
+  private applyStrategy(key: string, files: TFile[], extracted: unknown, app: App): TFile[] {
+    const strategy = this.strategyMap.get(key);
+
+    if (strategy && isFilterable(strategy)) {
+      return strategy.filter(files, extracted, app);
+    }
+
+    return files;
+  }
+
+  /** Excalidraw (frontmatter-based) + filtro estensioni */
+  private applyFileTypes(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
+    let results = files;
     const excalidrawTypes = parsed.fileTypes.filter(t => t === 'excalidraw');
     const extensionTypes = parsed.fileTypes.filter(t => t !== 'excalidraw');
 
@@ -104,56 +124,27 @@ export class SearchStrategyFactory {
       results = strategy.filter(results, excalidrawTypes, app);
     }
 
-    // Apply file type filter (skip markdown-only default when path filter is active)
+    // Skip del default markdown-only quando il path filter è attivo
     const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
     const effectiveFileTypes = parsed.pathFilter && extensionTypes.length === 0
       ? ['*']
       : extensionTypes;
 
-    results = fileTypeStrategy.filter(results, effectiveFileTypes, app);
+    return fileTypeStrategy.filter(results, effectiveFileTypes, app);
+  }
 
-    // Apply metadata filters (frontmatter key:value)
-    if (parsed.metadataFilters && parsed.metadataFilters.length > 0) {
-      const strategy = this.strategyMap.get('meta');
+  /** Scope title: filtra sul basename */
+  private applyTitleScope(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
+    const strategy = this.strategyMap.get('title');
 
-      if (strategy && isFilterable(strategy)) {
-        results = strategy.filter(results, parsed.metadataFilters, app);
-      }
+    if (strategy && isFilterable(strategy)) {
+      return strategy.filter(files, { scope: parsed.scope, remainingText: parsed.freeText }, app);
     }
 
-    // Apply negations (esclusioni -x)
-    if (parsed.negations) {
-      const strategy = this.strategyMap.get('not');
+    // Fallback: simple basename search
+    const searchTerm = parsed.freeText.toLowerCase();
 
-      if (strategy && isFilterable(strategy)) {
-        results = strategy.filter(results, parsed.negations, app);
-      }
-    }
-
-    // Apply task filter
-    if (parsed.taskFilter) {
-      const strategy = this.strategyMap.get('task');
-
-      if (strategy && isFilterable(strategy)) {
-        results = strategy.filter(results, parsed.taskFilter, app);
-      }
-    }
-
-    // Apply title filter (scope search)
-    if (parsed.scope === 'title') {
-      const strategy = this.strategyMap.get('title');
-
-      if (strategy && isFilterable(strategy)) {
-        results = strategy.filter(results, { scope: parsed.scope, remainingText: parsed.freeText }, app);
-      } else {
-        // Fallback: simple basename search
-        const searchTerm = parsed.freeText.toLowerCase();
-
-        results = results.filter(f => f.basename.toLowerCase().includes(searchTerm));
-      }
-    }
-
-    return results;
+    return files.filter(f => f.basename.toLowerCase().includes(searchTerm));
   }
 
   async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<TFile[]> {
