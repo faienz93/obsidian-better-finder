@@ -1,6 +1,30 @@
-# TODO - Obsidian Better Finder
 
-Obiettivo: ricerca snella nei file del vault, inclusi PDF e altri tipi.
+la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti permette di filtrare in base alla property che ci metti ad esempio `#tag` `#tag2` `@related`
+
+- [ ] Poter tornare indietro quando necessario
+- [ ] Test unitari, refactoring UI/logica, JSDoc, i18n
+- [ ] **BUG** se cerco `#prompt` trovo due risultati di differenza
+- [ ] **BUG: ** Highlights evidenziano troppe cose
+- [ ] escludere alcuni risultati di ricerca come `-image` per escludere specifici risultati
+- [ ] mostrare direttamente il testo se cerco "ciao" dentro i file
+- [ ] rimuove i duplicati
+- [ ] Esportazione risultati in MD
+- [ ] Ottimizzazione mobile
+- [ ] Cronologia ricerche
+- [ ] Snippet di contenuto nelle card con termine evidenziato
+- [ ] aggiungere un tag speciale `archive` per non visualizzare quelli archiviati
+- [ ] tra i tag devono essere cercati anche quelli all'interno del canvas. As esempio `#spring` mi deve mostrare il canvas di spring
+- [ ] se Cerco "Bacca" il plugin mi prende cose a caso. la ricerca vera invece funziona bene
+- [ ] il tag `#WAF` non funziona
+- [ ] se scelgo `created:today` poi deve sovrascrivermi `created:yestraday`. e senza spazio
+- [ ] in finder card deve mostrami tutte le card?
+- [ ] Aggiungere ricerca per cercare i backlink?? Aggiungere il linked file dalla ricerca
+- [ ] Ricerca nel contenuto PDF
+	- [ ] OCR immagini (complesso) — https://github.com/kreuzberg-dev/kreuzberg
+- [ ] **BUG** se cerco printenv mi da risultati quando in realtà non ho niente
+- [ ] La Subhintbar non deve conoscere la logica
+	- [ ] devo anche poter mostrare 2026
+- [ ] Se cerco `#pattern` mi mostra due risultati in meno
 
 ## 🚧 In Progress
 
@@ -21,6 +45,7 @@ Obiettivo: ricerca snella nei file del vault, inclusi PDF e altri tipi.
 - [ ] OCR immagini (complesso) — https://github.com/kreuzberg-dev/kreuzberg
 - [ ] Ottimizzazione mobile
 - [ ] Test unitari, refactoring UI/logica, JSDoc, i18n
+- [ ] Migliorare la visualizzazione della lista. Apporrò un'immagine sulla destra
 
 ## ✅ Completato
 
@@ -36,11 +61,22 @@ Obiettivo: ricerca snella nei file del vault, inclusi PDF e altri tipi.
 - [x] Vista sidebar con card
 - [x] Preview PNG / PDF / Excalidraw
 - [x] Bug: selezione risultato con click su Card
+- [x] Filtro date avanzato: `created:2024-01-01 2024-12-31`, `modified:yesterday`, `this-month`
+- [x] Preview: supporto Bases,
+- [x] Preview: evidenziazione highlights 
+- [x] aggiungere il poter filtrare sulla base del path
+- [x] sistemare quando aggiungo o elimino un file
+- [x] Aggiungere supporto per excalidraw
+- [x] Modalità comandi (`>`): filtrare, eseguire, evidenziare token come `#`
+- [x] poter visualizzare l'highliths 
+- [x] mi deve dare la preview dei tag e di quello che cerco.. se inizio a cercare `#not` mi deve mostrare `#notion, note`
+- [x] Query parser: `folder:Projects`
 
-## 📝 Note
 
-- `SuggestModal` per navigazione keyboard nativa
-- `cachedRead()` per performance
-- `prepareQuery` non è pubblica nell'API Obsidian → matching semplice
-- Ricerca contenuto lenta su vault grandi (> 1000 file)
-- Confronto tag case-sensitive
+## Non previste
+- [ ] ~~Fuzzy search (es. "mtg" → "meeting")~~
+- [ ] ~~UI: tema dark/light, animazioni, shortcut personalizzabili, stato vuoto, loading~~
+- [ ] ~~Sidebar comandi: lista, categorie, preferiti, esecuzione~~
+- [ ] ~~Query parser: operatori `AND`, `OR`, `NOT`~~
+- [ ] ~~Ricerche salvate, preferiti, statistiche uso~~
+- [ ] ~~Impostazioni: tipi file default, contenuto on/off, max risultati, ordinamento~~

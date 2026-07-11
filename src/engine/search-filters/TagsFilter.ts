@@ -25,7 +25,9 @@ export class TagsFilter extends SearchFilter<string[]> {
       if (!cache) return false;
       const fileTags = getAllTags(cache) || [];
 
-      return tags.every(tag => fileTags.includes(tag));
+      return tags.every(tag =>
+        fileTags.some(ft => ft === tag || ft.startsWith(tag + '/') || ft.startsWith(tag + '-'))
+      );
     });
   }
 }

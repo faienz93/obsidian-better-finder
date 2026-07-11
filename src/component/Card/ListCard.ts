@@ -1,5 +1,7 @@
+import { App, Component } from "obsidian";
 import { Card } from "../interface/Card";
 import { ModalItem } from "../Modal/ModalItem";
+import { ImagePreview } from "../ui/ImagePreview";
 import { Title } from "../ui/Title";
 
 export class ListCard {
@@ -16,7 +18,7 @@ export class ListCard {
     return this.card;
   }
 
-  public render(data: Card): void {
+  public render(data: Card, app: App, component: Component): void {
     const { file, tags, searchedTags, taskInfo } = data;
 
     this.title = this.item.setTitle(file.basename);
@@ -29,6 +31,10 @@ export class ListCard {
       new Date(file.stat.mtime).toLocaleDateString(),
       file.parent?.path || '/'
     );
+
+    this.item.setPreview((previewEl) => {
+      new ImagePreview(app, component).load(file, previewEl);
+    });
 
     if (file.extension !== 'md') return;
 

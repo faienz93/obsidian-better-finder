@@ -3,6 +3,7 @@ import { Metadata } from "../ui/Metadata";
 import { Tags } from "../ui/Tags";
 import { TaskBadge } from "../ui/TaskBadge";
 import { Title } from "../ui/Title";
+import "../ui/SuggestionItem.css";
 
 export class ModalItem {
   private el: HTMLElement;

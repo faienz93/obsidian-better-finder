@@ -3,6 +3,7 @@ import { Card, CardViewMode } from "../interface/Card";
 import { GridCard } from "./GridCard";
 import { ListCard } from "./ListCard";
 import { ToggleButton } from "../ui/ToggleButton";
+import "./CardUI.css";
 
 export class CardUI {
   private el: HTMLElement;
@@ -36,7 +37,7 @@ export class CardUI {
     } else {
       const card = new ListCard(this.el);
 
-      card.render(data);
+      card.render(data, this.app, this.component);
       card.onClick(onOpen);
       card.onContextMenu(onContextMenu);
     }

@@ -1,0 +1,23 @@
+/* Spazio interno */
+.better-finder-modal .modal-content {
+  padding: 0.75rem 1rem;
+}
+
+/* Input di ricerca grande */
+.better-finder-modal input {
+  width: 100%;
+  padding: 0.5rem;
+  font-size: 1.1rem;
+}
+
+/* Selected item styling - uses theme accent color */
+.better-finder-modal .suggestion-item.is-selected {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+}
+
+/* Ensure child elements inherit the accent text color */
+.better-finder-modal .is-selected .suggestion-title,
+.better-finder-modal .is-selected .suggestion-note {
+  color: var(--text-on-accent);
+}
