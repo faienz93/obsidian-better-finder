@@ -190,6 +190,25 @@ export class SearchIndex {
   }
 
   /**
+   * Aggiunge/aggiorna un documento con testo estratto esternamente
+   * (es. PDF o OCR immagini via XbergExtractor)
+   */
+  addExternalDocument(file: TFile, text: string): void {
+    if (this.indexedPaths.has(file.path)) {
+      this.miniSearch.discard(file.path);
+    }
+
+    this.miniSearch.add({
+      id: file.path,
+      basename: file.basename,
+      content: text,
+      mtime: file.stat.mtime,
+      extension: file.extension
+    });
+    this.indexedPaths.add(file.path);
+  }
+
+  /**
    * Rimuove un file dall'indice (chiamato quando un file viene cancellato)
    */
   removeFile(file: TFile): void {

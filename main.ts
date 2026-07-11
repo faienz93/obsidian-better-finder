@@ -4,6 +4,7 @@ import FinderSetting from './src/FinderSetting'
 import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
 import { SearchIndex } from './src/engine/SearchIndex';
 import { CanvasTagCache } from './src/engine/CanvasTagCache';
+import { XbergExtractor, XBERG_EXTENSIONS } from './src/engine/XbergExtractor';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
@@ -66,6 +67,12 @@ export default class ObsidianBetterFinder extends Plugin {
 
       await canvasTagCache.buildCache();
 
+      // Estrazione PDF/OCR via Xberg: parte in background, non blocca l'avvio.
+      // Se il binario non è installato l'extractor si disattiva da solo.
+      const xbergExtractor = XbergExtractor.getInstance(this.app);
+
+      void xbergExtractor.indexAll();
+
       this.registerEvent(
         this.app.vault.on('create', async (file) => {
           if (file instanceof TFile) {
@@ -78,6 +85,10 @@ export default class ObsidianBetterFinder extends Plugin {
 
             if (file.extension === 'canvas') {
               await canvasTagCache.updateFile(file);
+            }
+
+            if (XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) {
+              void xbergExtractor.indexFile(file);
             }
           }
         })
@@ -108,6 +119,10 @@ export default class ObsidianBetterFinder extends Plugin {
 
             if (file.extension === 'canvas') {
               await canvasTagCache.renameFile(file, oldPath);
+            }
+
+            if (XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) {
+              void xbergExtractor.indexFile(file);
             }
           }
         })

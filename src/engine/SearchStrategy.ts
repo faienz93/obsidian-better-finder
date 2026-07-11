@@ -159,14 +159,14 @@ export class SearchStrategyFactory {
     const searchIndex = SearchIndex.getInstance(app);
     const hasExplicitFileTypes = parsed.fileTypes.length > 0;
 
-    // No explicit file type filter: use MiniSearch for markdown + basename search for the rest
+    // No explicit file type filter: use MiniSearch (markdown + documenti esterni
+    // tipo PDF/OCR) + basename search per i file non indicizzati
     if (!hasExplicitFileTypes && searchIndex.isIndexReady()) {
-      const markdownFiles = files.filter(f => f.extension === 'md');
-      const otherFiles = files.filter(f => f.extension !== 'md');
-
-      const resultPaths = new Set(markdownFiles.map(f => f.path));
-      const indexResults = searchIndex.search(parsed.freeText).filter(f => resultPaths.has(f.path));
-      const otherResults = searchIndex.searchInTitlesWithoutIndex(parsed.freeText, otherFiles);
+      const candidatePaths = new Set(files.map(f => f.path));
+      const indexResults = searchIndex.search(parsed.freeText).filter(f => candidatePaths.has(f.path));
+      const foundPaths = new Set(indexResults.map(f => f.path));
+      const remainingNonMd = files.filter(f => f.extension !== 'md' && !foundPaths.has(f.path));
+      const otherResults = searchIndex.searchInTitlesWithoutIndex(parsed.freeText, remainingNonMd);
 
       return [...indexResults, ...otherResults];
     }
