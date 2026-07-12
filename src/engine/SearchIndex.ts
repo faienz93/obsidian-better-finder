@@ -290,8 +290,11 @@ export class SearchIndex {
           const content = await this.app.vault.cachedRead(file);
           const lowerContent = content.toLowerCase();
 
-          // Count occurrences in content
-          const occurrences = (lowerContent.match(new RegExp(searchText, 'g')) || []).length;
+          // Count occurrences in content. searchText va escapato: senza escape
+          // termini con metacaratteri (c++, report(2024), 3.5) o rompono il regex
+          // (throw silenzioso → match di contenuto perso) o fanno da wildcard.
+          const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+          const occurrences = (lowerContent.match(new RegExp(escaped, 'g')) || []).length;
 
           score += occurrences;
         } catch (error) {

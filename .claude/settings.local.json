@@ -31,7 +31,10 @@
       "Bash(sed -i 's|void this.core.exportResults\\(this.allResults, this.searchBar.getValue\\(\\)\\);|this.core.exportResults\\(this.allResults, this.searchBar.getValue\\(\\)\\).catch\\(console.error\\);|' src/FinderCard.ts)",
       "Bash(sed -i 's|void this.updateFile\\(file\\);|this.updateFile\\(file\\).catch\\(console.error\\);|' src/engine/CanvasTagCache.ts)",
       "Bash(npm test *)",
-      "Bash(node -e ' *)"
+      "Bash(node -e ' *)",
+      "Bash(node *)",
+      "Bash(npx eslint *)",
+      "Bash(echo \"EXIT: $?\")"
     ],
     "deny": [
       "Bash(**/*.env)",
