@@ -194,6 +194,7 @@ export class Finder {
 
     const file = result as TFile;
 
-    this.app.workspace.getLeaf(false).openFile(file);
+    // 'tab' apre sempre in una nuova tab invece di sostituire quella corrente.
+    this.app.workspace.getLeaf('tab').openFile(file);
   }
 }
