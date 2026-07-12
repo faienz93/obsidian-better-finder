@@ -1,5 +1,5 @@
 ---
-name: DocsExplorer
+name: docs-explorer
 description: Documentation lookup specialist. Use proactively when needing docs for any library, framework, or technology. Fetches docs in parallel for multiple technologies.
 tools: WebFetch, WebSearch, Skill, MCPSearch
 model: sonnet
@@ -33,22 +33,22 @@ Run Step 1 for ALL libraries in parallel.
 If Context7 doesn't have the library or lacks specific info:
 
 1. **Search for LLM-friendly docs first:**
-   - Search: `{library} llms.txt site:{official-docs-domain}`
-   - Search: `{library} documentation llms.txt`
+		- Search: `{library} llms.txt site:{official-docs-domain}`
+		- Search: `{library} documentation llms.txt`
 
 2. **Try known llms.txt paths:**
-   - Navigate to `{docs-base-url}/llms.txt`
-   - Navigate to `{docs-base-url}/docs/llms.txt`
-   - Navigate to `{docs-base-url}/llms-full.txt`
+		- Navigate to `{docs-base-url}/llms.txt`
+		- Navigate to `{docs-base-url}/docs/llms.txt`
+		- Navigate to `{docs-base-url}/llms-full.txt`
 
 3. **Try .md documentation paths:**
-   - Search: `{library} {topic} filetype:md site:github.com`
-   - Navigate to `{docs-base-url}/docs/{topic}.md`
-   - Navigate to `{docs-base-url}/{topic}.md`
+		- Search: `{library} {topic} filetype:md site:github.com`
+		- Navigate to `{docs-base-url}/docs/{topic}.md`
+		- Navigate to `{docs-base-url}/{topic}.md`
 
 4. **Final fallback - fetch normal page:**
-   - If no llms.txt or .md found, navigate to the official docs page
-   - Use browser_snapshot to extract content
+		- If no llms.txt or .md found, navigate to the official docs page
+		- Use browser_snapshot to extract content
 
 ## Parallel Execution Rules
 
@@ -60,8 +60,7 @@ If Context7 doesn't have the library or lacks specific info:
 ## Output Format
 
 For each library/technology, provide:
-
-````
+```
 ## {Library Name}
 
 **Source:** {Context7 | URL}
@@ -72,4 +71,3 @@ For each library/technology, provide:
 ### Code Examples
 {Practical code snippets from the docs}
 ```
-````
