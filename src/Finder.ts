@@ -1,4 +1,4 @@
-import { App, TFile, Command, Notice } from "obsidian";
+import { App, TFile, Command, Notice, EventRef } from "obsidian";
 import { i18n } from "./const";
 import { SearchStrategyFactory } from "./engine/SearchStrategy";
 import { ModalItem } from "./component/Modal/ModalItem";
@@ -17,12 +17,43 @@ export class Finder {
   private debounceTimer: number | null = null;
   private static readonly DEBOUNCE_MS = 150;
   private factory = SearchStrategyFactory.getInstance();
+  // La lista file cambia solo su create/delete/rename: ricostruirla con
+  // getFiles() ad ogni ricerca (ad ogni tasto) è lavoro sprecato che contribuisce
+  // al freeze con vault grandi. La teniamo in cache e la invalidiamo sugli eventi.
+  private filesDirty = false;
+  private readonly vaultEventRefs: EventRef[] = [];
 
   readonly hints: HintsType[] = this.factory.hints;
 
   constructor(app: App) {
-    this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
     this.app = app;
+    this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
+
+    const markDirty = () => { this.filesDirty = true; };
+
+    this.vaultEventRefs.push(
+      app.vault.on('create', markDirty),
+      app.vault.on('delete', markDirty),
+      app.vault.on('rename', markDirty),
+    );
+  }
+
+  /** Rilascia i listener vault. Chiamare quando l'owner (modal/view) viene chiuso. */
+  dispose(): void {
+    for (const ref of this.vaultEventRefs) {
+      this.app.vault.offref(ref);
+    }
+
+    this.vaultEventRefs.length = 0;
+  }
+
+  private getAllFiles(): TFile[] {
+    if (this.filesDirty) {
+      this.allFiles = this.app.vault.getFiles();
+      this.filesDirty = false;
+    }
+
+    return this.allFiles;
   }
 
   getActiveHints(query: string): string[] {
@@ -56,11 +87,11 @@ export class Finder {
       return this.getCommandSuggestions(parsed.commandText || '');
     }
 
-    // Aggiorna la lista file ad ogni ricerca per riflettere create/delete
-    this.allFiles = this.app.vault.getFiles();
+    // Lista file dalla cache (invalidata sugli eventi vault, vedi costruttore)
+    const allFiles = this.getAllFiles();
 
     // Apply all filters
-    let results = this.factory.filter(this.allFiles, parsed, this.app);
+    let results = this.factory.filter(allFiles, parsed, this.app);
 
     results = await this.factory.filterFreeText(results, parsed, this.app);
 

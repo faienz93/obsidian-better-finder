@@ -1,7 +1,7 @@
 import { App, SuggestModal, getAllTags, TFile } from "obsidian";
 import { Finder, SearchResult, isCommand } from "./Finder";
 import { ModalUI } from "./component/Modal/ModalUI";
-import { SearchStrategyFactory } from "./engine/SearchStrategy";
+import { SearchStrategyFactory, ParsedQuery } from "./engine/SearchStrategy";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import "./FinderModal.css";
@@ -11,6 +11,20 @@ const PREVIEW_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'canvas', 'pdf'
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
   private uiHelper!: SearchUIHelper;
+  // Memoization di parse(): renderResult viene chiamato una volta per riga
+  // renderizzata, ma la query è la stessa per tutta la lista. Senza cache,
+  // parse() (regex multiple) girava N volte per digitazione → freeze con molte note.
+  private parseCacheInput: string | null = null;
+  private parseCacheValue: ParsedQuery | null = null;
+
+  private getParsed(query: string): ParsedQuery {
+    if (this.parseCacheInput !== query || this.parseCacheValue === null) {
+      this.parseCacheInput = query;
+      this.parseCacheValue = SearchStrategyFactory.getInstance().parse(query);
+    }
+
+    return this.parseCacheValue;
+  }
 
   constructor(app: App) {
     super(app);
@@ -34,6 +48,11 @@ class FinderModal extends SuggestModal<SearchResult> {
     this.inputEl.addEventListener('input', () => {
       this.uiHelper?.onInput(this.inputEl.value, this.inputEl);
     });
+  }
+
+  onClose(): void {
+    super.onClose();
+    this.core.dispose();
   }
 
   async getSuggestions(query: string): Promise<SearchResult[]> {
@@ -63,7 +82,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     }
 
     const file = result as TFile;
-    const parsed = SearchStrategyFactory.getInstance().parse(this.inputEl.value);
+    const parsed = this.getParsed(this.inputEl.value);
     const fileCache = this.app.metadataCache.getFileCache(file);
     const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];

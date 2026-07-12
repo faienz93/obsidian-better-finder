@@ -274,37 +274,48 @@ export class SearchIndex {
     }
 
     const searchText = freeText.toLowerCase();
+    // searchText va escapato: senza escape termini con metacaratteri (c++,
+    // report(2024), 3.5) o rompono il regex (throw silenzioso → match di
+    // contenuto perso) o fanno da wildcard.
+    const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const contentRegex = new RegExp(escaped, 'g');
+
+    // Legge i file in parallelo a batch: la versione seriale (await in for-loop)
+    // scandiva centinaia di file uno alla volta bloccando la ricerca su vault grandi.
+    const BATCH_SIZE = 50;
     const scoredFiles: Array<{ file: TFile; score: number }> = [];
 
-    for (const file of files) {
-      let score = 0;
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
 
-      // Search in file name (basename) - higher weight
-      if (file.basename.toLowerCase().includes(searchText)) {
-        score += 10;
-      }
+      const scored = await Promise.all(batch.map(async (file) => {
+        let score = 0;
 
-      // For markdown files, search in content
-      if (file.extension === 'md') {
-        try {
-          const content = await this.app.vault.cachedRead(file);
-          const lowerContent = content.toLowerCase();
-
-          // Count occurrences in content. searchText va escapato: senza escape
-          // termini con metacaratteri (c++, report(2024), 3.5) o rompono il regex
-          // (throw silenzioso → match di contenuto perso) o fanno da wildcard.
-          const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-          const occurrences = (lowerContent.match(new RegExp(escaped, 'g')) || []).length;
-
-          score += occurrences;
-        } catch (error) {
-          console.error(`Error reading file ${file.path}:`, error);
+        // Search in file name (basename) - higher weight
+        if (file.basename.toLowerCase().includes(searchText)) {
+          score += 10;
         }
-      }
 
-      // If there's any match, add to results
-      if (score > 0) {
-        scoredFiles.push({ file, score });
+        // For markdown files, search in content
+        if (file.extension === 'md') {
+          try {
+            const content = await this.app.vault.cachedRead(file);
+            const lowerContent = content.toLowerCase();
+            const occurrences = (lowerContent.match(contentRegex) || []).length;
+
+            score += occurrences;
+          } catch (error) {
+            console.error(`Error reading file ${file.path}:`, error);
+          }
+        }
+
+        return { file, score };
+      }));
+
+      for (const sf of scored) {
+        if (sf.score > 0) {
+          scoredFiles.push(sf);
+        }
       }
     }
 

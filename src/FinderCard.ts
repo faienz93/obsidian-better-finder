@@ -48,6 +48,7 @@ export class FinderCard extends ItemView {
 
   async onClose(): Promise<void> {
     this.destroyObserver();
+    this.core.dispose();
     this.contentEl.empty();
   }
 
