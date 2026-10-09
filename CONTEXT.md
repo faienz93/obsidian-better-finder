@@ -81,3 +81,25 @@ _Avoid_: parsing, scraping, ingestion
 An external executable the plugin shells out to for work it cannot do itself, currently extraction.
 Absent sidecars degrade the feature rather than break the plugin.
 _Avoid_: binary, helper, backend, CLI tool
+
+**Common cache**:
+State derived from the Vault that must be kept current as files change. The Index, the canvas tag
+lookup and the extraction store are the three that exist; each one decides which files it holds.
+_Avoid_: projection, store, index (the Index is one common cache, not the category)
+
+**Staleness**:
+A common cache entry disagreeing with the file it was derived from, detected by comparing modified
+times. How a cache answers a read while stale is its own choice, not a shared rule — see below.
+
+## Deliberate asymmetry
+
+The three common caches agree on how they are kept current — one interface, four events — and
+disagree on how they answer a read while stale. That split is a decision, not an oversight:
+
+- **Canvas tags** answer synchronously, returning the stale tags and refreshing in the background,
+  because a Filter reads them mid-search and cannot await.
+- **The Index** does not check staleness on read at all; events keep it current.
+- **Extraction** checks on extract, because re-running a sidecar is expensive.
+
+Unifying these would force either an async Filter or a synchronous model that extraction cannot
+honour. Treat a proposal to make them uniform as a change to this decision.

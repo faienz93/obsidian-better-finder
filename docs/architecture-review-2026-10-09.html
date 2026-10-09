@@ -45,7 +45,7 @@
         </p>
         <p class="mt-3 text-sm text-slate-700 max-w-2xl">
           Sette candidati. <span class="px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-900 ring-1 ring-red-200">3 sono bug reali</span>
-          — un PDF cancellato si porta dietro il testo indicizzato, ogni ricerca sorpassata abbandona una promise, e la sidebar mostra preview che il modal non mostra.
+          — rinominare un PDF ne rifà l'OCR da zero e lascia voci orfane su disco, ogni ricerca sorpassata abbandona una promise, e la sidebar mostra preview che il modal non mostra.
           Ognuno è una decisione duplicata: per questo stanno qui e non in una lista di bug.
         </p>
       </header>
@@ -250,10 +250,25 @@ taskInfo: tasks.length > 0
             </table>
             </div>
             <p class="mt-3 text-xs text-slate-600">
-              La cella rossa è un bug reale, non un'ipotesi: cancelli un PDF e il testo estratto resta nell'Indice per sempre.
-              Succede perché <span class="font-mono">XbergExtractor</span> non ha affatto un <span class="font-mono">removeFile</span> — non c'era niente da chiamare.
+              La cella rossa è un bug reale: <span class="font-mono">XbergExtractor</span> non ha affatto un <span class="font-mono">removeFile</span>, quindi su <span class="font-mono">delete</span> non c'era niente da chiamare.
               I tre moduli condividono già una forma (<span class="font-mono">getInstance(app)</span>, una <span class="font-mono">Map</span> privata, build/update/rename/remove) ma nessuna interfaccia comune, quindi il compilatore non può accorgersi dell'omissione.
             </p>
+
+            <div class="mt-4 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+              <p class="font-semibold mb-1">Correzione rispetto alla prima stesura di questa scheda</p>
+              <p class="leading-relaxed">
+                Qui c'era scritto che il testo estratto «resta nell'Indice per sempre». <span class="font-semibold">È falso</span>:
+                <span class="font-mono">SearchIndex.removeFile</span> (:218) lavora per path e non distingue i documenti esterni dai markdown, quindi su <span class="font-mono">delete</span> il PDF esce dall'Indice correttamente e non compare più nei risultati.
+              </p>
+              <p class="mt-2 leading-relaxed">Il danno reale è un altro, ed è doppio:</p>
+              <ul class="mt-1 list-disc list-inside space-y-0.5">
+                <li><span class="font-semibold">Su delete</span> — la voce resta in <span class="font-mono">xberg-cache.json</span>: la cache su disco cresce senza limite.</li>
+                <li><span class="font-semibold">Su rename</span> — <span class="font-mono">renameFile</span> (:228) scarta il vecchio path e chiama <span class="font-mono">updateFile</span>, che però esce subito sui non-markdown (:177). Il file rientra nell'Indice solo perché <span class="font-mono">XbergExtractor</span> lo riestrae: <span class="font-semibold">fino a 60 s di OCR</span> per un file identico, più un'altra voce orfana.</li>
+              </ul>
+              <p class="mt-2 leading-relaxed">
+                Conclusione invariata — la griglia tenuta a mano lascia caselle vuote che nessuno vede — ma il sintomo è spreco di lavoro e stato che cresce, non risultati fantasma.
+              </p>
+            </div>
           </div>
 
           <div class="mt-5 rounded-lg border border-slate-200 bg-white p-5">
@@ -617,10 +632,25 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
           <p class="lbl text-slate-400">Da dove partirei</p>
           <h2 class="font-serif text-3xl mt-2"><a href="#c3" class="underline decoration-slate-500 underline-offset-4">La giunzione sotto le cache derivate</a></h2>
           <p class="mt-3 text-slate-200 max-w-2xl text-sm leading-relaxed">
-            Si parte da qui perché sistema un bug reale mentre approfondisce: cancellando un PDF il testo estratto resta nell'Indice per sempre.
+            Si parte da qui perché sistema due bug reali mentre approfondisce: rinominare un PDF ne rifà l'OCR da zero, e cancellarlo lascia una voce orfana che la cache su disco non recupera più.
             La giunzione è già reale — tre adapter esistono e condividono la stessa forma, metodo per metodo — quindi si tratta di dare un nome a un'interfaccia in cui il codice è già cresciuto, non di inventarne una.
             Modifica più piccola, resa maggiore.
           </p>
+
+          <div class="mt-4 rounded bg-slate-800/60 border border-slate-700 p-4 text-xs">
+            <p class="lbl text-slate-400 mb-2">Forma decisa — sessione di grilling del 9 ottobre</p>
+            <pre class="font-mono text-slate-300 leading-relaxed whitespace-pre-wrap">interface CommonCache {
+  handles(file): boolean
+  onCreate / onUpdate / onDelete / onRename
+}</pre>
+            <ul class="mt-3 space-y-1 text-slate-300 list-disc list-inside">
+              <li>Interfaccia, non classe base: gli static non si ereditano, la base non deduplicherebbe <span class="font-mono">getInstance</span></li>
+              <li>Quattro eventi: <span class="font-mono">vault.modify</span> e <span class="font-mono">metadataCache.changed</span> confluiscono su <span class="font-mono">onUpdate</span></li>
+              <li>Solo scrittura: le politiche di lettura restano diverse di proposito (vedi <span class="font-mono">CONTEXT.md</span>)</li>
+              <li>Registro = array locale in <span class="font-mono">onLayoutReady</span>; ogni adapter possiede solo il proprio stato</li>
+              <li>Rename: ri-chiavatura senza ricalcolo, più il fix dei non-markdown in <span class="font-mono">SearchIndex.renameFile</span></li>
+            </ul>
+          </div>
           <div class="mt-5 pt-4 border-t border-slate-700">
             <p class="lbl text-slate-400 mb-2">Ordine suggerito</p>
             <ol class="text-slate-300 text-xs space-y-1.5">
