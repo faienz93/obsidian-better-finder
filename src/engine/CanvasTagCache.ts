@@ -1,4 +1,5 @@
 import { App, TFile } from "obsidian";
+import { CommonCache } from "./CommonCache";
 
 interface CanvasTagEntry {
   mtime: number;
@@ -11,7 +12,7 @@ interface CanvasTagEntry {
  * estratti dal JSON: la cache rende la lookup sincrona per TagsFilter.
  * Popolata all'avvio (main.ts) e tenuta viva dagli eventi vault.
  */
-export class CanvasTagCache {
+export class CanvasTagCache implements CommonCache {
   private static _instance: CanvasTagCache | null;
   private app: App;
   private cache = new Map<string, CanvasTagEntry>();
@@ -55,6 +56,39 @@ export class CanvasTagCache {
 
   async renameFile(file: TFile, oldPath: string): Promise<void> {
     this.cache.delete(oldPath);
+    await this.updateFile(file);
+  }
+
+  // --- CommonCache ---
+
+  handles(file: TFile): boolean {
+    return file.extension === 'canvas';
+  }
+
+  async onCreate(file: TFile): Promise<void> {
+    await this.updateFile(file);
+  }
+
+  async onUpdate(file: TFile): Promise<void> {
+    await this.updateFile(file);
+  }
+
+  async onDelete(file: TFile): Promise<void> {
+    this.cache.delete(file.path);
+  }
+
+  /** Il canvas è lo stesso: sposta i tag sul nuovo path senza rileggerlo. */
+  async onRename(file: TFile, oldPath: string): Promise<void> {
+    const entry = this.cache.get(oldPath);
+
+    this.cache.delete(oldPath);
+
+    if (entry) {
+      this.cache.set(file.path, entry);
+
+      return;
+    }
+
     await this.updateFile(file);
   }
 

@@ -1,5 +1,6 @@
 import { App, TFile, Notice } from "obsidian";
 import MiniSearch from 'minisearch';
+import { CommonCache } from "./CommonCache";
 
 interface IndexedDocument {
   id: string;           // file.path
@@ -9,7 +10,7 @@ interface IndexedDocument {
   extension: string;    // per filtri futuri
 }
 
-export class SearchIndex {
+export class SearchIndex implements CommonCache {
   private miniSearch: MiniSearch<IndexedDocument>;
   private app: App;
   private indexedPaths = new Set<string>();
@@ -234,6 +235,53 @@ export class SearchIndex {
 
     // Aggiungi con nuovo path
     await this.updateFile(file);
+  }
+
+  // --- CommonCache ---
+
+  /**
+   * L'indice tiene i markdown più i documenti esterni che le altre cache gli
+   * passano (PDF, OCR). In quanto common cache reagisce a tutti i file: su
+   * delete/rename deve ripulire anche i path non markdown che ha indicizzato.
+   */
+  handles(file: TFile, oldPath?: string): boolean {
+    if (file.extension === 'md') return true;
+
+    // Sul rename il path nuovo non è ancora indicizzato: a dire che il file è
+    // nostro è quello vecchio.
+    return this.indexedPaths.has(oldPath ?? file.path);
+  }
+
+  async onCreate(file: TFile): Promise<void> {
+    await this.updateFile(file);
+  }
+
+  async onUpdate(file: TFile): Promise<void> {
+    await this.updateFile(file);
+  }
+
+  async onDelete(file: TFile): Promise<void> {
+    this.removeFile(file);
+  }
+
+  /**
+   * I markdown si rileggono; i documenti esterni no: il loro testo sta nella
+   * cache che li ha prodotti, e sarà quella a reinserirli col nuovo path.
+   * Prima renameFile() li scartava e basta, perché updateFile() esce subito
+   * sui non markdown — il file usciva dall'indice e ci rientrava solo a OCR
+   * rifatto.
+   */
+  async onRename(file: TFile, oldPath: string): Promise<void> {
+    if (file.extension === 'md') {
+      await this.renameFile(file, oldPath);
+
+      return;
+    }
+
+    if (this.indexedPaths.has(oldPath)) {
+      this.miniSearch.discard(oldPath);
+      this.indexedPaths.delete(oldPath);
+    }
   }
 
   /**

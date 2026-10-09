@@ -1,11 +1,12 @@
-import { Platform, Plugin, TFile } from 'obsidian';
+import { Platform, Plugin, TAbstractFile, TFile } from 'obsidian';
 import FinderModal from './src/FinderModal'
 import FinderSetting from './src/FinderSetting'
 import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
 import { SearchIndex } from './src/engine/SearchIndex';
 import { CanvasTagCache } from './src/engine/CanvasTagCache';
-import { XbergExtractor, XBERG_EXTENSIONS } from './src/engine/XbergExtractor';
+import { XbergExtractor } from './src/engine/XbergExtractor';
 import { SearchHistory } from './src/engine/SearchHistory';
+import { CommonCache } from './src/engine/CommonCache';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
@@ -82,77 +83,87 @@ export default class ObsidianBetterFinder extends Plugin {
 
       xbergExtractor.indexAll().catch(console.error);
 
+      // Le tre common cache condividono un'interfaccia (src/engine/CommonCache.ts):
+      // gli handler qui sotto non sanno più quali estensioni interessino a chi,
+      // lo decide handles(). Aggiungere una cache = aggiungerla a questa lista.
+      // L'ordine non è significativo: sul rename l'indice scarta il path
+      // vecchio e l'extractor reinserisce quello nuovo, chiavi diverse che
+      // commutano (test "l ordine conta" in test/common-cache.test.ts).
+      const caches: CommonCache[] = [this.searchIndex, canvasTagCache, xbergExtractor];
+
+      const dispatch = async (
+        file: TAbstractFile,
+        apply: (cache: CommonCache, file: TFile) => Promise<void>,
+        oldPath?: string,
+      ): Promise<void> => {
+        if (!(file instanceof TFile)) return;
+
+        for (const cache of caches) {
+          if (!cache.handles(file, oldPath)) continue;
+
+          const onFailure = (error: unknown) =>
+            console.error('[BetterFinder] Cache update failed:', error);
+
+          if (cache.deferred) {
+            apply(cache, file).catch(onFailure);
+
+            continue;
+          }
+
+          try {
+            await apply(cache, file);
+          } catch (error) {
+            onFailure(error);
+          }
+        }
+      };
+
       this.registerEvent(
         this.app.vault.on('create', async (file) => {
           if (file instanceof TFile) {
             this.fileCache.push(file);
-
-            // Aggiungi all'indice se è markdown
-            if (file.extension === 'md') {
-              await this.searchIndex.updateFile(file);
-            }
-
-            if (file.extension === 'canvas') {
-              await canvasTagCache.updateFile(file);
-            }
-
-            if (XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) {
-              xbergExtractor.indexFile(file).catch(console.error);
-            }
           }
+
+          await dispatch(file, (cache, f) => cache.onCreate(f));
         })
       );
 
-      // File CANCELLATO
       this.registerEvent(
-        this.app.vault.on('delete', (file) => {
+        this.app.vault.on('delete', async (file) => {
           if (file instanceof TFile) {
             const index = this.fileCache.indexOf(file);
 
             if (index > -1) {
               this.fileCache.splice(index, 1);
             }
-
-            this.searchIndex.removeFile(file);
-            canvasTagCache.removeFile(file.path);
           }
+
+          await dispatch(file, (cache, f) => cache.onDelete(f));
         })
       );
 
-      // File RINOMINATO
       this.registerEvent(
         this.app.vault.on('rename', async (file, oldPath) => {
-          if (file instanceof TFile) {
-            // La reference del file rimane la stessa, aggiorna solo l'indice
-            await this.searchIndex.renameFile(file, oldPath);
-
-            if (file.extension === 'canvas') {
-              await canvasTagCache.renameFile(file, oldPath);
-            }
-
-            if (XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) {
-              xbergExtractor.indexFile(file).catch(console.error);
-            }
-          }
+          await dispatch(file, (cache, f) => cache.onRename(f, oldPath), oldPath);
         })
       );
 
-      // I canvas non emettono metadataCache 'changed': serve vault 'modify'
+      // 'Contenuto cambiato' arriva da due sorgenti che non si sovrappongono:
+      // i markdown da metadataCache 'changed' (più affidabile, è la scelta
+      // originale), tutto il resto da vault 'modify' — i canvas dal
+      // metadataCache non passano affatto. Mandare i markdown a entrambe
+      // significherebbe rileggerli e reindicizzarli due volte per salvataggio.
       this.registerEvent(
         this.app.vault.on('modify', async (file) => {
-          if (file instanceof TFile && file.extension === 'canvas') {
-            await canvasTagCache.updateFile(file);
-          }
+          if (file instanceof TFile && file.extension === 'md') return;
+
+          await dispatch(file, (cache, f) => cache.onUpdate(f));
         })
       );
 
-      // File MODIFICATO (contenuto cambiato)
-      // Usiamo metadataCache.on('changed') invece di vault.on('modify')
-      // perché è più affidabile per i markdown
       this.registerEvent(
         this.app.metadataCache.on('changed', async (file: TFile) => {
-          // Aggiorna l'indice con il nuovo contenuto
-          await this.searchIndex.updateFile(file);
+          await dispatch(file, (cache, f) => cache.onUpdate(f));
         })
       );
     })
