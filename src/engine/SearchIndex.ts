@@ -240,15 +240,15 @@ export class SearchIndex implements CommonCache {
   // --- CommonCache ---
 
   /**
-   * L'indice tiene i markdown più i documenti esterni che le altre cache gli
-   * passano (PDF, OCR). In quanto common cache reagisce a tutti i file: su
-   * delete/rename deve ripulire anche i path non markdown che ha indicizzato.
+   * The index holds markdown plus the external documents other caches hand it
+   * (PDF, OCR), so on delete and rename it must also clean up the non-markdown
+   * paths it indexed.
    */
   handles(file: TFile, oldPath?: string): boolean {
     if (file.extension === 'md') return true;
 
-    // Sul rename il path nuovo non è ancora indicizzato: a dire che il file è
-    // nostro è quello vecchio.
+    // On rename the new path is not indexed yet: the old one is what tells us
+    // the file is ours.
     return this.indexedPaths.has(oldPath ?? file.path);
   }
 
@@ -265,11 +265,10 @@ export class SearchIndex implements CommonCache {
   }
 
   /**
-   * I markdown si rileggono; i documenti esterni no: il loro testo sta nella
-   * cache che li ha prodotti, e sarà quella a reinserirli col nuovo path.
-   * Prima renameFile() li scartava e basta, perché updateFile() esce subito
-   * sui non markdown — il file usciva dall'indice e ci rientrava solo a OCR
-   * rifatto.
+   * Markdown is re-read; external documents are not — their text lives in the
+   * cache that produced it, which re-adds them under the new path. renameFile()
+   * used to just discard them, because updateFile() returns early on
+   * non-markdown, so the file left the index until the OCR was redone.
    */
   async onRename(file: TFile, oldPath: string): Promise<void> {
     if (file.extension === 'md') {

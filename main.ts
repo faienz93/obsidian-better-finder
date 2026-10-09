@@ -83,12 +83,11 @@ export default class ObsidianBetterFinder extends Plugin {
 
       xbergExtractor.indexAll().catch(console.error);
 
-      // Le tre common cache condividono un'interfaccia (src/engine/CommonCache.ts):
-      // gli handler qui sotto non sanno più quali estensioni interessino a chi,
-      // lo decide handles(). Aggiungere una cache = aggiungerla a questa lista.
-      // L'ordine non è significativo: sul rename l'indice scarta il path
-      // vecchio e l'extractor reinserisce quello nuovo, chiavi diverse che
-      // commutano (test "l ordine conta" in test/common-cache.test.ts).
+      // The three common caches share one interface (src/engine/CommonCache.ts),
+      // so the handlers below no longer know which extension belongs to whom:
+      // handles() decides. Adding a cache means adding it to this list.
+      // Order is not significant — on rename the index discards the old path
+      // while the extractor re-adds the new one, different keys that commute.
       const caches: CommonCache[] = [this.searchIndex, canvasTagCache, xbergExtractor];
 
       const dispatch = async (
@@ -148,11 +147,10 @@ export default class ObsidianBetterFinder extends Plugin {
         })
       );
 
-      // 'Contenuto cambiato' arriva da due sorgenti che non si sovrappongono:
-      // i markdown da metadataCache 'changed' (più affidabile, è la scelta
-      // originale), tutto il resto da vault 'modify' — i canvas dal
-      // metadataCache non passano affatto. Mandare i markdown a entrambe
-      // significherebbe rileggerli e reindicizzarli due volte per salvataggio.
+      // "Contents changed" comes from two non-overlapping sources: markdown via
+      // metadataCache 'changed' (more reliable, the original choice), everything
+      // else via vault 'modify' — canvases never reach the metadataCache.
+      // Routing markdown to both would re-read and re-index it twice per save.
       this.registerEvent(
         this.app.vault.on('modify', async (file) => {
           if (file instanceof TFile && file.extension === 'md') return;

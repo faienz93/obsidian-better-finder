@@ -12,10 +12,9 @@ function fakeFile(path: string, extension: string, mtime = 0): TFile {
 }
 
 /**
- * XbergExtractor salva la cache su disco con window.setTimeout (corretto dentro
- * Obsidian/Electron). I test girano in ambiente 'node', dove window non esiste:
- * invece di tirarsi dietro jsdom per due righe, lo stub minimo basta. Il timer
- * non deve nemmeno partire: qui interessa che la cache in memoria sia giusta.
+ * XbergExtractor persists its cache with window.setTimeout, correct inside
+ * Obsidian/Electron but absent in the 'node' test environment. A minimal stub
+ * beats pulling in jsdom for two lines; the timer never needs to fire.
  */
 beforeAll(() => {
   (globalThis as any).window = {
@@ -28,7 +27,7 @@ afterAll(() => {
   delete (globalThis as any).window;
 });
 
-/** App con contenuti finti per cachedRead e un adapter che non è FileSystemAdapter */
+/** App with fake contents for cachedRead and a non-FileSystemAdapter adapter. */
 function fakeApp(contentByPath: Record<string, string> = {}): App {
   return {
     vault: {
@@ -43,20 +42,20 @@ function fakeApp(contentByPath: Record<string, string> = {}): App {
   } as unknown as App;
 }
 
-describe('CommonCache — le tre cache espongono lo stesso ciclo di vita', () => {
+describe('CommonCache: the three caches expose the same lifecycle', () => {
   beforeEach(() => {
     (CanvasTagCache as any)._instance = null;
     (XbergExtractor as any)._instance = null;
   });
 
-  it('CanvasTagCache dichiara quali file le appartengono', () => {
+  it('CanvasTagCache declares which files belong to it', () => {
     const cache = CanvasTagCache.getInstance(fakeApp());
 
     expect(cache.handles(fakeFile('disegno.canvas', 'canvas'))).toBe(true);
     expect(cache.handles(fakeFile('nota.md', 'md'))).toBe(false);
   });
 
-  it('XbergExtractor dichiara quali file gli appartengono', () => {
+  it('XbergExtractor declares which files belong to it', () => {
     const extractor = XbergExtractor.getInstance(fakeApp());
 
     expect(extractor.handles(fakeFile('doc.pdf', 'pdf'))).toBe(true);
@@ -65,16 +64,16 @@ describe('CommonCache — le tre cache espongono lo stesso ciclo di vita', () =>
   });
 });
 
-describe('XbergExtractor.onDelete (bug: la voce restava orfana)', () => {
+describe('XbergExtractor.onDelete (bug: the entry was orphaned)', () => {
   beforeEach(() => {
     (XbergExtractor as any)._instance = null;
   });
 
-  it('cancellando il file la voce esce dalla cache', async () => {
+  it('drops the entry when the file is deleted', async () => {
     const extractor = XbergExtractor.getInstance(fakeApp());
     const file = fakeFile('report.pdf', 'pdf');
 
-    // Simula una estrazione già avvenuta
+    // Simulate an extraction that already happened.
     (extractor as any).cache.set(file.path, { mtime: 0, text: 'testo estratto' });
 
     await extractor.onDelete(file);
@@ -82,10 +81,10 @@ describe('XbergExtractor.onDelete (bug: la voce restava orfana)', () => {
     expect((extractor as any).cache.has(file.path)).toBe(false);
   });
 
-  it('ignora i file che non gli appartengono', async () => {
+  it('ignores files that do not belong to it', async () => {
     const extractor = XbergExtractor.getInstance(fakeApp());
 
-    (extractor as any).cache.set('nota.md', { mtime: 0, text: 'non dovrebbe stare qui' });
+    (extractor as any).cache.set('nota.md', { mtime: 0, text: 'should not be here' });
 
     await extractor.onDelete(fakeFile('nota.md', 'md'));
 
@@ -93,35 +92,35 @@ describe('XbergExtractor.onDelete (bug: la voce restava orfana)', () => {
   });
 });
 
-describe('XbergExtractor.onRename (bug: riestraeva da zero)', () => {
+describe('XbergExtractor.onRename (bug: it re-extracted from scratch)', () => {
   beforeEach(() => {
     (XbergExtractor as any)._instance = null;
-    // onRename scrive nell'indice: azzeralo o il singleton resta legato
-    // alla fakeApp del primo test che lo costruisce.
+    // onRename writes to the index: reset it, or the singleton stays bound to
+    // the fakeApp of whichever test built it first.
     (SearchIndex as any)._instance = null;
   });
 
-  it('ri-chiava la voce sul nuovo path senza riestrarre', async () => {
+  it('re-keys the entry to the new path without re-extracting', async () => {
     const extractor = XbergExtractor.getInstance(fakeApp());
     const renamed = fakeFile('nuovo.pdf', 'pdf');
 
-    (extractor as any).cache.set('vecchio.pdf', { mtime: 0, text: 'testo costoso' });
+    (extractor as any).cache.set('vecchio.pdf', { mtime: 0, text: 'expensive text' });
 
-    // Se riestraesse servirebbe il binario: qui non c'è, quindi un'estrazione
-    // vera perderebbe il testo. Il test passa solo se la voce viene spostata.
+    // A real extraction needs the binary, absent here, so it would lose the
+    // text. This only passes if the entry is moved.
     await extractor.onRename(renamed, 'vecchio.pdf');
 
     expect((extractor as any).cache.has('vecchio.pdf')).toBe(false);
-    expect((extractor as any).cache.get('nuovo.pdf')?.text).toBe('testo costoso');
+    expect((extractor as any).cache.get('nuovo.pdf')?.text).toBe('expensive text');
   });
 });
 
-describe('SearchIndex come common cache', () => {
+describe('SearchIndex as a common cache', () => {
   beforeEach(() => {
     (SearchIndex as any)._instance = null;
   });
 
-  it('possiede i markdown e i documenti esterni che ha indicizzato', () => {
+  it('owns markdown and the external documents it has indexed', () => {
     const index = SearchIndex.getInstance(fakeApp());
     const pdf = fakeFile('report.pdf', 'pdf');
 
@@ -133,21 +132,21 @@ describe('SearchIndex come common cache', () => {
     expect(index.handles(pdf)).toBe(true);
   });
 
-  it('possiede un file rinominato di cui aveva il VECCHIO path indicizzato', () => {
+  it('owns a renamed file whose OLD path it had indexed', () => {
     const index = SearchIndex.getInstance(fakeApp());
 
     index.addExternalDocument(fakeFile('vecchio.pdf', 'pdf'), 'testo estratto');
 
-    // Sul rename il TFile porta il path NUOVO, che non è ancora indicizzato:
-    // se handles() guardasse solo quello, il dispatch salterebbe l'indice e il
-    // vecchio path resterebbe dentro per sempre.
+    // On rename the TFile carries the NEW path, not yet indexed: if handles()
+    // only looked at that, dispatch would skip the index and the old path would
+    // stay in forever.
     expect(index.handles(fakeFile('nuovo.pdf', 'pdf'), 'vecchio.pdf')).toBe(true);
 
-    // Un non-markdown mai indicizzato resta fuori.
+    // A non-markdown that was never indexed stays out.
     expect(index.handles(fakeFile('altro.pdf', 'pdf'), 'mai-visto.pdf')).toBe(false);
   });
 
-  it('su rename di un non-markdown scarta il vecchio path (B: prima restava)', async () => {
+  it('discards the old path when a non-markdown is renamed', async () => {
     const index = SearchIndex.getInstance(fakeApp());
     const pdf = fakeFile('vecchio.pdf', 'pdf');
 
@@ -159,39 +158,39 @@ describe('SearchIndex come common cache', () => {
     expect((index as any).indexedPaths.has('vecchio.pdf')).toBe(false);
   });
 
-  it('dopo il rename il vecchio documento non è più nell indice, non solo fuori da indexedPaths', async () => {
+  it('removes the old document from the index, not just from indexedPaths', async () => {
     const index = SearchIndex.getInstance(fakeApp());
 
-    index.addExternalDocument(fakeFile('vecchio.pdf', 'pdf'), 'relazione trimestrale');
+    index.addExternalDocument(fakeFile('vecchio.pdf', 'pdf'), 'quarterly report');
     const before = index.getStats().total;
 
     await index.onRename(fakeFile('nuovo.pdf', 'pdf'), 'vecchio.pdf');
 
-    // getStats legge MiniSearch, non il Set: se discard() mancasse,
-    // indexedPaths sarebbe pulito ma il documento resterebbe cercabile.
+    // getStats reads MiniSearch, not the Set: without discard() the path would
+    // be gone but the document would still be searchable.
     expect(index.getStats().total).toBe(before - 1);
   });
 
-  it('il rename di un non-markdown non lo reinserisce: lo fa la cache che possiede il testo', async () => {
+  it('does not re-add a renamed non-markdown: the cache owning the text does', async () => {
     const index = SearchIndex.getInstance(fakeApp());
 
     index.addExternalDocument(fakeFile('vecchio.pdf', 'pdf'), 'testo estratto');
 
     await index.onRename(fakeFile('nuovo.pdf', 'pdf'), 'vecchio.pdf');
 
-    // updateFile() esce subito sui non-md: reinserirlo qui non è possibile,
-    // il testo ce l'ha XbergExtractor. Qui verifichiamo solo che non resti sporco.
+    // updateFile() returns early on non-markdown, and XbergExtractor holds the
+    // text: here we only check nothing stale is left behind.
     expect((index as any).indexedPaths.has('nuovo.pdf')).toBe(false);
   });
 });
 
-describe('Rename di un PDF: il giro completo attraverso il registro', () => {
+describe('Renaming a PDF: the full trip through the registry', () => {
   beforeEach(() => {
     (SearchIndex as any)._instance = null;
     (XbergExtractor as any)._instance = null;
   });
 
-  /** Lo stesso dispatch di main.ts, nello stesso ordine. */
+  /** The same dispatch as main.ts, in the same order. */
   async function dispatchRename(caches: any[], file: TFile, oldPath: string) {
     for (const cache of caches) {
       if (!cache.handles(file, oldPath)) continue;
@@ -200,28 +199,28 @@ describe('Rename di un PDF: il giro completo attraverso il registro', () => {
     }
   }
 
-  it('il documento esce col vecchio path e rientra col nuovo, senza riestrarre', async () => {
+  it('the document leaves under the old path and returns under the new one', async () => {
     const app = fakeApp();
     const index = SearchIndex.getInstance(app);
     const extractor = XbergExtractor.getInstance(app);
 
-    // Stato di partenza: il PDF è stato estratto e indicizzato.
-    index.addExternalDocument(fakeFile('vecchio.pdf', 'pdf'), 'relazione trimestrale');
-    (extractor as any).cache.set('vecchio.pdf', { mtime: 0, text: 'relazione trimestrale' });
+    // Starting state: the PDF has been extracted and indexed.
+    index.addExternalDocument(fakeFile('vecchio.pdf', 'pdf'), 'quarterly report');
+    (extractor as any).cache.set('vecchio.pdf', { mtime: 0, text: 'quarterly report' });
 
     const before = index.getStats().total;
 
     await dispatchRename([index, extractor], fakeFile('nuovo.pdf', 'pdf'), 'vecchio.pdf');
 
-    // Nessun documento perso né duplicato: uno esce, uno entra.
+    // Nothing lost or duplicated: one out, one in.
     expect(index.getStats().total).toBe(before);
     expect((index as any).indexedPaths.has('vecchio.pdf')).toBe(false);
     expect((index as any).indexedPaths.has('nuovo.pdf')).toBe(true);
-    // Il testo è stato spostato, non ri-estratto (qui non c'è nessun binario).
-    expect((extractor as any).cache.get('nuovo.pdf')?.text).toBe('relazione trimestrale');
+    // The text was moved, not re-extracted: there is no binary here.
+    expect((extractor as any).cache.get('nuovo.pdf')?.text).toBe('quarterly report');
   });
 
-  it('l ordine conta: l indice scarta prima che l extractor reinserisca', async () => {
+  it('order does not matter: discard and re-add touch different keys', async () => {
     const app = fakeApp();
     const index = SearchIndex.getInstance(app);
     const extractor = XbergExtractor.getInstance(app);
@@ -229,8 +228,8 @@ describe('Rename di un PDF: il giro completo attraverso il registro', () => {
     index.addExternalDocument(fakeFile('vecchio.pdf', 'pdf'), 'testo');
     (extractor as any).cache.set('vecchio.pdf', { mtime: 0, text: 'testo' });
 
-    // Ordine invertito rispetto a main.ts: l'extractor reinserisce il nuovo
-    // path, poi l'indice scarta il vecchio. Il risultato deve restare corretto.
+    // Reversed against main.ts: the extractor re-adds the new path first, then
+    // the index discards the old one. The outcome must hold either way.
     await dispatchRename([extractor, index], fakeFile('nuovo.pdf', 'pdf'), 'vecchio.pdf');
 
     expect((index as any).indexedPaths.has('nuovo.pdf')).toBe(true);
@@ -238,12 +237,12 @@ describe('Rename di un PDF: il giro completo attraverso il registro', () => {
   });
 });
 
-describe('CanvasTagCache — ciclo di vita', () => {
+describe('CanvasTagCache lifecycle', () => {
   beforeEach(() => {
     (CanvasTagCache as any)._instance = null;
   });
 
-  it('onDelete toglie i tag del canvas', async () => {
+  it('onDelete drops the canvas tags', async () => {
     const cache = CanvasTagCache.getInstance(fakeApp({ 'board.canvas': '{}' }));
     const file = fakeFile('board.canvas', 'canvas');
 
@@ -254,7 +253,7 @@ describe('CanvasTagCache — ciclo di vita', () => {
     expect((cache as any).cache.has(file.path)).toBe(false);
   });
 
-  it('onRename sposta la voce sul nuovo path', async () => {
+  it('onRename moves the entry to the new path', async () => {
     const app = fakeApp({ 'nuovo.canvas': JSON.stringify({ nodes: [] }) });
     const cache = CanvasTagCache.getInstance(app);
 

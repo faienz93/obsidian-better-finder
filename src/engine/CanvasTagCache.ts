@@ -77,7 +77,7 @@ export class CanvasTagCache implements CommonCache {
     this.cache.delete(file.path);
   }
 
-  /** Il canvas è lo stesso: sposta i tag sul nuovo path senza rileggerlo. */
+  /** Same canvas: move the tags to the new path instead of re-reading it. */
   async onRename(file: TFile, oldPath: string): Promise<void> {
     const entry = this.cache.get(oldPath);
 

@@ -34,9 +34,8 @@ export class XbergExtractor implements CommonCache {
   private app: App;
   private binary: string | null | undefined; // undefined = non ancora rilevato
   private cache = new Map<string, CacheEntry>();
-  // Estrazioni in corso, per path: un file salvato due volte di fila non deve
-  // far partire due processi OCR in parallelo (la cache su mtime copre solo
-  // dopo che la prima è finita).
+  // In-flight extractions by path: saving a file twice in a row must not spawn
+  // two OCR processes (the mtime cache only helps once the first one is done).
   private inFlight = new Map<string, Promise<string | null>>();
   private saveTimer: number | null = null;
 
@@ -119,7 +118,7 @@ export class XbergExtractor implements CommonCache {
 
   // --- CommonCache ---
 
-  /** L'estrazione arriva a 60 s: non deve bloccare l'handler dell'evento. */
+  /** Extraction takes up to 60s: it must not block the event handler. */
   readonly deferred = true;
 
   handles(file: TFile): boolean {
@@ -135,9 +134,9 @@ export class XbergExtractor implements CommonCache {
   }
 
   /**
-   * Toglie il testo estratto dalla cache. Senza questo la voce restava
-   * orfana in xberg-cache.json, che cresceva senza limite.
-   * L'indice si ripulisce da sé: main.ts notifica tutte le cache.
+   * Drops the extracted text. Without this the entry was orphaned in
+   * xberg-cache.json, which grew without bound. The index cleans up its own
+   * copy: main.ts notifies every cache.
    */
   async onDelete(file: TFile): Promise<void> {
     if (!this.handles(file)) return;
@@ -148,9 +147,9 @@ export class XbergExtractor implements CommonCache {
   }
 
   /**
-   * Il file è lo stesso: sposta la voce sul nuovo path invece di riestrarre.
-   * Prima la cache (indicizzata per path) mancava sul nuovo nome e faceva
-   * ripartire l'OCR da zero — fino a 60 s per un file identico.
+   * Same file: move the entry to the new path instead of re-extracting. The
+   * cache is keyed by path, so the new name used to miss and restart the OCR
+   * from scratch — up to 60s for an unchanged file.
    */
   async onRename(file: TFile, oldPath: string): Promise<void> {
     if (!this.handles(file)) return;
@@ -166,8 +165,8 @@ export class XbergExtractor implements CommonCache {
     this.cache.delete(oldPath);
     this.cache.set(file.path, entry);
     this.scheduleSaveCache();
-    // Il documento nell'indice è stato scartato col vecchio path: reinseriscilo
-    // col testo che abbiamo già, senza passare dal sidecar.
+    // The index discarded the document under the old path: re-add it with the
+    // text we already hold, without going through the sidecar.
     SearchIndex.getInstance(this.app).addExternalDocument(file, entry.text);
   }
 
@@ -189,7 +188,7 @@ export class XbergExtractor implements CommonCache {
     return text;
   }
 
-  /** Estrae il testo (cache su mtime + dedup delle estrazioni concorrenti). */
+  /** Extracts the text: mtime cache plus dedup of concurrent extractions. */
   private async extractText(file: TFile): Promise<string | null> {
     const cached = this.cache.get(file.path);
 
