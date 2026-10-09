@@ -1,0 +1,644 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <title>Revisione architetturale — obsidian-better-finder</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script type="module">
+      import mermaid from "https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs";
+      mermaid.initialize({ startOnLoad: true, theme: "neutral", securityLevel: "loose" });
+    </script>
+    <style>
+      .seam { stroke-dasharray: 4 4; }
+      .deep { background: linear-gradient(135deg, #0f172a, #1e293b); }
+      .hatch {
+        background-image: repeating-linear-gradient(45deg, #fecaca 0 6px, #fee2e2 6px 12px);
+      }
+      .lbl { font-size: 10px; letter-spacing: .08em; text-transform: uppercase; }
+    </style>
+  </head>
+  <body class="bg-stone-50 text-slate-900 font-sans antialiased">
+    <main class="max-w-5xl mx-auto px-6 py-12 space-y-12">
+
+      <header class="border-b border-slate-300 pb-6">
+        <h1 class="font-serif text-4xl tracking-tight">Revisione architetturale</h1>
+        <p class="mt-1 font-mono text-sm text-slate-500">obsidian-better-finder · feature/roadmap-better-finder @ 6fd649f · 9 ottobre 2026</p>
+        <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600">
+          <span class="flex items-center gap-2"><span class="inline-block w-5 h-3 border-2 border-slate-700"></span> modulo</span>
+          <span class="flex items-center gap-2"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#475569" stroke-width="2" class="seam"/></svg> giunzione</span>
+          <span class="flex items-center gap-2"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#dc2626" stroke-width="2"/></svg> dispersione</span>
+          <span class="flex items-center gap-2"><span class="inline-block w-5 h-3 deep"></span> modulo profondo</span>
+        </div>
+
+        <div class="mt-5 rounded border border-slate-200 bg-white p-4 text-xs text-slate-600 max-w-2xl">
+          <p class="lbl text-slate-400 mb-2">Nota sul vocabolario</p>
+          <p class="leading-relaxed">
+            I termini di architettura restano in inglese dov'è la parola tecnica corrente: <span class="font-mono">seam</span> (giunzione: il punto dove puoi cambiare comportamento senza modificare lì), <span class="font-mono">deep</span>/<span class="font-mono">shallow</span> (molto comportamento dietro un'interfaccia piccola, o interfaccia complessa quanto l'implementazione), <span class="font-mono">adapter</span>, <span class="font-mono">leverage</span> (quanto ottiene chi chiama), <span class="font-mono">locality</span> (quanto si concentra per chi manutiene).
+            I termini di dominio vengono da <span class="font-mono">CONTEXT.md</span>: Query, Filtro, Testo libero, Risultato, Card, Preview, Vault, Indice, Estrazione, Sidecar.
+          </p>
+        </div>
+
+        <p class="mt-5 text-sm text-slate-600 max-w-2xl">
+          Ambito ristretto ai punti caldi degli ultimi 30 commit: <span class="font-mono text-xs">FinderModal</span> (12 modifiche),
+          <span class="font-mono text-xs">FinderCard</span> (10), <span class="font-mono text-xs">Finder</span> (6),
+          <span class="font-mono text-xs">SearchStrategy</span> (5). Il codice freddo è stato lasciato stare.
+        </p>
+        <p class="mt-3 text-sm text-slate-700 max-w-2xl">
+          Sette candidati. <span class="px-1.5 py-0.5 rounded text-xs bg-red-100 text-red-900 ring-1 ring-red-200">3 sono bug reali</span>
+          — un PDF cancellato si porta dietro il testo indicizzato, ogni ricerca sorpassata abbandona una promise, e la sidebar mostra preview che il modal non mostra.
+          Ognuno è una decisione duplicata: per questo stanno qui e non in una lista di bug.
+        </p>
+      </header>
+
+      <section id="candidates" class="space-y-14">
+
+        <!-- ============ CANDIDATO 1 ============ -->
+        <article id="c1" class="scroll-mt-6">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">1 · Comprimere la pipeline di parsing della Query</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200">in-process</span>
+            </div>
+          </div>
+
+          <p class="mt-3 font-mono text-xs text-slate-500">
+            src/engine/SearchStrategy.ts:198–283 · src/engine/SearchStrategy.ts:62–102 · src/engine/search-filters/types.ts:5–19 · src/engine/search-filters/index.ts
+          </p>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-3">Prima — ogni Filtro va registrato 4 volte</p>
+              <pre class="mermaid">
+flowchart TB
+  Q["Query"] --> P["parse()<br/>198–283"]
+  P --> S1["1. CommandFilter"]
+  S1 --> S2["2. NegationFilter"]
+  S2 --> S3["3. TagsFilter"]
+  S3 --> S4["4. Created/Modified"]
+  S4 --> S5["5. 5× FileTypeFilter"]
+  S5 --> S6["6. Title / Task / Path"]
+  S6 --> S7["7. Highlight / Metadata"]
+  S7 --> PQ["ParsedQuery<br/>13 campi opzionali"]
+  PQ --> F["filter()<br/>62–102<br/>rienumera, altro ordine"]
+  classDef hand fill:#fee2e2,stroke:#dc2626;
+  class P,F hand
+              </pre>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-3">Dopo — la lista dei Filtri è l'unico registro</p>
+              <pre class="mermaid">
+flowchart TB
+  Q["Query"] --> P["QueryParser<br/>un ciclo sui filtri"]
+  P --> R[("Registro filtri<br/>array ordinato")]
+  R --> PQ["ParsedQuery"]
+  PQ --> F["lo stesso registro<br/>guida il filtraggio"]
+  F --> OUT["TFile[]"]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a;
+  class P,F deep
+              </pre>
+            </div>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-3 gap-5 text-sm">
+            <div>
+              <p class="lbl text-slate-400 mb-1">Problema</p>
+              <p>Aggiungere un Filtro significa toccare quattro punti che devono concordare sull'ordine; e l'ordine è scritto a mano dentro due corpi di metodo.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Soluzione</p>
+              <p>Ogni Filtro dichiara il proprio posto nella sequenza; <span class="font-mono text-xs">parse()</span> e <span class="font-mono text-xs">filter()</span> diventano un ciclo sul registro.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Vantaggi</p>
+              <ul class="list-disc list-inside text-slate-700 space-y-0.5">
+                <li>Filtro nuovo = un file</li>
+                <li>L'ordine diventa dato</li>
+                <li>La composizione si testa</li>
+                <li>Via ~120 righe scritte a mano</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded border border-slate-200 bg-white p-4">
+            <p class="lbl text-slate-400 mb-2">Prova — il commit 5d57534 ha aggiunto un solo Filtro</p>
+            <table class="w-full text-xs font-mono">
+              <tr class="text-slate-500"><td class="py-0.5">src/engine/search-filters/MetadataFilter.ts</td><td class="text-right text-emerald-700">+70 — il Filtro vero</td></tr>
+              <tr class="text-slate-500"><td class="py-0.5">src/engine/SearchStrategy.ts</td><td class="text-right text-red-700">+19 — registrazione</td></tr>
+              <tr class="text-slate-500"><td class="py-0.5">src/engine/search-filters/index.ts</td><td class="text-right text-red-700">+2 — registrazione</td></tr>
+              <tr class="text-slate-500"><td class="py-0.5">src/engine/search-filters/types.ts</td><td class="text-right text-red-700">+1 — registrazione</td></tr>
+              <tr class="text-slate-500"><td class="py-0.5">src/const.ts</td><td class="text-right text-red-700">+1 — registrazione</td></tr>
+            </table>
+            <p class="mt-2 text-xs text-slate-600">4 file su 5 erano solo cablaggio. <span class="italic">Prova di cancellazione</span>: togliendo il registro la complessità ricompare in ogni punto che ha bisogno dei filtri nell'ordine giusto — quindi serve davvero, ma dovrebbe essere un dato, non due corpi di metodo da tenere allineati a mano.</p>
+          </div>
+        </article>
+
+        <!-- ============ CANDIDATO 2 ============ -->
+        <article id="c2" class="scroll-mt-6">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">2 · Un solo costruttore di Card dietro un'interfaccia</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200">in-process</span>
+            </div>
+          </div>
+
+          <p class="mt-3 font-mono text-xs text-slate-500">
+            src/FinderModal.ts:84–102 · src/FinderCard.ts:157–168 · src/component/interface/Card.ts
+          </p>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-3">Prima — due UI, due costruttori di Card</p>
+              <pre class="mermaid">
+flowchart TB
+  MC["metadataCache"] --> M["FinderModal<br/>renderResult 84–102"]
+  MC --> C["FinderCard<br/>buildCardData 157–168"]
+  M --> CM["Card<br/>searchedTags: parsed.tags<br/>taskInfo: se parsed.taskFilter"]
+  C --> CC["Card<br/>searchedTags: []<br/>taskInfo: se tasks.length"]
+  CM -.divergono.-> CC
+  classDef leak fill:#fee2e2,stroke:#dc2626,stroke-width:2px;
+  class CM,CC leak
+              </pre>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-3">Dopo — un modulo, due chiamanti</p>
+              <pre class="mermaid">
+flowchart TB
+  MC["metadataCache"] --> B["CardBuilder<br/>build(file, parsed) → Card"]
+  B --> CD["Card — una forma sola"]
+  CD --> M["FinderModal<br/>disegna"]
+  CD --> C["FinderCard<br/>disegna"]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a;
+  class B deep
+              </pre>
+            </div>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-3 gap-5 text-sm">
+            <div>
+              <p class="lbl text-slate-400 mb-1">Problema</p>
+              <p>Le stesse quattro righe di estrazione tag/task vivono in entrambe le UI e sono già divergute: la sidebar non evidenzia mai i tag cercati.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Soluzione</p>
+              <p>Un'unica interfaccia che prende <span class="font-mono text-xs">(file, ParsedQuery)</span> e restituisce la Card. Le UI disegnano quello che ricevono.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Vantaggi</p>
+              <ul class="list-disc list-inside text-slate-700 space-y-0.5">
+                <li>Divergere diventa impossibile</li>
+                <li>Testabile senza vault</li>
+                <li>Risolve il bug della sidebar</li>
+                <li>Le UI tornano a disegnare</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-2 gap-4 text-xs font-mono">
+            <div class="rounded border border-red-200 bg-red-50 p-3">
+              <p class="lbl text-red-700 mb-2">FinderModal.ts:96–101</p>
+              <pre class="whitespace-pre-wrap text-slate-700">searchedTags: parsed.tags,
+taskInfo: parsed.taskFilter
+  ? { done, total } : undefined,</pre>
+            </div>
+            <div class="rounded border border-red-200 bg-red-50 p-3">
+              <p class="lbl text-red-700 mb-2">FinderCard.ts:165–167</p>
+              <pre class="whitespace-pre-wrap text-slate-700">searchedTags: [],
+taskInfo: tasks.length > 0
+  ? { done, total } : undefined,</pre>
+            </div>
+          </div>
+          <p class="mt-2 text-xs text-slate-600">Stesso concetto, due risposte. Ecco com'è fatta la mancanza di <span class="italic">locality</span>: la conoscenza sta in due posti, quindi una correzione ne raggiunge uno solo.</p>
+        </article>
+
+        <!-- ============ CANDIDATO 3 ============ -->
+        <article id="c3" class="scroll-mt-6">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">3 · Una giunzione vera sotto le cache derivate</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-900 ring-1 ring-indigo-200">3 adapter esistono già</span>
+            </div>
+          </div>
+
+          <p class="mt-3 font-mono text-xs text-slate-500">
+            main.ts:85–157 · src/engine/SearchIndex.ts · src/engine/CanvasTagCache.ts · src/engine/XbergExtractor.ts
+          </p>
+
+          <div class="mt-6 rounded-lg border border-slate-200 bg-white p-5">
+            <p class="lbl text-slate-400 mb-4">Prima — main.ts smista a mano ogni evento vault verso tre cache</p>
+            <div class="overflow-x-auto">
+            <table class="w-full text-xs">
+              <thead>
+                <tr class="text-slate-400 lbl border-b border-slate-200">
+                  <th class="text-left py-2 font-normal">evento vault</th>
+                  <th class="text-left py-2 font-normal">SearchIndex</th>
+                  <th class="text-left py-2 font-normal">CanvasTagCache</th>
+                  <th class="text-left py-2 font-normal">XbergExtractor</th>
+                </tr>
+              </thead>
+              <tbody class="font-mono">
+                <tr class="border-b border-slate-100"><td class="py-2 text-slate-600">create</td><td class="text-emerald-700">se .md</td><td class="text-emerald-700">se .canvas</td><td class="text-emerald-700">se XBERG_EXT</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-2 text-slate-600">delete</td><td class="text-emerald-700">removeFile</td><td class="text-emerald-700">removeFile</td><td class="bg-red-100 text-red-800 px-1 font-bold">manca</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-2 text-slate-600">rename</td><td class="text-emerald-700">renameFile</td><td class="text-emerald-700">se .canvas</td><td class="text-emerald-700">se XBERG_EXT</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-2 text-slate-600">modify</td><td class="text-slate-300">—</td><td class="text-emerald-700">se .canvas</td><td class="text-slate-300">—</td></tr>
+                <tr><td class="py-2 text-slate-600">metadata changed</td><td class="text-emerald-700">updateFile</td><td class="text-slate-300">—</td><td class="text-slate-300">—</td></tr>
+              </tbody>
+            </table>
+            </div>
+            <p class="mt-3 text-xs text-slate-600">
+              La cella rossa è un bug reale, non un'ipotesi: cancelli un PDF e il testo estratto resta nell'Indice per sempre.
+              Succede perché <span class="font-mono">XbergExtractor</span> non ha affatto un <span class="font-mono">removeFile</span> — non c'era niente da chiamare.
+              I tre moduli condividono già una forma (<span class="font-mono">getInstance(app)</span>, una <span class="font-mono">Map</span> privata, build/update/rename/remove) ma nessuna interfaccia comune, quindi il compilatore non può accorgersi dell'omissione.
+            </p>
+          </div>
+
+          <div class="mt-5 rounded-lg border border-slate-200 bg-white p-5">
+            <p class="lbl text-slate-400 mb-3">La forma condivisa, metodo per metodo</p>
+            <div class="overflow-x-auto">
+            <table class="w-full text-xs font-mono">
+              <thead>
+                <tr class="text-slate-400 lbl border-b border-slate-200">
+                  <th class="text-left py-2 font-normal font-sans">concetto</th>
+                  <th class="text-left py-2 font-normal font-sans">SearchIndex</th>
+                  <th class="text-left py-2 font-normal font-sans">CanvasTagCache</th>
+                  <th class="text-left py-2 font-normal font-sans">XbergExtractor</th>
+                </tr>
+              </thead>
+              <tbody class="text-slate-600">
+                <tr class="border-b border-slate-100"><td class="py-1.5 font-sans">costruzione in blocco</td><td>buildIndex()</td><td>buildCache()</td><td>indexAll()</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-1.5 font-sans">aggiornamento singolo</td><td>updateFile()</td><td>updateFile()</td><td>indexFile()</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-1.5 font-sans">rimozione</td><td>removeFile(file)</td><td>removeFile(path)</td><td class="bg-red-100 text-red-800 px-1 font-bold">assente</td></tr>
+                <tr class="border-b border-slate-100"><td class="py-1.5 font-sans">rinomina</td><td>renameFile()</td><td>renameFile()</td><td>riusa indexFile</td></tr>
+                <tr><td class="py-1.5 font-sans">chiave di obsolescenza</td><td>mtime</td><td>mtime</td><td>mtime</td></tr>
+              </tbody>
+            </table>
+            </div>
+            <p class="mt-3 text-xs text-slate-600">
+              Le firme sono già allineate al 90% per caso. Due divergenze che una giunzione porterebbe allo scoperto:
+              la <span class="font-semibold">politica di obsolescenza</span> (CanvasTagCache si auto-ripara in lettura e restituisce dati vecchi quella volta, SearchIndex non controlla mai in lettura, XbergExtractor controlla in estrazione — tre risposte alla stessa domanda)
+              e la <span class="font-semibold">persistenza</span> (solo XbergExtractor salva su disco; SearchIndex ricostruisce l'intero vault a ogni avvio, in <span class="font-mono">await</span> bloccante, mentre un suo pari ha già risolto il problema).
+            </p>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-3">Prima</p>
+              <pre class="mermaid">
+flowchart LR
+  V["eventi vault"] --> MT["main.ts<br/>5 handler<br/>if sull'estensione"]
+  MT --> SI["SearchIndex"]
+  MT --> CT["CanvasTagCache"]
+  MT -.->|"delete: dimenticato"| XB["XbergExtractor"]
+  classDef leak stroke:#dc2626,stroke-width:2px,fill:#fee2e2;
+  class MT,XB leak
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-3">Dopo — un'interfaccia, tre adapter</p>
+              <pre class="mermaid">
+flowchart LR
+  V["eventi vault"] --> P["registro VaultProjection<br/>handles(file) + apply(change)"]
+  P --> SI["SearchIndex"]
+  P --> CT["CanvasTagCache"]
+  P --> XB["XbergExtractor"]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a;
+  class P deep
+              </pre>
+            </div>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-3 gap-5 text-sm">
+            <div>
+              <p class="lbl text-slate-400 mb-1">Problema</p>
+              <p>Tre moduli derivano stato dal Vault e devono restare aggiornati, ma ognuno è cablato a mano — così uno è stato dimenticato sulla cancellazione.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Soluzione</p>
+              <p>Un'interfaccia per "stato derivato tenuto vivo dagli eventi vault"; i tre diventano adapter su quella giunzione, registrati in una lista.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Vantaggi</p>
+              <ul class="list-disc list-inside text-slate-700 space-y-0.5">
+                <li>Le omissioni diventano errori di tipo</li>
+                <li>main.ts smette di smistare</li>
+                <li>Una quarta cache costa un file</li>
+                <li>La giunzione è reale, non ipotetica</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ============ CANDIDATO 4 ============ -->
+        <article id="c4" class="scroll-mt-6">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">4 · Dividere SearchIndex: l'Indice non è il lettore del Vault</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 ring-1 ring-amber-200">Da valutare</span>
+            </div>
+          </div>
+
+          <p class="mt-3 font-mono text-xs text-slate-500">
+            src/engine/SearchIndex.ts:270–330 · :331–351 · src/engine/search-filters/TitleFilter.ts:31–33
+          </p>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-5 items-end">
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-4">Prima — 11 metodi pubblici, due mestieri</p>
+              <div class="flex gap-3 items-end h-[210px]">
+                <div class="flex-1">
+                  <div class="hatch border-2 border-red-400 h-[130px] flex items-center justify-center text-[10px] text-red-900 text-center px-1 leading-tight">interfaccia<br/>11 metodi</div>
+                  <div class="deep text-white h-[70px] flex items-center justify-center text-[10px]">implementazione</div>
+                  <p class="lbl text-center mt-2 text-slate-500">SearchIndex</p>
+                </div>
+                <div class="flex-1 text-[11px] text-slate-600 pb-8 leading-relaxed">
+                  <span class="font-mono">searchFilesWithoutIndex</span> e
+                  <span class="font-mono">searchInTitlesWithoutIndex</span> non toccano mai l'Indice — leggono il Vault.
+                  <span class="font-mono">TitleFilter</span> invoca <span class="font-mono">getInstance(app)</span> solo per arrivare a uno dei due.
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-4">Dopo — due moduli, ciascuno profondo</p>
+              <div class="flex gap-3 items-end h-[210px]">
+                <div class="flex-1">
+                  <div class="hatch border-2 border-slate-400 h-[40px] flex items-center justify-center text-[10px] text-slate-700">interfaccia</div>
+                  <div class="deep text-white h-[160px] flex items-center justify-center text-[10px] text-center px-1 leading-tight">implementazione<br/>Indice</div>
+                  <p class="lbl text-center mt-2 text-slate-500">SearchIndex</p>
+                </div>
+                <div class="flex-1">
+                  <div class="hatch border-2 border-slate-400 h-[30px] flex items-center justify-center text-[10px] text-slate-700">interfaccia</div>
+                  <div class="deep text-white h-[90px] flex items-center justify-center text-[10px] text-center px-1 leading-tight">implementazione<br/>scansione</div>
+                  <p class="lbl text-center mt-2 text-slate-500">VaultScan</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-3 gap-5 text-sm">
+            <div>
+              <p class="lbl text-slate-400 mb-1">Problema</p>
+              <p>Il modulo più grande mescola il ciclo di vita dell'Indice con la scansione diretta del Vault, così i chiamanti passano da un singleton per arrivare a una scansione.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Soluzione</p>
+              <p>Spostare fuori i due metodi <span class="font-mono text-xs">…WithoutIndex</span>. All'Indice restano ciclo di vita e <span class="font-mono text-xs">search</span>; la scansione diventa un modulo suo.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Vantaggi</p>
+              <ul class="list-disc list-inside text-slate-700 space-y-0.5">
+                <li>Due interfacce piccole</li>
+                <li>Scansione testabile da sola</li>
+                <li>TitleFilter perde il singleton</li>
+                <li>Il ripiego diventa esplicito</li>
+              </ul>
+            </div>
+          </div>
+          <p class="mt-4 text-xs text-slate-600">
+            Precisazione da verificare prima di muoversi: <span class="font-mono">searchFilesWithoutIndex</span> usa <span class="font-mono">this.app.vault.cachedRead</span> (:302), quindi non è una funzione pura — dipende dal Vault. Ed è proprio questo il punto: la sua dipendenza è il Vault, non l'Indice, e per questo sta nel modulo sbagliato.
+          </p>
+        </article>
+
+        <!-- ============ CANDIDATO 5 ============ -->
+        <article id="c5" class="scroll-mt-6">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">5 · Finder sono quattro moduli con un nome solo</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-900 ring-1 ring-amber-200">Da valutare</span>
+            </div>
+          </div>
+
+          <p class="mt-3 font-mono text-xs text-slate-500">src/Finder.ts:114–139 · :158–186 · :188–199 · :59–80</p>
+
+          <div class="mt-6 rounded-lg border border-slate-200 bg-white p-5">
+            <p class="lbl text-slate-400 mb-4">Sezione della superficie pubblica di Finder</p>
+            <div class="space-y-1.5">
+              <div class="flex items-center gap-3"><div class="h-9 w-2 bg-emerald-500"></div><div class="flex-1 text-sm"><span class="font-mono text-xs">search / getResults / getActiveHints</span> <span class="text-slate-500">— orchestrazione della ricerca</span></div><span class="lbl text-emerald-700">è casa sua</span></div>
+              <div class="flex items-center gap-3"><div class="h-9 w-2 bg-red-400"></div><div class="flex-1 text-sm"><span class="font-mono text-xs">renderCommand(cmd, el)</span> <span class="text-slate-500">— costruisce DOM, legge hotkeyManager</span></div><span class="lbl text-red-700">disegno</span></div>
+              <div class="flex items-center gap-3"><div class="h-9 w-2 bg-red-400"></div><div class="flex-1 text-sm"><span class="font-mono text-xs">exportResults(results, query)</span> <span class="text-slate-500">— scrive una nota, mostra Notice</span></div><span class="lbl text-red-700">esportazione</span></div>
+              <div class="flex items-center gap-3"><div class="h-9 w-2 bg-red-400"></div><div class="flex-1 text-sm"><span class="font-mono text-xs">openResult(result)</span> <span class="text-slate-500">— navigazione nel workspace</span></div><span class="lbl text-red-700">navigazione</span></div>
+            </div>
+            <p class="mt-4 text-xs text-slate-600">
+              Tre mestieri su quattro pretendono un <span class="font-mono">App</span> vivo: ecco perché non esiste un test per <span class="font-mono">getResults()</span>, cioè per la composizione dei Filtri, la cosa che più varrebbe la pena testare. I singoli Filtri sono testati in isolamento (<span class="font-mono">test/search-filters.test.ts</span>, 195 righe); come si combinano, no.
+            </p>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-3 gap-5 text-sm">
+            <div>
+              <p class="lbl text-slate-400 mb-1">Problema</p>
+              <p>Disegno, esportazione e navigazione condividono il modulo con la ricerca, così l'interfaccia di ricerca si può esercitare solo con un App vivo.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Soluzione</p>
+              <p>Tenere <span class="font-mono text-xs">Finder</span> per la ricerca. Gli altri tre mestieri vanno nelle UI o in moduli propri.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Vantaggi</p>
+              <ul class="list-disc list-inside text-slate-700 space-y-0.5">
+                <li>La composizione diventa testabile</li>
+                <li>Interfaccia più piccola da imparare</li>
+                <li>L'esportazione diventa riusabile</li>
+              </ul>
+            </div>
+          </div>
+          <p class="mt-4 text-xs text-slate-600">Nota: questo rende di più <span class="italic">dopo</span> il candidato 1 — è il registro che rende sensato scrivere un test di composizione.</p>
+        </article>
+
+        <!-- ============ CANDIDATO 6 ============ -->
+        <article id="c6" class="scroll-mt-6">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">6 · Portare in un punto solo la decisione sulla Preview</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-900 ring-1 ring-red-200">bug reale</span>
+            </div>
+          </div>
+
+          <p class="mt-3 font-mono text-xs text-slate-500">
+            src/component/ui/ImagePreview.ts:14–56 · src/FinderModal.ts:9,91–92 · src/component/Card/GridCard.ts:30 · src/component/Card/ListCard.ts:36 · src/component/Modal/ModalUI.ts:46–50
+          </p>
+
+          <div class="mt-6 rounded-lg border border-slate-200 bg-white p-5">
+            <p class="lbl text-slate-400 mb-4">"Quali tipi di file hanno una Preview?" ha due risposte che non coincidono</p>
+            <div class="grid md:grid-cols-2 gap-5 text-xs">
+              <div class="rounded border border-slate-200 p-3">
+                <p class="lbl text-slate-500 mb-2">FinderModal.ts:9 — PREVIEW_EXTENSIONS</p>
+                <p class="font-mono text-slate-700 leading-relaxed">png jpg jpeg gif webp canvas pdf docx xlsx</p>
+                <p class="mt-2 text-slate-500">+ excalidraw, ricalcolato a :91</p>
+              </div>
+              <div class="rounded border border-slate-200 p-3">
+                <p class="lbl text-slate-500 mb-2">ImagePreview.load — rami effettivi</p>
+                <p class="font-mono text-slate-700 leading-relaxed">excalidraw · <span class="bg-amber-100 px-1">md</span> · <span class="bg-amber-100 px-1">json</span> · office · tutto il resto</p>
+                <p class="mt-2 text-slate-500">evidenziati: non stanno in PREVIEW_EXTENSIONS</p>
+              </div>
+            </div>
+            <div class="mt-4 rounded bg-red-50 border border-red-200 p-3 text-xs text-red-900">
+              <span class="font-semibold">La discordanza si vede a schermo.</span>
+              <span class="font-mono">ModalUI.ts:46</span> rispetta <span class="font-mono">renderPreview</span>, ma
+              <span class="font-mono">GridCard.ts:30</span> e <span class="font-mono">ListCard.ts:36</span> chiamano
+              <span class="font-mono">load()</span> incondizionatamente. Quindi le preview <span class="font-mono">md</span> e <span class="font-mono">json</span> sono codice morto dal modal e vive dalla sidebar: lo stesso modulo si comporta come due moduli diversi a seconda di chi lo chiama.
+            </div>
+            <p class="mt-3 text-xs text-slate-600">
+              A parte: il ramo excalidraw (:21–25) è identico carattere per carattere al ramo di default (:51). Esiste solo perché anche il <span class="italic">chiamante</span> ha bisogno della stessa informazione e se la ricalcola da sé a <span class="font-mono">FinderModal.ts:91</span>.
+            </p>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-3 gap-5 text-sm">
+            <div>
+              <p class="lbl text-slate-400 mb-1">Problema</p>
+              <p>Il modulo è stato diviso sull'asse sbagliato: separa "disegnare una Preview" da "decidere se fare la Preview", e la metà duplicata è la decisione.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Soluzione</p>
+              <p>Dare anche la decisione a <span class="font-mono text-xs">ImagePreview</span>: un'interfaccia che risponde "fai la preview di questo file, oppure no". I chiamanti smettono di tenere la loro lista di estensioni.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Vantaggi</p>
+              <ul class="list-disc list-inside text-slate-700 space-y-0.5">
+                <li>Griglia, lista e modal concordano</li>
+                <li>Via il ramo duplicato</li>
+                <li>Via PREVIEW_EXTENSIONS</li>
+              </ul>
+            </div>
+          </div>
+        </article>
+
+        <!-- ============ CANDIDATO 7 ============ -->
+        <article id="c7" class="scroll-mt-6">
+          <div class="flex items-baseline justify-between gap-4 flex-wrap">
+            <h2 class="font-serif text-2xl">7 · Il debounce abbandona ogni ricerca sorpassata</h2>
+            <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
+              <span class="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-900 ring-1 ring-red-200">bug reale</span>
+            </div>
+          </div>
+
+          <p class="mt-3 font-mono text-xs text-slate-500">src/Finder.ts:141–155 · src/Finder.ts:15,151 · src/FinderCard.ts:103,114</p>
+
+          <div class="mt-6 grid md:grid-cols-2 gap-5">
+            <div class="rounded-lg border border-red-200 bg-white p-4">
+              <p class="lbl text-red-600 mb-3">Prima — scrivi "spring": 5 promise, 1 si risolve</p>
+              <pre class="mermaid">
+sequenceDiagram
+  participant U as Utente
+  participant F as Finder.search()
+  U->>F: "s"
+  Note over F: promise 1 — mai conclusa
+  U->>F: "sp"
+  Note over F: promise 2 — mai conclusa
+  U->>F: "spr"
+  Note over F: promise 3 — mai conclusa
+  U->>F: "spri"
+  Note over F: promise 4 — mai conclusa
+  U->>F: "sprin"
+  F-->>U: si risolve
+              </pre>
+            </div>
+            <div class="rounded-lg border border-slate-200 bg-white p-4">
+              <p class="lbl text-slate-400 mb-3">Dopo — il debounce ha una giunzione sua</p>
+              <pre class="mermaid">
+flowchart TB
+  U["battute sulla tastiera"] --> D["Debouncer<br/>politica iniettata"]
+  D --> F["Finder.getResults()<br/>async semplice, senza timer"]
+  F --> R["risultati"]
+  D -.->|"le chiamate sorpassate<br/>si concludono o si annullano"| X["il chiamante lo sa"]
+  classDef deep fill:#0f172a,color:#fff,stroke:#0f172a;
+  class F deep
+              </pre>
+            </div>
+          </div>
+
+          <div class="mt-5 rounded border border-slate-200 bg-white p-4 text-xs">
+            <p class="lbl text-slate-400 mb-2">Finder.ts:141–155</p>
+            <pre class="whitespace-pre-wrap font-mono text-slate-700">if (this.debounceTimer !== null) clearTimeout(this.debounceTimer);
+
+return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
+  this.debounceTimer = window.setTimeout(async () =&gt; { ... resolve(results); }, 150);
+});</pre>
+            <p class="mt-2 text-slate-600">
+              Il timer viene azzerato, ma la promise già restituita non viene né risolta né rigettata: resta pendente per sempre, insieme all'<span class="font-mono">await</span> che la stava aspettando.
+              <span class="font-mono">FinderCard.ts:103</span> la attende; <span class="font-mono">FinderModal.ts:58</span> la passa a Obsidian.
+              "Si conclude solo l'ultima chiamata" è un fatto dell'interfaccia che non è scritto da nessuna parte.
+            </p>
+          </div>
+
+          <div class="mt-5 grid md:grid-cols-3 gap-5 text-sm">
+            <div>
+              <p class="lbl text-slate-400 mb-1">Problema</p>
+              <p>Il debounce è saldato dentro l'orchestratore, quindi la ricerca non si testa senza timer finti — e <span class="font-mono text-xs">DEBOUNCE_MS</span> è uno static privato che un test non può accorciare.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Soluzione</p>
+              <p>Togliere il timer da lì. <span class="font-mono text-xs">getResults()</span> è già l'interfaccia async pulita: la politica la decide il chiamante o un debouncer iniettato.</p>
+            </div>
+            <div>
+              <p class="lbl text-slate-400 mb-1">Vantaggi</p>
+              <ul class="list-disc list-inside text-slate-700 space-y-0.5">
+                <li>Nessuna promise abbandonata</li>
+                <li>Ricerca testabile senza timer</li>
+                <li>Debounce regolabile per UI</li>
+              </ul>
+            </div>
+          </div>
+
+          <div class="mt-4 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+            <span class="font-semibold">Collegato:</span> <span class="font-mono">Finder.lastResultCount</span> (:15, assegnato a :151) è un campo pubblico mutabile che porta un'informazione già presente nel valore di ritorno — <span class="font-mono">FinderCard.ts:114</span> lo legge mentre ha <span class="font-mono">results</span> in mano a :110. Con le ricerche sorpassate riflette l'ultima ricerca conclusa, non quella a schermo.
+          </div>
+        </article>
+
+        <!-- ============ ALTRO ============ -->
+        <article class="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 class="font-serif text-lg">Trovato anche questo — minore, ma da sapere</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-700">
+            <li><span class="font-semibold">Il motore dipende da un tipo della UI.</span> <span class="font-mono text-xs">SearchFilter</span> implementa <span class="font-mono text-xs">HintsType</span> (types.ts:2,39), quindi <span class="font-mono text-xs">label</span> è insieme il prefisso di parsing, il testo del chip e la sonda di attivazione. <span class="font-mono text-xs">Finder.getActiveHints</span> fa <span class="font-mono text-xs">q.includes(label)</span>, così il chip di NegationFilter (<span class="font-mono text-xs">'-'</span>) si accende su <span class="font-mono text-xs">this-week</span> — che il parser invece, deliberatamente, <em>non</em> tratta come negazione. Parser ed evidenziatore sono in disaccordo per costruzione.</li>
+            <li><span class="font-semibold">Undici downcast dall'unica astrazione che doveva evitarli.</span> Il registro è <span class="font-mono text-xs">Map&lt;string, SearchFilter&lt;unknown&gt;&gt;</span>, e ogni smistamento riafferma a mano il tipo concreto (<span class="font-mono text-xs">as TagsFilter</span>, <span class="font-mono text-xs">as PdfFilter</span>, …). Confluisce nel candidato 1.</li>
+            <li><span class="font-semibold"><span class="font-mono text-xs">applyFileTypes</span> prende il filtro PDF per usarlo come matcher generico di estensioni</span> (SearchStrategy.ts:128) e gli passa un sentinella <span class="font-mono text-xs">'*'</span> non tipizzato. Se un domani <span class="font-mono text-xs">PdfFilter.filter</span> cominciasse a usare le proprie <span class="font-mono text-xs">extensions</span>, salterebbe tutto il filtraggio per tipo.</li>
+            <li><span class="font-semibold"><span class="font-mono text-xs">src/main.ts</span> e <span class="font-mono text-xs">src/settings.ts</span> sono il template di esempio intatto</span> — un secondo <span class="font-mono text-xs">main.ts</span>, un secondo <span class="font-mono text-xs">DEFAULT_SETTINGS</span>, una seconda scheda impostazioni, niente di tutto ciò compilato. CLAUDE.md già dice di ignorarli; cancellarli non costa nulla ed evita che una ricerca per nome restituisca prima il file sbagliato.</li>
+            <li><span class="font-semibold">I test bucano un campo static privato con <span class="font-mono text-xs">as any</span> per azzerare i singleton</span> (search-index.test.ts:25). La superficie di test è il campo, non l'interfaccia: è il segnale più chiaro che i singleton sono ciò che blocca la testabilità.</li>
+          </ul>
+        </article>
+
+        <article class="rounded-lg border border-slate-200 bg-white p-5">
+          <h3 class="font-serif text-lg">Controllato, e va bene così</h3>
+          <ul class="mt-3 space-y-2 text-sm text-slate-700">
+            <li><span class="font-mono text-xs">SearchUIHelper.toggleDateValue</span> — statico, puro, già testato.</li>
+            <li>I singoli Filtri — ognuno è un modulo ordinato. L'attrito sta in come vengono <span class="italic">registrati</span>, mai nei Filtri stessi.</li>
+          </ul>
+        </article>
+
+      </section>
+
+      <section id="top-recommendation">
+        <div class="rounded-lg deep text-white p-7">
+          <p class="lbl text-slate-400">Da dove partirei</p>
+          <h2 class="font-serif text-3xl mt-2"><a href="#c3" class="underline decoration-slate-500 underline-offset-4">La giunzione sotto le cache derivate</a></h2>
+          <p class="mt-3 text-slate-200 max-w-2xl text-sm leading-relaxed">
+            Si parte da qui perché sistema un bug reale mentre approfondisce: cancellando un PDF il testo estratto resta nell'Indice per sempre.
+            La giunzione è già reale — tre adapter esistono e condividono la stessa forma, metodo per metodo — quindi si tratta di dare un nome a un'interfaccia in cui il codice è già cresciuto, non di inventarne una.
+            Modifica più piccola, resa maggiore.
+          </p>
+          <div class="mt-5 pt-4 border-t border-slate-700">
+            <p class="lbl text-slate-400 mb-2">Ordine suggerito</p>
+            <ol class="text-slate-300 text-xs space-y-1.5">
+              <li><span class="text-slate-500 font-mono mr-2">1</span><a href="#c3" class="underline">Giunzione cache derivate</a> — sistema il bug della cancellazione</li>
+              <li><span class="text-slate-500 font-mono mr-2">2</span><a href="#c7" class="underline">Debounce</a> — sistema le promise abbandonate; la diff più piccola dei tre bug</li>
+              <li><span class="text-slate-500 font-mono mr-2">3</span><a href="#c6" class="underline">Decisione sulla Preview</a> — mette d'accordo griglia, lista e modal</li>
+              <li><span class="text-slate-500 font-mono mr-2">4</span><a href="#c2" class="underline">Costruttore di Card</a> — sistema i tag divergenti nella sidebar</li>
+              <li><span class="text-slate-500 font-mono mr-2">5</span><a href="#c1" class="underline">Pipeline di parsing</a> — il grosso; rende sensati anche il <a href="#c5" class="underline">5</a> e il <a href="#c4" class="underline">4</a></li>
+            </ol>
+            <p class="mt-3 text-slate-400 text-xs">Prima i bug, poi la struttura: i primi quattro sono piccoli e rilasciabili uno alla volta, e ciascuno elimina una decisione duplicata.</p>
+          </div>
+        </div>
+      </section>
+
+      <footer class="pt-4 text-xs text-slate-400 font-mono">
+        Nessun ADR in docs/adr/ — niente da contraddire. Vocabolario: CONTEXT.md (dominio) + /codebase-design (architettura).
+      </footer>
+
+    </main>
+  </body>
+</html>
