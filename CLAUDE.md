@@ -118,3 +118,17 @@ Known cases:
 - The `i18n` object in `src/const.ts` contains Italian UI strings — keep new strings there.
 - `src/settings.ts` is a **dead file** from the sample template; the actual settings class is `src/FinderSetting.ts`.
 - Plans for non-trivial tasks live in `.claude/plans/` (created via the `ping-pong-task` skill).
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as GitHub issues on `faienz93/obsidian-better-finder`, via the `gh` CLI. See `docs/agents/issue-tracker.md`.
+
+### Triage labels
+
+The five canonical labels, unrenamed: `needs-triage`, `needs-info`, `ready-for-agent`, `ready-for-human`, `wontfix`. See `docs/agents/triage-labels.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` and `docs/adr/` at the plugin root. See `docs/agents/domain.md`.
