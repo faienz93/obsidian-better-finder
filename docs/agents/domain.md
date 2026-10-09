@@ -16,7 +16,7 @@ This is a **single-context** repo. Domain docs live at the plugin root, alongsid
 ```
 .obsidian/plugins/obsidian-better-finder/
 ├── CLAUDE.md
-├── CONTEXT.md                         ← glossary (created lazily)
+├── CONTEXT.md                         ← glossary
 ├── docs/
 │   ├── agents/                        ← this config
 │   └── adr/                           ← decisions (created lazily)
@@ -24,8 +24,9 @@ This is a **single-context** repo. Domain docs live at the plugin root, alongsid
 └── src/
 ```
 
-Neither `CONTEXT.md` nor `docs/adr/` exists yet: `/domain-modeling` creates them when a term
-or a decision actually needs recording.
+`CONTEXT.md` holds the glossary. `docs/adr/` does not exist yet: `/domain-modeling` creates an
+ADR only when a decision is hard to reverse, surprising without context, and the result of a real
+trade-off.
 
 ## Use the glossary's vocabulary
 
