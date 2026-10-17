@@ -469,6 +469,7 @@ flowchart LR
           <div class="flex items-baseline justify-between gap-4 flex-wrap">
             <h2 class="font-serif text-2xl">6 · Portare in un punto solo la decisione sulla Preview</h2>
             <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-600 text-white ring-1 ring-emerald-700">✓ Fatto · hasPreview</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-900 ring-1 ring-red-200">bug reale</span>
             </div>
@@ -500,6 +501,16 @@ flowchart LR
             </div>
             <p class="mt-3 text-xs text-slate-600">
               A parte: il ramo excalidraw (:21–25) è identico carattere per carattere al ramo di default (:51). Esiste solo perché anche il <span class="italic">chiamante</span> ha bisogno della stessa informazione e se la ricalcola da sé a <span class="font-mono">FinderModal.ts:91</span>.
+            </p>
+          </div>
+
+          <div class="mt-4 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+            <p class="font-semibold mb-1">Correzione — sessione di grilling del 17 ottobre</p>
+            <p class="leading-relaxed">
+              L'assenza della Preview <span class="font-mono">md</span> nel modal <span class="font-semibold">non è un bug</span>: lì la riga mostra già lo Snippet. La svista vera era solo <span class="font-mono">json</span>.
+            </p>
+            <p class="mt-2 leading-relaxed">
+              Soluzione decisa: <span class="font-mono">ImagePreview.hasPreview(app, file, { hasSnippet })</span> è l'unica risposta, usata da modal e sidebar per riempire <span class="font-mono">Card.renderPreview</span>; griglia e lista lo rispettano. Lista: immagini, canvas, pdf, docx, xlsx, json, md, excalidraw; un <span class="font-mono">md</span> con Snippet richiesto non ha Preview. Audio, video e file non riconosciuti perdono la Preview anche in sidebar. Glossario: Snippet separato da Preview.
             </p>
           </div>
 
@@ -672,7 +683,7 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
             <ol class="text-slate-300 text-xs space-y-1.5">
               <li><span class="text-slate-500 font-mono mr-2">1</span><span class="line-through text-slate-500"><a href="#c3" class="underline">Giunzione cache derivate</a> — sistema il bug della cancellazione</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (0b39e04)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">2</span><span class="line-through text-slate-500"><a href="#c7" class="underline">Debounce</a> — sistema le promise abbandonate; la diff più piccola dei tre bug</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (LatestSearch)</span></li>
-              <li><span class="text-slate-500 font-mono mr-2">3</span><a href="#c6" class="underline">Decisione sulla Preview</a> — mette d'accordo griglia, lista e modal</li>
+              <li><span class="text-slate-500 font-mono mr-2">3</span><span class="line-through text-slate-500"><a href="#c6" class="underline">Decisione sulla Preview</a> — mette d'accordo griglia, lista e modal</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (hasPreview)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">4</span><a href="#c2" class="underline">Costruttore di Card</a> — sistema i tag divergenti nella sidebar</li>
               <li><span class="text-slate-500 font-mono mr-2">5</span><a href="#c1" class="underline">Pipeline di parsing</a> — il grosso; rende sensati anche il <a href="#c5" class="underline">5</a> e il <a href="#c4" class="underline">4</a></li>
             </ol>

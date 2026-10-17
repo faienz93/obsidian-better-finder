@@ -100,9 +100,9 @@ The `.better-finder-modal` class is **not** added by Obsidian — `FinderModal.o
 
 ### Preview rendering policy
 
-Decision of "should this file get a thumbnail preview?" lives in `FinderModal.renderResult()`, not in `ModalUI`. The modal builds an optional `renderPreview: (el) => void` callback (using `ImagePreview`) and passes it as an optional field on `Card`. `ModalUI` is a dumb renderer that calls `setPreview(renderPreview)` only if the field is defined.
+"Does this file get a Preview?" has one answer: `ImagePreview.hasPreview(app, file, { hasSnippet })`, next to the branches of `ImagePreview.load()` that draw it. Both UIs call it to fill the boolean `Card.renderPreview`; `ModalUI`, `GridCard` and `ListCard` render the Preview only when that field is true. Never keep a separate list of previewable extensions in a caller.
 
-`ImagePreview` (`src/component/ui/ImagePreview.ts`) handles four cases internally: Excalidraw (frontmatter `excalidraw-plugin: parsed`), `.md` text snippet, `.json` code preview, and any other extension via `MarkdownRenderer.render('![[…]]')` embed.
+`ImagePreview` (`src/component/ui/ImagePreview.ts`) draws: `.md` text excerpt, `.json` code excerpt, docx/xlsx icon + extracted text, and an `![[…]]` embed for images, canvas, pdf and Excalidraw (frontmatter `excalidraw-plugin: parsed`). A `.md` note showing a Snippet (modal with free text or task filter) gets no Preview.
 
 ## Obsidian API — inherited methods
 

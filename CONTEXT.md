@@ -56,14 +56,15 @@ UI, not a visual element itself.
 _Avoid_: item, row, tile, view model
 
 **Preview**:
-The visual rendering of a result's content shown next to its title: a thumbnail, a text snippet, or
-an embed, depending on the file type.
-_Avoid_: thumbnail, snippet, excerpt (each of these names only one kind of preview)
+The visual rendering of a result's content shown next to its title: an image, an embed, a text
+excerpt or a code excerpt, depending on the file type. Not every file type has one, and a result
+showing a **Snippet** gets no Preview.
+_Avoid_: thumbnail
 
-**Snippet term**:
-The free-text word highlighted inside a result's content preview, so the user sees why the file
-matched.
-_Avoid_: highlight, match term
+**Snippet**:
+The passage of a note's content around the searched word, with the word highlighted. It explains
+why the result matched; a Preview only shows what the file is.
+_Avoid_: excerpt, preview, highlight, match term
 
 ### What is searched
 
