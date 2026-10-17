@@ -219,6 +219,7 @@ taskInfo: tasks.length > 0
           <div class="flex items-baseline justify-between gap-4 flex-wrap">
             <h2 class="font-serif text-2xl">3 · Una giunzione vera sotto le cache derivate</h2>
             <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-600 text-white ring-1 ring-emerald-700">✓ Fatto · 0b39e04</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-indigo-100 text-indigo-900 ring-1 ring-indigo-200">3 adapter esistono già</span>
             </div>
@@ -654,7 +655,7 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
           <div class="mt-5 pt-4 border-t border-slate-700">
             <p class="lbl text-slate-400 mb-2">Ordine suggerito</p>
             <ol class="text-slate-300 text-xs space-y-1.5">
-              <li><span class="text-slate-500 font-mono mr-2">1</span><a href="#c3" class="underline">Giunzione cache derivate</a> — sistema il bug della cancellazione</li>
+              <li><span class="text-slate-500 font-mono mr-2">1</span><span class="line-through text-slate-500"><a href="#c3" class="underline">Giunzione cache derivate</a> — sistema il bug della cancellazione</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (0b39e04)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">2</span><a href="#c7" class="underline">Debounce</a> — sistema le promise abbandonate; la diff più piccola dei tre bug</li>
               <li><span class="text-slate-500 font-mono mr-2">3</span><a href="#c6" class="underline">Decisione sulla Preview</a> — mette d'accordo griglia, lista e modal</li>
               <li><span class="text-slate-500 font-mono mr-2">4</span><a href="#c2" class="underline">Costruttore di Card</a> — sistema i tag divergenti nella sidebar</li>
