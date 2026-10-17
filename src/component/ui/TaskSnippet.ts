@@ -1,4 +1,5 @@
 import { App, TFile } from "obsidian";
+import { isDoneTask } from "../../engine/search-filters/TaskFilter";
 import { TaskStatus } from "../../engine/search-filters/types";
 import "./TaskSnippet.css";
 
@@ -18,10 +19,9 @@ export class TaskSnippet {
   public async load(file: TFile, status: TaskStatus, el: HTMLElement): Promise<void> {
     const cache = this.app.metadataCache.getFileCache(file);
     const items = (cache?.listItems ?? []).filter(i => i.task !== undefined);
-    const isDone = (task: string | undefined) => task === 'x' || task === 'X';
     const wanted = items.filter(i => {
-      if (status === 'todo') return !isDone(i.task);
-      if (status === 'done') return isDone(i.task);
+      if (status === 'todo') return !isDoneTask(i.task);
+      if (status === 'done') return isDoneTask(i.task);
 
       return true;
     });
@@ -43,7 +43,7 @@ export class TaskSnippet {
 
         const row = el.createDiv({ cls: 'task-snippet-item' });
 
-        row.createSpan({ cls: 'task-snippet-check', text: isDone(item.task) ? '☑' : '☐' });
+        row.createSpan({ cls: 'task-snippet-check', text: isDoneTask(item.task) ? '☑' : '☐' });
         row.createSpan({ cls: 'task-snippet-text', text });
       }
 

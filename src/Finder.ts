@@ -173,9 +173,7 @@ export class Finder {
       return;
     }
 
-    const file = result as TFile;
-
     // 'tab' apre sempre in una nuova tab invece di sostituire quella corrente.
-    this.app.workspace.getLeaf('tab').openFile(file);
+    this.app.workspace.getLeaf('tab').openFile(result);
   }
 }

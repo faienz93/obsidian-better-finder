@@ -85,7 +85,7 @@ export class XbergExtractor implements CommonCache {
 
     await this.loadCache();
 
-    const files = this.app.vault.getFiles().filter(f => XBERG_EXTENSIONS.includes(f.extension.toLowerCase()));
+    const files = this.app.vault.getFiles().filter(f => this.handles(f));
     const searchIndex = SearchIndex.getInstance(this.app);
 
     for (const file of files) {
@@ -102,7 +102,7 @@ export class XbergExtractor implements CommonCache {
 
   /** (Re)indicizza un singolo file, chiamato dagli eventi vault. */
   async indexFile(file: TFile): Promise<void> {
-    if (!XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) return;
+    if (!this.handles(file)) return;
 
     const binary = await this.detectBinary();
 
@@ -134,9 +134,8 @@ export class XbergExtractor implements CommonCache {
   }
 
   /**
-   * Drops the extracted text. Without this the entry was orphaned in
-   * xberg-cache.json, which grew without bound. The index cleans up its own
-   * copy: main.ts notifies every cache.
+   * Drops the extracted text so xberg-cache.json does not keep orphaned entries.
+   * The index cleans up its own copy: main.ts notifies every cache.
    */
   async onDelete(file: TFile): Promise<void> {
     if (!this.handles(file)) return;
@@ -147,9 +146,8 @@ export class XbergExtractor implements CommonCache {
   }
 
   /**
-   * Same file: move the entry to the new path instead of re-extracting. The
-   * cache is keyed by path, so the new name used to miss and restart the OCR
-   * from scratch — up to 60s for an unchanged file.
+   * Same file: move the entry to the new path instead of re-extracting, which
+   * would rerun the OCR (up to 60s) on an unchanged file.
    */
   async onRename(file: TFile, oldPath: string): Promise<void> {
     if (!this.handles(file)) return;
@@ -175,7 +173,7 @@ export class XbergExtractor implements CommonCache {
    * null se il binario manca o l'estensione non è supportata.
    */
   async getText(file: TFile): Promise<string | null> {
-    if (!XBERG_EXTENSIONS.includes(file.extension.toLowerCase())) return null;
+    if (!this.handles(file)) return null;
 
     const binary = await this.detectBinary();
 

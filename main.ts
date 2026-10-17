@@ -97,11 +97,11 @@ export default class ObsidianBetterFinder extends Plugin {
       ): Promise<void> => {
         if (!(file instanceof TFile)) return;
 
+        const onFailure = (error: unknown) =>
+          console.error('[BetterFinder] Cache update failed:', error);
+
         for (const cache of caches) {
           if (!cache.handles(file, oldPath)) continue;
-
-          const onFailure = (error: unknown) =>
-            console.error('[BetterFinder] Cache update failed:', error);
 
           if (cache.deferred) {
             apply(cache, file).catch(onFailure);

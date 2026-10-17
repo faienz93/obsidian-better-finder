@@ -51,7 +51,7 @@ export class SearchBar {
   public createToggle(): ToggleButton {
     this.toggle = new ToggleButton(this.headerEl);
 
-    return this.toggle
+    return this.toggle;
   }
 
   public createActionButton(text: string, title: string, onClick: () => void): HTMLElement {

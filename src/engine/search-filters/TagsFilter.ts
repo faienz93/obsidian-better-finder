@@ -2,6 +2,11 @@ import { App, getAllTags, TFile } from "obsidian";
 import { CanvasTagCache } from "../CanvasTagCache";
 import { SearchFilter } from "./types";
 
+/** True if `fileTag` is `tag` itself or one of its nested tags (#tag/child). */
+export function matchesTag(fileTag: string, tag: string): boolean {
+  return fileTag === tag || fileTag.startsWith(`${tag}/`);
+}
+
 export class TagsFilter extends SearchFilter<string[]> {
   readonly label = '#';
   readonly desc = 'tag';
@@ -13,24 +18,14 @@ export class TagsFilter extends SearchFilter<string[]> {
    * tornano visibili solo se la query contiene esplicitamente #archive.
    */
   excludeArchived(files: TFile[], searchedTags: string[], app: App): TFile[] {
-    const archiveRequested = searchedTags.some(
-      t => t === TagsFilter.ARCHIVE_TAG || t.startsWith(`${TagsFilter.ARCHIVE_TAG  }/`)
-    );
+    const archiveRequested = searchedTags.some(t => matchesTag(t, TagsFilter.ARCHIVE_TAG));
 
     if (archiveRequested) return files;
 
     return files.filter(file => {
       if (file.extension !== 'md') return true;
 
-      const cache = app.metadataCache.getFileCache(file);
-
-      if (!cache) return true;
-
-      const fileTags = (getAllTags(cache) || []).map(t => t.toLowerCase());
-
-      return !fileTags.some(
-        ft => ft === TagsFilter.ARCHIVE_TAG || ft.startsWith(`${TagsFilter.ARCHIVE_TAG  }/`)
-      );
+      return !this.getFileTags(file, app).some(ft => matchesTag(ft, TagsFilter.ARCHIVE_TAG));
     });
   }
 
@@ -53,9 +48,7 @@ export class TagsFilter extends SearchFilter<string[]> {
 
       // Match esatto o gerarchico (#tag/figlio). Il vecchio startsWith(tag + '-')
       // faceva matchare tag "cugini" (#prompt pigliava #prompt-engineering): bug B2.
-      return tags.every(tag =>
-        fileTags.some(ft => ft === tag || ft.startsWith(`${tag  }/`))
-      );
+      return tags.every(tag => fileTags.some(ft => matchesTag(ft, tag)));
     });
   }
 

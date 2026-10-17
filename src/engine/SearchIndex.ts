@@ -217,10 +217,7 @@ export class SearchIndex implements CommonCache {
    * Rimuove un file dall'indice (chiamato quando un file viene cancellato)
    */
   removeFile(file: TFile): void {
-    if (this.indexedPaths.has(file.path)) {
-      this.miniSearch.discard(file.path);
-      this.indexedPaths.delete(file.path);
-    }
+    this.discardPath(file.path);
   }
 
   /**
@@ -228,10 +225,7 @@ export class SearchIndex implements CommonCache {
    */
   async renameFile(file: TFile, oldPath: string): Promise<void> {
     // Rimuovi vecchio path
-    if (this.indexedPaths.has(oldPath)) {
-      this.miniSearch.discard(oldPath);
-      this.indexedPaths.delete(oldPath);
-    }
+    this.discardPath(oldPath);
 
     // Aggiungi con nuovo path
     await this.updateFile(file);
@@ -265,10 +259,8 @@ export class SearchIndex implements CommonCache {
   }
 
   /**
-   * Markdown is re-read; external documents are not — their text lives in the
-   * cache that produced it, which re-adds them under the new path. renameFile()
-   * used to just discard them, because updateFile() returns early on
-   * non-markdown, so the file left the index until the OCR was redone.
+   * Markdown is re-read; external documents are only dropped from the old path,
+   * because their text lives in the cache that produced it, which re-adds them.
    */
   async onRename(file: TFile, oldPath: string): Promise<void> {
     if (file.extension === 'md') {
@@ -277,9 +269,13 @@ export class SearchIndex implements CommonCache {
       return;
     }
 
-    if (this.indexedPaths.has(oldPath)) {
-      this.miniSearch.discard(oldPath);
-      this.indexedPaths.delete(oldPath);
+    this.discardPath(oldPath);
+  }
+
+  private discardPath(path: string): void {
+    if (this.indexedPaths.has(path)) {
+      this.miniSearch.discard(path);
+      this.indexedPaths.delete(path);
     }
   }
 

@@ -1,5 +1,6 @@
 import { App, TFile, getAllTags } from "obsidian";
 import { i18n } from "src/const";
+import { matchesTag } from "./TagsFilter";
 import { SearchFilter } from "./types";
 
 export interface NegationResult {
@@ -64,9 +65,7 @@ export class NegationFilter extends SearchFilter<NegationResult> {
       if (negations.tags.length > 0 && file.extension === 'md') {
         const cache = app.metadataCache.getFileCache(file);
         const fileTags = (cache ? getAllTags(cache) || [] : []).map(t => t.toLowerCase());
-        const excluded = negations.tags.some(tag =>
-          fileTags.some(ft => ft === tag || ft.startsWith(`${tag  }/`))
-        );
+        const excluded = negations.tags.some(tag => fileTags.some(ft => matchesTag(ft, tag)));
 
         if (excluded) return false;
       }

@@ -28,19 +28,11 @@ export class CardUI {
     onOpen: () => void,
     onContextMenu: (event: MouseEvent) => void
   ): void {
-    if (this.mode === 'grid') {
-      const card = new GridCard(this.el);
+    const card = this.mode === 'grid' ? new GridCard(this.el) : new ListCard(this.el);
 
-      card.render(data, this.app, this.component);
-      card.onClick(onOpen);
-      card.onContextMenu(onContextMenu);
-    } else {
-      const card = new ListCard(this.el);
-
-      card.render(data, this.app, this.component);
-      card.onClick(onOpen);
-      card.onContextMenu(onContextMenu);
-    }
+    card.render(data, this.app, this.component);
+    card.onClick(onOpen);
+    card.onContextMenu(onContextMenu);
   }
 
   public getElement(): HTMLElement {

@@ -8,6 +8,7 @@ import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
+import { isDoneTask } from "./engine/search-filters/TaskFilter";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -163,7 +164,7 @@ export class FinderCard extends ItemView {
     const fileCache = this.app.metadataCache.getFileCache(file);
     const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];
-    const doneCount = tasks.filter(t => (t.task as string) === 'x' || (t.task as string) === 'X').length;
+    const doneCount = tasks.filter(t => isDoneTask(t.task)).length;
 
     return {
       file,

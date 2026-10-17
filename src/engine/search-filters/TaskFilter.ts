@@ -1,6 +1,11 @@
 import { App, TFile } from "obsidian";
 import { SearchFilter, TaskStatus } from "./types";
 
+/** A checkbox counts as done when Obsidian reports its status char as `x` or `X`. */
+export function isDoneTask(task: string | undefined): boolean {
+  return task === 'x' || task === 'X';
+}
+
 export class TaskFilter extends SearchFilter<TaskStatus | undefined> {
   readonly label = 'task:';
   readonly desc = 'task';
@@ -39,8 +44,8 @@ export class TaskFilter extends SearchFilter<TaskStatus | undefined> {
 
       switch (taskFilter) {
         case 'all': return true;
-        case 'todo': return tasks.some(t => t.task !== 'x' && t.task !== 'X');
-        case 'done': return tasks.some(t => t.task === 'x' || t.task === 'X');
+        case 'todo': return tasks.some(t => !isDoneTask(t.task));
+        case 'done': return tasks.some(t => isDoneTask(t.task));
         default: return true;
       }
     });

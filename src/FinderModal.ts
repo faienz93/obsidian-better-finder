@@ -6,6 +6,7 @@ import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
 import { ImagePreview } from "./component/ui/ImagePreview";
+import { isDoneTask } from "./engine/search-filters/TaskFilter";
 import "./FinderModal.css";
 
 class FinderModal extends SuggestModal<SearchResult> {
@@ -89,7 +90,7 @@ class FinderModal extends SuggestModal<SearchResult> {
     const fileCache = this.app.metadataCache.getFileCache(file);
     const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];
-    const doneCount = tasks.filter((t: any) => t.task === 'x' || t.task === 'X').length;
+    const doneCount = tasks.filter(t => isDoneTask(t.task)).length;
     const ext = file.extension.toLowerCase();
     const snippetTerm = ext === 'md' && parsed.freeText ? parsed.freeText : undefined;
     const taskSnippet = ext === 'md' ? parsed.taskFilter : undefined;
