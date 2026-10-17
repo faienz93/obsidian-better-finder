@@ -17,7 +17,7 @@ export class GridCard {
   }
 
   public render(data: Card, app: App, component: Component): void {
-    const { file, tags, searchedTags, taskInfo } = data;
+    const { file, tags, searchedTags, taskInfo, renderPreview } = data;
 
     this.title = new Title(this.card, file.basename);
 
@@ -25,9 +25,11 @@ export class GridCard {
       this.title.addBadge(` ${file.extension.toUpperCase()}`);
     }
 
-    const previewEl = this.card.createDiv({ cls: 'finder-view-preview' });
+    if (renderPreview) {
+      const previewEl = this.card.createDiv({ cls: 'finder-view-preview' });
 
-    new ImagePreview(app, component).load(file, previewEl);
+      new ImagePreview(app, component).load(file, previewEl);
+    }
 
     const metadata = new Metadata(this.card);
 

@@ -3,6 +3,7 @@ import { Finder, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
 import { Card } from "./component/interface/Card";
 import { CardUI } from "./component/Card/CardUI";
+import { ImagePreview } from "./component/ui/ImagePreview";
 import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
@@ -169,6 +170,7 @@ export class FinderCard extends ItemView {
       tags: fileTags,
       searchedTags: [],
       taskInfo: tasks.length > 0 ? { done: doneCount, total: tasks.length } : undefined,
+      renderPreview: ImagePreview.hasPreview(this.app, file, { hasSnippet: false }),
     };
   }
 

@@ -19,7 +19,7 @@ export class ListCard {
   }
 
   public render(data: Card, app: App, component: Component): void {
-    const { file, tags, searchedTags, taskInfo } = data;
+    const { file, tags, searchedTags, taskInfo, renderPreview } = data;
 
     this.title = this.item.setTitle(file.basename);
 
@@ -32,9 +32,11 @@ export class ListCard {
       file.parent?.path || '/'
     );
 
-    this.item.setPreview((previewEl) => {
-      new ImagePreview(app, component).load(file, previewEl);
-    });
+    if (renderPreview) {
+      this.item.setPreview((previewEl) => {
+        new ImagePreview(app, component).load(file, previewEl);
+      });
+    }
 
     if (file.extension !== 'md') return;
 
