@@ -25,3 +25,6 @@ data.json
 .DS_Store
 
 .env
+
+# knowledge-memory raw material (memories/ is committed)
+.claude/skills/knowledge-memory/reference/
