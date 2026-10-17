@@ -2,7 +2,7 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
-Whenever working with any third-party library or something similar, you MUST look up the official documentation to ensure that you're working with up-to-date information. Use the `docs-explorer` subagent for efficient documentation lookup.
+Whenever working with any third-party library or something similar, you MUST look up the official documentation to ensure that you're working with up-to-date information. Use the `docs-explorer:docs-explorer` subagent (from the dev-toolbox plugin) for efficient documentation lookup.
 
 ## Commands
 
