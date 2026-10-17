@@ -528,6 +528,7 @@ flowchart LR
           <div class="flex items-baseline justify-between gap-4 flex-wrap">
             <h2 class="font-serif text-2xl">7 · Il debounce abbandona ogni ricerca sorpassata</h2>
             <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-600 text-white ring-1 ring-emerald-700">✓ Fatto · LatestSearch</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-900 ring-1 ring-red-200">bug reale</span>
             </div>
@@ -579,6 +580,20 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
               Il timer viene azzerato, ma la promise già restituita non viene né risolta né rigettata: resta pendente per sempre, insieme all'<span class="font-mono">await</span> che la stava aspettando.
               <span class="font-mono">FinderCard.ts:103</span> la attende; <span class="font-mono">FinderModal.ts:58</span> la passa a Obsidian.
               "Si conclude solo l'ultima chiamata" è un fatto dell'interfaccia che non è scritto da nessuna parte.
+            </p>
+          </div>
+
+          <div class="mt-4 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+            <p class="font-semibold mb-1">Correzione — sessione di grilling del 17 ottobre</p>
+            <p class="leading-relaxed">
+              La promise pendente <span class="font-semibold">non è il bug</span>: è l'unico meccanismo che <span class="font-mono">SuggestModal</span> accetta.
+              Obsidian (1.13.3, <span class="font-mono">updateSuggestions</span>) applica il risultato di qualunque promise si risolva, senza controllare la query: risolverla mostrerebbe risultati vecchi, risolverla con <span class="font-mono">[]</span> farebbe lampeggiare "nessun risultato", rigettarla produrrebbe un unhandled rejection.
+            </p>
+            <p class="mt-2 leading-relaxed">
+              Il bug vero è un altro: <span class="font-mono">clearTimeout</span> ferma solo le ricerche ancora in attesa. Una ricerca già partita e lenta (scansione senza Indice) che finisce dopo quella più recente ne sovrascrive i risultati, sia in sidebar sia nel modal.
+            </p>
+            <p class="mt-2 leading-relaxed">
+              Soluzione decisa: <span class="font-mono">LatestSearch</span> (debounce + "vince l'ultima" con un contatore di generazione, <span class="font-mono">cancel()</span> alla chiusura), una per UI. <span class="font-mono">Finder</span> espone solo <span class="font-mono">getResults()</span>. Termine nel glossario: <span class="italic">Superseded search</span>.
             </p>
           </div>
 
@@ -656,7 +671,7 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
             <p class="lbl text-slate-400 mb-2">Ordine suggerito</p>
             <ol class="text-slate-300 text-xs space-y-1.5">
               <li><span class="text-slate-500 font-mono mr-2">1</span><span class="line-through text-slate-500"><a href="#c3" class="underline">Giunzione cache derivate</a> — sistema il bug della cancellazione</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (0b39e04)</span></li>
-              <li><span class="text-slate-500 font-mono mr-2">2</span><a href="#c7" class="underline">Debounce</a> — sistema le promise abbandonate; la diff più piccola dei tre bug</li>
+              <li><span class="text-slate-500 font-mono mr-2">2</span><span class="line-through text-slate-500"><a href="#c7" class="underline">Debounce</a> — sistema le promise abbandonate; la diff più piccola dei tre bug</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (LatestSearch)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">3</span><a href="#c6" class="underline">Decisione sulla Preview</a> — mette d'accordo griglia, lista e modal</li>
               <li><span class="text-slate-500 font-mono mr-2">4</span><a href="#c2" class="underline">Costruttore di Card</a> — sistema i tag divergenti nella sidebar</li>
               <li><span class="text-slate-500 font-mono mr-2">5</span><a href="#c1" class="underline">Pipeline di parsing</a> — il grosso; rende sensati anche il <a href="#c5" class="underline">5</a> e il <a href="#c4" class="underline">4</a></li>

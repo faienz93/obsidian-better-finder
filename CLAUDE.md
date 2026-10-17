@@ -45,7 +45,8 @@ Both are registered in `main.ts` and both call into the same `Finder` orchestrat
 
 ```
 User types in FinderModal or FinderCard
-  → Finder.search() (debounced 150ms)
+  → LatestSearch.run() (one per UI: debounced 150ms, only the latest search settles)
+    → Finder.getResults()
     → SearchStrategyFactory extracts filters from query text
     → Each matched strategy filters TFile[]
     → Remaining free text → SearchIndex.search() (MiniSearch) or fallback
@@ -58,7 +59,8 @@ User types in FinderModal or FinderCard
 | File                                | Role                                                                               |
 | ----------------------------------- | ---------------------------------------------------------------------------------- |
 | `main.ts` (root)                    | Plugin lifecycle, registers commands/view, owns `SearchIndex` singleton            |
-| `src/Finder.ts`                     | Search orchestration, debounce, command suggestions, result selection              |
+| `src/Finder.ts`                     | Search orchestration, command suggestions, result selection                        |
+| `src/engine/LatestSearch.ts`        | Debounce + "latest wins" per UI; superseded searches never settle (see JSDoc)      |
 | `src/SearchUIHelper.ts`             | Hint bar / sub-hint / tag preview wiring shared by both UIs                        |
 | `src/engine/SearchStrategy.ts`      | All filter strategies + `SearchStrategyFactory` singleton                          |
 | `src/engine/SearchIndex.ts`         | MiniSearch wrapper (singleton); full-text index of markdown files                  |
