@@ -10,7 +10,7 @@ export function matchesTag(fileTag: string, tag: string): boolean {
 export class TagsFilter extends SearchFilter<string[]> {
   readonly label = '#';
   readonly desc = 'tag';
-
+  // TODO set in settings
   static readonly ARCHIVE_TAG = '#archive';
 
   /**
