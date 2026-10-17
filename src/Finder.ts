@@ -12,10 +12,7 @@ export function isCommand(result: SearchResult): result is Command {
 
 export class Finder {
   allFiles: TFile[];
-  lastResultCount = 0;
   private app: App;
-  private debounceTimer: number | null = null;
-  private static readonly DEBOUNCE_MS = 150;
   private factory = SearchStrategyFactory.getInstance();
   // La lista file cambia solo su create/delete/rename: ricostruirla con
   // getFiles() ad ogni ricerca (ad ogni tasto) è lavoro sprecato che contribuisce
@@ -136,22 +133,6 @@ export class Finder {
 
       item.setHotkey(hotkeyText);
     }
-  }
-
-  async search(query: string): Promise<SearchResult[]> {
-    if (this.debounceTimer !== null) {
-      clearTimeout(this.debounceTimer);
-    }
-
-    return new Promise<SearchResult[]>((resolve) => {
-      this.debounceTimer = window.setTimeout(async () => {
-        this.debounceTimer = null;
-        const results = await this.getResults(query);
-
-        this.lastResultCount = results.length;
-        resolve(results);
-      }, Finder.DEBOUNCE_MS);
-    });
   }
 
   /** Serializza i risultati correnti in una nota markdown (wikilink + metadati) */

@@ -44,6 +44,11 @@ One item the search returns: either a vault file or an Obsidian command. The two
 together through the search and are told apart only when rendered.
 _Avoid_: hit, match, entry
 
+**Superseded search**:
+A search whose query is no longer what the user has typed. Its results are never shown, even if it
+finishes after a newer search.
+_Avoid_: stale search, cancelled search, abandoned search
+
 **Card**:
 The view-model describing how a single result should be displayed: its tags, which of those tags the
 query asked for, task counts, and whether it gets a preview. It is what the search layer hands to a

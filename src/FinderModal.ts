@@ -4,12 +4,14 @@ import { ModalUI } from "./component/Modal/ModalUI";
 import { SearchStrategyFactory, ParsedQuery } from "./engine/SearchStrategy";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
+import { LatestSearch } from "./engine/LatestSearch";
 import "./FinderModal.css";
 
 const PREVIEW_EXTENSIONS = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'canvas', 'pdf', 'docx', 'xlsx'];
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
+  private latestSearch: LatestSearch;
   private uiHelper!: SearchUIHelper;
   // Memoization di parse(): renderResult viene chiamato una volta per riga
   // renderizzata, ma la query è la stessa per tutta la lista. Senza cache,
@@ -29,6 +31,7 @@ class FinderModal extends SuggestModal<SearchResult> {
   constructor(app: App) {
     super(app);
     this.core = new Finder(app);
+    this.latestSearch = new LatestSearch(this.core);
   }
 
   onOpen(): void {
@@ -52,11 +55,12 @@ class FinderModal extends SuggestModal<SearchResult> {
 
   onClose(): void {
     super.onClose();
+    this.latestSearch.cancel();
     this.core.dispose();
   }
 
   async getSuggestions(query: string): Promise<SearchResult[]> {
-    return this.core.search(query);
+    return this.latestSearch.run(query);
   }
 
   renderSuggestion(result: SearchResult, el: HTMLElement) {

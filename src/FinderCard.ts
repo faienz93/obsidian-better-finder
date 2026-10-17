@@ -6,6 +6,7 @@ import { CardUI } from "./component/Card/CardUI";
 import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
+import { LatestSearch } from "./engine/LatestSearch";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -13,6 +14,7 @@ const PAGE_SIZE = 20;
 
 export class FinderCard extends ItemView {
   private core: Finder;
+  private latestSearch: LatestSearch;
   private cardContainer!: CardUI;
   private searchBar!: SearchBar;
   private uiHelper!: SearchUIHelper;
@@ -25,6 +27,7 @@ export class FinderCard extends ItemView {
   constructor(leaf: WorkspaceLeaf) {
     super(leaf);
     this.core = new Finder(this.app);
+    this.latestSearch = new LatestSearch(this.core);
     // Registra la view nella history di navigazione: aprendo un file dalla
     // stessa leaf, il pulsante "indietro" riporta al finder.
     this.navigation = true;
@@ -47,6 +50,7 @@ export class FinderCard extends ItemView {
   }
 
   async onClose(): Promise<void> {
+    this.latestSearch.cancel();
     this.destroyObserver();
     this.core.dispose();
     this.contentEl.empty();
@@ -100,7 +104,7 @@ export class FinderCard extends ItemView {
 
   private async onSearch(): Promise<void> {
     this.uiHelper.onInput(this.searchBar.getValue(), this.searchBar.getInputEl());
-    const results = await this.core.search(this.searchBar.getValue());
+    const results = await this.latestSearch.run(this.searchBar.getValue());
 
     this.prepareScrollResult(results);
   }
@@ -111,7 +115,7 @@ export class FinderCard extends ItemView {
     this.renderedCount = 0;
     this.cardContainer.empty();
     this.sentinel = null;
-    this.searchBar.setCounterElement(`${this.core.lastResultCount} ${i18n.results}`);
+    this.searchBar.setCounterElement(`${results.length} ${i18n.results}`);
     this.loadMoreItems();
   }
 
