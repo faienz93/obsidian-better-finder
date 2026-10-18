@@ -54,26 +54,49 @@ The floating search popup, driven from the keyboard, that closes once a result i
 _Avoid_: popup, palette, finder
 
 **Moodboard**:
-The search view that opens as a workspace tab and lays results out as a grid or a list of Cards. It
-stays open while results are opened from it.
+The search view that opens as a workspace tab and lays results out either as a grid of Cards or as
+a List. It stays open while results are opened from it.
 _Avoid_: sidebar, board, panel, card view
 
+**Data**:
+What is known about one result for the purpose of showing it: its tags and which of them the query
+asked for, its task count, what its Body shows. It is decided once per result and query, and every
+Card and Item draws it the same way. What a result shows is decided by the query as a whole, so a
+query with both a tag and a task filter shows both.
+_Avoid_: view model, card, item
+
 **Card**:
-The view-model describing how a single result should be displayed: its tags, which of those tags the
-query asked for, task counts, and whether it gets a preview. It is what the search layer hands to a
-UI, not a visual element itself.
-_Avoid_: item, row, tile, view model
+The square that draws one result's Data in the Moodboard grid.
+_Avoid_: tile
+
+**Item**:
+The line that draws one result's Data in a List: a row of the Modal, or a row of the Moodboard in
+list layout.
+_Avoid_: card, suggestion, row
+
+**List**:
+A column of Items. The Modal always shows a List; the Moodboard shows one when switched out of grid
+layout.
+_Avoid_: list view, table
 
 **Preview**:
-The visual rendering of a result's content shown next to its title: an image, an embed, a text
-excerpt or a code excerpt, depending on the file type. Not every file type has one, and a result
-showing a **Snippet** gets no Preview.
+What a file is, drawn in the Body: an image, an embed, a text excerpt or a code excerpt, depending on
+the file type. Not every file type has one. A note found by free text shows its Occurrences instead,
+and the Card offers a button to switch to the Preview and back.
 _Avoid_: thumbnail
 
-**Snippet**:
-The passage of a note's content around the searched word, with the word highlighted. It explains
-why the result matched; a Preview only shows what the file is.
-_Avoid_: excerpt, preview, highlight, match term
+**Body**:
+The part of a Card or an Item below the title. It shows what the Data chose for that result: its
+Occurrences, its task lines, its Preview, or nothing. With both free text and a task filter it shows
+the Occurrences and the task lines together.
+_Avoid_: content, preview area
+
+**Occurrences**:
+Every place in a note's content where a searched word appears, each with a few words of context and
+the word highlighted, like `grep` with context. Each word of the free text is looked for on its own,
+including the near spellings and prefixes the search accepted. Nearby occurrences merge into one
+passage. It explains why the result matched; a Preview only shows what the file is.
+_Avoid_: snippet, excerpt, highlight, match
 
 ### What is searched
 
