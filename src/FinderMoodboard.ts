@@ -1,5 +1,5 @@
 import { ItemView, WorkspaceLeaf, TFile, Menu, getAllTags } from "obsidian";
-import { Finder, SearchResult, isCommand } from "./Finder";
+import { Finder, SearchOutcome, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
 import { Card } from "./component/interface/Card";
 import { CardUI } from "./component/Card/CardUI";
@@ -20,7 +20,7 @@ export class FinderMoodboard extends ItemView {
   private cardContainer!: CardUI;
   private searchBar!: SearchBar;
   private uiHelper!: SearchUIHelper;
-  private allResults: SearchResult[] = [];
+  private outcome: SearchOutcome | null = null;
   private renderedCount = 0;
   private sentinel: HTMLElement | null = null;
   private observer: IntersectionObserver | null = null;
@@ -68,7 +68,7 @@ export class FinderMoodboard extends ItemView {
     const toggle = this.searchBar.createToggle();
 
     this.searchBar.createActionButton('⤓', i18n.exportButtonTitle, () => {
-      this.core.exportResults(this.allResults, this.searchBar.getValue()).catch(console.error);
+      this.core.exportResults(this.allResults, this.outcome?.parsed.rawInput ?? '').catch(console.error);
     });
 
     this.cardContainer = new CardUI(this.searchBar.containerEl, toggle, this.app, this);
@@ -106,14 +106,20 @@ export class FinderMoodboard extends ItemView {
 
   private async onSearch(): Promise<void> {
     this.uiHelper.onInput(this.searchBar.getValue(), this.searchBar.getInputEl());
-    const results = await this.latestSearch.run(this.searchBar.getValue());
+    const outcome = await this.latestSearch.run(this.searchBar.getValue());
 
-    this.prepareScrollResult(results);
+    this.prepareScrollResult(outcome);
   }
 
-  private prepareScrollResult(results: SearchResult[]): void {
+  private get allResults(): SearchResult[] {
+    return this.outcome?.results ?? [];
+  }
+
+  private prepareScrollResult(outcome: SearchOutcome): void {
+    const results = outcome.results;
+
     this.destroyObserver();
-    this.allResults = results;
+    this.outcome = outcome;
     this.renderedCount = 0;
     this.cardContainer.empty();
     this.sentinel = null;

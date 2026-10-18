@@ -13,6 +13,12 @@ import {
 export type { ParsedQuery, DateRange, TaskStatus } from "./search-filters";
 export { SearchFilter, isFilterable } from "./search-filters";
 
+/** Files the free text kept, with the words that made each one match, keyed by path. */
+export interface FreeTextResults {
+  files: TFile[];
+  matchedWords: Map<string, string[]>;
+}
+
 export class SearchStrategyFactory {
   private readonly strategyMap: Map<string, SearchFilter<unknown>> = new Map();
   private readonly highlightFilter = new HighlightFilter();
@@ -147,32 +153,38 @@ export class SearchStrategyFactory {
     return files.filter(f => f.basename.toLowerCase().includes(searchTerm));
   }
 
-  async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<TFile[]> {
+  async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<FreeTextResults> {
     // Apply highlight filter (async, reads file content)
     if (parsed.highlightFilter) {
-      return this.highlightFilter.filterAsync(files, parsed.highlightFilter, app);
+      return { files: await this.highlightFilter.filterAsync(files, parsed.highlightFilter, app), matchedWords: new Map() };
     }
 
     if (!parsed.freeText) {
-      return files.sort((a, b) => b.stat.mtime - a.stat.mtime);
+      return { files: files.sort((a, b) => b.stat.mtime - a.stat.mtime), matchedWords: new Map() };
     }
 
     const searchIndex = SearchIndex.getInstance(app);
     const hasExplicitFileTypes = parsed.fileTypes.length > 0;
+    const freeTextWords = [...new Set(parsed.freeText.toLowerCase().split(/\s+/))];
 
     // No explicit file type filter: use MiniSearch (markdown + documenti esterni
     // tipo PDF/OCR) + basename search per i file non indicizzati
     if (!hasExplicitFileTypes && searchIndex.isIndexReady()) {
       const candidatePaths = new Set(files.map(f => f.path));
-      const indexResults = searchIndex.search(parsed.freeText).filter(f => candidatePaths.has(f.path));
-      const foundPaths = new Set(indexResults.map(f => f.path));
+      const indexResults = searchIndex.search(parsed.freeText).filter(r => candidatePaths.has(r.file.path));
+      const foundPaths = new Set(indexResults.map(r => r.file.path));
       const remainingNonMd = files.filter(f => f.extension !== 'md' && !foundPaths.has(f.path));
       const otherResults = searchIndex.searchInTitlesWithoutIndex(parsed.freeText, remainingNonMd);
+      const matchedWords = new Map<string, string[]>(indexResults.map(r => [r.file.path, r.terms]));
 
-      return [...indexResults, ...otherResults];
+      otherResults.forEach(f => matchedWords.set(f.path, freeTextWords));
+
+      return { files: [...indexResults.map(r => r.file), ...otherResults], matchedWords };
     }
 
-    return searchIndex.searchFilesWithoutIndex(parsed.freeText, files);
+    const found = await searchIndex.searchFilesWithoutIndex(parsed.freeText, files);
+
+    return { files: found, matchedWords: new Map<string, string[]>(found.map(f => [f.path, freeTextWords])) };
   }
 
   parse(input: string): ParsedQuery {

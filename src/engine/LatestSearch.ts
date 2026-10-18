@@ -1,9 +1,9 @@
-import { SearchResult } from '../Finder';
+import { SearchOutcome } from '../Finder';
 
 export const SEARCH_DEBOUNCE_MS = 150;
 
-export interface SearchSource {
-  getResults(query: string): Promise<SearchResult[]>;
+export interface SearchSource<T> {
+  getResults(query: string): Promise<T>;
 }
 
 /**
@@ -11,16 +11,16 @@ export interface SearchSource {
  * A superseded search never settles: SuggestModal renders whatever any promise resolves to, so
  * resolving shows stale results or flashes "no results", and rejecting logs an error.
  */
-export class LatestSearch {
+export class LatestSearch<T = SearchOutcome> {
   private timer: number | null = null;
   private generation = 0;
 
   constructor(
-    private readonly source: SearchSource,
+    private readonly source: SearchSource<T>,
     private readonly delayMs = SEARCH_DEBOUNCE_MS
   ) {}
 
-  run(query: string): Promise<SearchResult[]> {
+  run(query: string): Promise<T> {
     if (this.timer !== null) {
       window.clearTimeout(this.timer);
     }
@@ -30,10 +30,10 @@ export class LatestSearch {
     return new Promise((resolve) => {
       this.timer = window.setTimeout(async () => {
         this.timer = null;
-        const results = await this.source.getResults(query);
+        const outcome = await this.source.getResults(query);
 
         if (generation === this.generation) {
-          resolve(results);
+          resolve(outcome);
         }
       }, this.delayMs);
     });

@@ -1,7 +1,6 @@
 import { App, SuggestModal, getAllTags, TFile } from "obsidian";
-import { Finder, SearchResult, isCommand } from "./Finder";
+import { Finder, SearchOutcome, SearchResult, isCommand } from "./Finder";
 import { ModalUI } from "./component/Modal/ModalUI";
-import { SearchStrategyFactory, ParsedQuery } from "./engine/SearchStrategy";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
@@ -13,20 +12,8 @@ class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
   private latestSearch: LatestSearch;
   private uiHelper!: SearchUIHelper;
-  // Memoization di parse(): renderResult viene chiamato una volta per riga
-  // renderizzata, ma la query è la stessa per tutta la lista. Senza cache,
-  // parse() (regex multiple) girava N volte per digitazione → freeze con molte note.
-  private parseCacheInput: string | null = null;
-  private parseCacheValue: ParsedQuery | null = null;
-
-  private getParsed(query: string): ParsedQuery {
-    if (this.parseCacheInput !== query || this.parseCacheValue === null) {
-      this.parseCacheInput = query;
-      this.parseCacheValue = SearchStrategyFactory.getInstance().parse(query);
-    }
-
-    return this.parseCacheValue;
-  }
+  // Rows are drawn from the search that settled, not from the input, which may already hold a newer query.
+  private outcome: SearchOutcome | null = null;
 
   constructor(app: App) {
     super(app);
@@ -60,7 +47,9 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   async getSuggestions(query: string): Promise<SearchResult[]> {
-    return this.latestSearch.run(query);
+    this.outcome = await this.latestSearch.run(query);
+
+    return this.outcome.results;
   }
 
   renderSuggestion(result: SearchResult, el: HTMLElement) {
@@ -85,8 +74,10 @@ class FinderModal extends SuggestModal<SearchResult> {
       return;
     }
 
+    if (!this.outcome) return;
+
     const file = result as TFile;
-    const parsed = this.getParsed(this.inputEl.value);
+    const parsed = this.outcome.parsed;
     const fileCache = this.app.metadataCache.getFileCache(file);
     const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
     const tasks = fileCache?.listItems?.filter(i => i.task) || [];

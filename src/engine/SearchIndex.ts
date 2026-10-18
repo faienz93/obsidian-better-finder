@@ -10,6 +10,12 @@ interface IndexedDocument {
   extension: string;    // per filtri futuri
 }
 
+/** A file the Index found, with the document terms MiniSearch matched in it. */
+export interface IndexResult {
+  file: TFile;
+  terms: string[];
+}
+
 export class SearchIndex implements CommonCache {
   private miniSearch: MiniSearch<IndexedDocument>;
   private app: App;
@@ -137,7 +143,7 @@ export class SearchIndex implements CommonCache {
   /**
    * Ricerca full-text veloce usando l'indice
    */
-  search(query: string, maxResults?: number): TFile[] {
+  search(query: string, maxResults?: number): IndexResult[] {
     if (!this.isReady) {
       console.warn('[SearchIndex] Index not ready yet');
 
@@ -151,19 +157,19 @@ export class SearchIndex implements CommonCache {
     try {
       const results = this.miniSearch.search(query);
 
-      // Converti risultati in TFile oggetti
-      const files: TFile[] = [];
+      // MiniSearch reports terms as they appear in the document, so fuzzy and prefix matches give the full word.
+      const indexResults: IndexResult[] = [];
 
       for (const result of (maxResults !== undefined ? results.slice(0, maxResults) : results)) {
         const file = this.app.vault.getAbstractFileByPath(result.id);
 
         // files[0].stat.ctime
         if (file instanceof TFile) {
-          files.push(file);
+          indexResults.push({ file, terms: result.terms });
         }
       }
 
-      return files;
+      return indexResults;
     } catch (error) {
       console.error('[SearchIndex] Search error:', error);
 

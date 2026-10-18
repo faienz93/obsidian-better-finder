@@ -1,10 +1,20 @@
 import { App, TFile, Command, Notice, EventRef } from "obsidian";
 import { i18n } from "./const";
-import { SearchStrategyFactory } from "./engine/SearchStrategy";
+import { SearchStrategyFactory, ParsedQuery } from "./engine/SearchStrategy";
 import { ModalItem } from "./component/Modal/ModalItem";
 import { HintsType } from "./component/ui/HintBar";
 
 export type SearchResult = TFile | Command;
+
+/**
+ * What one search settled on: the query it parsed, its results, and the words that made each file
+ * match, keyed by path. Files found without free text have no entry.
+ */
+export interface SearchOutcome {
+  parsed: ParsedQuery;
+  results: SearchResult[];
+  matchedWords: Map<string, string[]>;
+}
 
 export function isCommand(result: SearchResult): result is Command {
   return 'id' in result && 'name' in result;
@@ -76,23 +86,22 @@ export class Finder {
     );
   }
 
-  async getResults(query: string): Promise<SearchResult[]> {
+  async getResults(query: string): Promise<SearchOutcome> {
     const parsed = this.factory.parse(query);
 
     // Command mode: early return
     if (parsed.isCommandMode) {
-      return this.getCommandSuggestions(parsed.commandText || '');
+      return { parsed, results: this.getCommandSuggestions(parsed.commandText || ''), matchedWords: new Map() };
     }
 
     // Lista file dalla cache (invalidata sugli eventi vault, vedi costruttore)
     const allFiles = this.getAllFiles();
 
     // Apply all filters
-    let results = this.factory.filter(allFiles, parsed, this.app);
+    const filtered = this.factory.filter(allFiles, parsed, this.app);
+    const { files, matchedWords } = await this.factory.filterFreeText(filtered, parsed, this.app);
 
-    results = await this.factory.filterFreeText(results, parsed, this.app);
-
-    return this.dedupeByPath(results);
+    return { parsed, results: this.dedupeByPath(files), matchedWords };
   }
 
   /** Rimuove i duplicati mantenendo la prima occorrenza (= ranking più alto) */
