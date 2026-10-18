@@ -4,122 +4,98 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 Whenever working with any third-party library or something similar, you MUST look up the official documentation to ensure that you're working with up-to-date information. Use the `docs-explorer:docs-explorer` subagent (from the dev-toolbox plugin) for efficient documentation lookup.
 
+## Language
+
+The plugin will be published. Everything that lands in the repo or on GitHub is written in English: code, comments, commit messages, issues, specs, docs. Older files still carry Italian comments; they are not a precedent. The conversation with the maintainer stays in Italian. UI strings are the exception: they live in the `i18n` object in `src/const.ts`.
+
+## Domain language
+
+`CONTEXT.md` is the glossary. Use its terms in code, issues and replies, and the words it lists under _Avoid_ nowhere. The ones that are easy to get wrong:
+
+- **Modal**: the floating popup (`FinderModal`). **Moodboard**: the view that opens as a workspace tab (`FinderMoodboard`). Never call it "sidebar": it is not one.
+- **Data**: what is decided about one result for display. **Card** (Moodboard grid square), **Item** (row of a List, in the Modal or the Moodboard list layout) and **List** are the graphic components that draw it.
+- **Body**: the part of a Card or Item below the title. **Occurrences**: every place a searched word appears, with context (formerly "snippet"). **Preview**: what the file is (image, embed, excerpt).
+
+In code the Data interface is still named `Card` (`src/component/interface/Card.ts`) until the work in issue #2 renames it `ResultData`.
+
 ## Commands
 
 ```bash
-npm run dev          # Development build with watch mode (uses esbuild)
-npm run build        # Production build (runs tsc type-check + esbuild)
-npm run lint         # ESLint check
-npm run lint:fix     # ESLint auto-fix
-npm run format       # Prettier format
-npm run format:check # Prettier check (CI)
-npm run version      # Bump version and stage manifest.json + versions.json
+npm run dev          # Development build with watch mode (esbuild)
+npm run build        # Production build: tsc type-check + esbuild
+npm test             # Jest unit tests
+npx jest test/search-filters.test.ts   # One test file
+npx jest -t "part of a test name"      # Tests matching a name
+npm run lint         # ESLint
+npm run lint:fix
+npm run format       # Prettier
+npm run format:check
+npm run version      # Bump version, stage manifest.json + versions.json
 ```
 
-There are no automated tests. Manual testing requires running `npm run dev`, enabling the plugin in Obsidian, and exercising the UI.
+Always run `npm run build` after a change and fix TypeScript errors before committing.
+
+Tests run in Node without Obsidian: `jest.config.js` maps `obsidian` and `minisearch` to the mocks in `test/mocks/`, and CSS imports to a stub. Tests build a fake `App` (metadata cache keyed by path, `cachedRead` over an in-memory map) and reset singletons through their private static field. Anything that touches the DOM is checked by hand: `npm run dev`, enable the plugin in Obsidian (the Hot Reload plugin reloads it on rebuild), exercise both the Modal and the Moodboard.
 
 ## Architecture
 
-The plugin is a TypeScript Obsidian plugin bundled to `main.js` via esbuild. The real entry point is `main.ts` (root), which instantiates `SearchIndex`, registers commands/views, and wires vault events. `src/main.ts` is an **unused sample file** left from the template — ignore it.
+TypeScript Obsidian plugin bundled to `main.js` by esbuild. The entry point is the root `main.ts`. `src/main.ts` and `src/settings.ts` are untouched leftovers of the sample template: ignore them. The settings tab is `src/FinderSetting.ts`.
 
-Always preserve existing architectural patterns: UI components handle rendering only, controllers handle logic, and strategy patterns are used for search/filtering.
+UI components only render; logic lives in the engine and in `Finder`. Prefer lazy loading with IntersectionObserver over pagination, and never cap the number of displayed results unless asked.
 
-When implementing UI changes, prefer lazy-loading and IntersectionObserver patterns over pagination or result limiting. Never cap the number of displayed results unless explicitly asked.
+### Two views, one search
 
-Before making code edits, confirm the approach with the user if the task is exploratory or the user says they want to do it themselves. Watch for signals like 'faccio io' or minimal responses.
+- **Modal** (`src/FinderModal.ts`): a `SuggestModal`, keyboard-driven, closes on open. Draws Items via `ModalUI` → `ModalItem`.
+- **Moodboard** (`src/FinderMoodboard.ts`): an `ItemView` opened in a new workspace tab, grid or list layout, stays open while results open in new tabs. Draws via `CardUI` → `GridCard` / `ListCard`. It is being extended (issue #2); the old "legacy, do not extend" rule no longer applies.
 
-Always run `npm run build` after making changes and check for TypeScript errors. If the build fails, fix errors before committing.
-
-When adding support for new file types (pdf, canvas, base, json), ensure both preview/thumbnail rendering AND search indexing are updated together.
-
-### Two parallel UIs
-
-The plugin exposes two independent UIs that share the same search engine:
-
-- **`FinderModal`** (`src/FinderModal.ts`) — `SuggestModal` popup, keyboard-driven. Renders results via `ModalUI` → `SuggestionItem`.
-- **`FinderMoodboard`** (`src/FinderMoodboard.ts`) — `ItemView` opened as a workspace tab (the Moodboard), with grid/list toggle. Renders results via `CardUI` (`GridCard` / `ListCard`). Considered legacy by the maintainer; do not extend it without explicit ask.
-
-Both are registered in `main.ts` and both call into the same `Finder` orchestrator.
-
-### Core data flow
+Both go through the same pipeline:
 
 ```
-User types in FinderModal or FinderMoodboard
-  → LatestSearch.run() (one per UI: debounced 150ms, only the latest search settles)
+Query typed in Modal or Moodboard
+  → LatestSearch.run()        one per view: 150 ms debounce, only the latest search settles
     → Finder.getResults()
-    → SearchStrategyFactory extracts filters from query text
-    → Each matched strategy filters TFile[]
-    → Remaining free text → SearchIndex.search() (MiniSearch) or fallback
-    → Returns SearchResult[] (TFile | Command)
-  → UI renders via SuggestionItem (modal) or Card components (Moodboard)
+      → SearchStrategyFactory.parse()        Query → ParsedQuery
+      → SearchStrategyFactory.filter()       each Filter narrows TFile[]
+      → filterFreeText()                     Index (MiniSearch) or direct file scan
+    → SearchResult[]  (TFile | Command; isCommand()/isFile() tell them apart)
+  → view builds the Data per result and draws it
 ```
 
-### Key modules
+A superseded search never resolves: `SuggestModal` applies whatever promise resolves, without checking the query, so resolving or rejecting a stale one would show wrong results. See the JSDoc of `LatestSearch`.
 
-| File                                | Role                                                                               |
-| ----------------------------------- | ---------------------------------------------------------------------------------- |
-| `main.ts` (root)                    | Plugin lifecycle, registers commands/view, owns `SearchIndex` singleton            |
-| `src/Finder.ts`                     | Search orchestration, command suggestions, result selection                        |
-| `src/engine/LatestSearch.ts`        | Debounce + "latest wins" per UI; superseded searches never settle (see JSDoc)      |
-| `src/SearchUIHelper.ts`             | Hint bar / sub-hint / tag preview wiring shared by both UIs                        |
-| `src/engine/SearchStrategy.ts`      | All filter strategies + `SearchStrategyFactory` singleton                          |
-| `src/engine/SearchIndex.ts`         | MiniSearch wrapper (singleton); full-text index of markdown files                  |
-| `src/engine/search-filters/`        | Individual strategy implementations split by concern                               |
-| `src/FinderModal.ts`                | `SuggestModal` UI — keyboard-driven popup                                          |
-| `src/FinderMoodboard.ts`            | `ItemView` workspace tab, the Moodboard (legacy)                                   |
-| `src/component/Modal/ModalUI.ts`    | Renders a single suggestion in the modal — pure renderer, no logic                 |
-| `src/component/Card/`               | `CardUI`, `GridCard`, `ListCard` — Moodboard result rendering                      |
-| `src/component/interface/Card.ts`   | Shared data interface for items rendered by both UIs                               |
-| `src/component/ui/`                 | Reusable atoms: `SuggestionItem`, `Title`, `Tags`, `ImagePreview`, `HintBar`, …    |
-| `src/FinderSetting.ts`              | Settings tab (currently only ribbon icon toggle)                                   |
-| `src/const.ts`                      | i18n strings and emoji constants                                                   |
+### Filters
 
-### Strategy pattern (`src/engine/SearchStrategy.ts`)
+Each Filter is a class in `src/engine/search-filters/` extending `SearchFilter<T>`: `extract(query)` parses its token, `removeFrom(query)` strips it, `filter(files, extracted, app)` narrows, and `label`/`desc` feed the hint bar. Adding a Filter still means registering it by hand in `search-filters/index.ts`, `types.ts` (`ParsedQuery`) and in both `parse()` and `filter()` of `SearchStrategyFactory`, whose order is written out in the method bodies; collapsing that into one ordered registry is candidate 1 of `docs/architecture-review-2026-10-09.html`. `>` at the start of the Query switches to command mode. Tag matching is hierarchical: `#project` matches `#project/alpha` (`matchesTag`).
 
-Each query modifier is a strategy implementing `SearchStrategyInterface<T>`:
+### Common caches
 
-- `extract(query)` → parses the relevant token(s) from query text
-- `removeFrom(query)` → strips those tokens, leaving free text for full-text search
-- Strategies that also implement `Filterable<T>` have a `filter(files, extracted, app)` method
+Three singletons derive state from the Vault and implement `CommonCache` (`src/engine/CommonCache.ts`): `SearchIndex` (MiniSearch over markdown plus extracted text, basename weighted 5×, content truncated to 10 000 chars), `CanvasTagCache` (tags inside canvas text nodes, which the metadata cache does not see) and `XbergExtractor` (PDF text and image OCR through the `xberg`/`kreuzberg` sidecar binary, persisted to `xberg-cache.json`; disabled when the binary is missing). `main.ts` builds them in `onLayoutReady` and dispatches every vault event to each cache whose `handles(file)` is true. A new cache is one more entry in that list.
 
-Registered strategies: `tag` (#hashtag, hierarchical), `dateFilter` (today/this week/this month), `fileTypes` (pdf/image/canvas/json/base), `title` (title: prefix), `task` (task:/task-todo:/task-done:), `command` (> prefix).
+They agree on how they stay current and deliberately disagree on how they answer a read while stale; `CONTEXT.md` explains why. Do not unify them.
 
-The `>` prefix triggers **command mode** — `Finder.getCommandSuggestions()` returns `Command[]` instead of `TFile[]`. The `isCommand()` / `isFile()` type guards in `Finder.ts` discriminate between `TFile` and `Command` results downstream.
+When the Index is not ready, or free text runs over non-markdown files, `searchFilesWithoutIndex()` reads files directly.
 
-### SearchIndex singleton
+### Preview
 
-`SearchIndex` is a lazy singleton initialized in `main.ts` after layout is ready. It indexes only markdown files with MiniSearch (basename weighted 5×, content truncated to 10 000 chars). The index is kept live via vault events (`create`, `delete`, `rename`) and `metadataCache.on('changed')` registered in `main.ts`.
+"Does this file get a Preview?" has one answer: `ImagePreview.hasPreview(app, file, { hasSnippet })`, next to the branches of `ImagePreview.load()` that draw it. Never keep a separate list of previewable extensions in a caller. `ImagePreview` draws a `.md` text excerpt, a `.json` code excerpt, an icon plus extracted text for docx/xlsx, and an `![[…]]` embed for images, canvas, pdf and Excalidraw (`excalidraw-plugin: parsed` in frontmatter). Rendering markdown runs every other plugin's post-processors (execute-code, mermaid, …), which is costly on long lists.
 
-When the index is not ready (or free text search is over non-markdown files), `searchFilesWithoutIndex()` is used as fallback (slower, scans file content directly).
+When adding a file type, update the Preview and the search indexing together.
 
-### CSS architecture
+### CSS
 
-CSS lives next to its component (`*.css` alongside `*.ts`) and is `import`-ed from the `.ts`. esbuild bundles all imports into `main.css`, which the `renameCssPlugin` in `esbuild.config.mjs` renames to `styles.css` (the only file Obsidian auto-loads). Do not edit `styles.css` by hand — it's a build artifact.
+CSS sits next to its component and is imported from the `.ts`. esbuild bundles it into `main.css`, which `renameCssPlugin` in `esbuild.config.mjs` renames to `styles.css`, the only file Obsidian loads. Never edit `styles.css` by hand. The `.better-finder-modal` class is added by `FinderModal.onOpen()`, not by Obsidian.
 
-The `.better-finder-modal` class is **not** added by Obsidian — `FinderModal.onOpen()` calls `this.modalEl.addClass('better-finder-modal')` to scope modal-specific CSS. If you write new CSS rules scoped to that class, they only apply if the modal is open.
+## Obsidian API pitfalls
 
-### Preview rendering policy
-
-"Does this file get a Preview?" has one answer: `ImagePreview.hasPreview(app, file, { hasSnippet })`, next to the branches of `ImagePreview.load()` that draw it. Both UIs call it to fill the boolean `Card.renderPreview`; `ModalUI`, `GridCard` and `ListCard` render the Preview only when that field is true. Never keep a separate list of previewable extensions in a caller.
-
-`ImagePreview` (`src/component/ui/ImagePreview.ts`) draws: `.md` text excerpt, `.json` code excerpt, docx/xlsx icon + extracted text, and an `![[…]]` embed for images, canvas, pdf and Excalidraw (frontmatter `excalidraw-plugin: parsed`). A `.md` note showing a Snippet (modal with free text or task filter) gets no Preview.
-
-## Obsidian API — inherited methods
-
-When extending an Obsidian class, always use the exact method names required by the installed API version. Never rename abstract methods, even if the name seems unusual. Always check the TypeScript compiler error: if it reports an abstract method as not implemented, use exactly the name indicated in the error.
-
-Known cases:
-
-- `SuggestModal<T>` requires `renderModalItem(result: T, el: HTMLElement)` (not `renderSuggestion`)
+- Use the exact abstract method names the installed API requires, even odd ones; trust the compiler error. `SuggestModal<T>` requires `renderModalItem(result, el)`, not `renderSuggestion`.
+- `FINDER_VIEW_TYPE` (`"better-finder-view"`) is stored in saved workspace layouts. Never change it, even when renaming the view class.
+- Private APIs (`app.commands`, `app.hotkeyManager`) are reached through `as any` on purpose; `no-explicit-any` is a warning.
 
 ## Coding conventions
 
-- **Singletons** via `getInstance()`: `SearchStrategyFactory` and `SearchIndex` — never instantiate them with `new`.
-- ESLint enforces blank lines around `return`, `block-like` statements, and variable declarations — follow the existing pattern.
-- `@typescript-eslint/no-explicit-any` is a warning, not an error; Obsidian's private APIs (`app.commands`, `app.hotkeyManager`) are accessed via `as any` intentionally.
-- The `i18n` object in `src/const.ts` contains Italian UI strings — keep new strings there.
-- `src/settings.ts` is a **dead file** from the sample template; the actual settings class is `src/FinderSetting.ts`.
-- Plans for non-trivial tasks live in `.claude/plans/` (created via the `ping-pong-task` skill).
+- Singletons (`SearchStrategyFactory`, `SearchIndex`, the common caches) are obtained with `getInstance()`, never `new`.
+- ESLint enforces blank lines around `return`, block statements and variable declarations; follow the existing pattern.
+- How to behave and how to commit are in `.claude/rules/behaviour.md` and `.claude/rules/commit.md`.
 
 ## Agent skills
 
