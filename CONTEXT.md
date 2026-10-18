@@ -49,6 +49,15 @@ A search whose query is no longer what the user has typed. Its results are never
 finishes after a newer search.
 _Avoid_: stale search, cancelled search, abandoned search
 
+**Modal**:
+The floating search popup, driven from the keyboard, that closes once a result is opened.
+_Avoid_: popup, palette, finder
+
+**Moodboard**:
+The search view that opens as a workspace tab and lays results out as a grid or a list of Cards. It
+stays open while results are opened from it.
+_Avoid_: sidebar, board, panel, card view
+
 **Card**:
 The view-model describing how a single result should be displayed: its tags, which of those tags the
 query asked for, task counts, and whether it gets a preview. It is what the search layer hands to a
