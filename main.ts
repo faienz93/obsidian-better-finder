@@ -1,7 +1,7 @@
 import { Platform, Plugin, TAbstractFile, TFile } from 'obsidian';
 import FinderModal from './src/FinderModal'
 import FinderSetting from './src/FinderSetting'
-import { FinderCard, FINDER_VIEW_TYPE } from './src/FinderCard'
+import { FinderMoodboard, FINDER_VIEW_TYPE } from './src/FinderMoodboard'
 import { SearchIndex } from './src/engine/SearchIndex';
 import { CanvasTagCache } from './src/engine/CanvasTagCache';
 import { XbergExtractor } from './src/engine/XbergExtractor';
@@ -42,7 +42,7 @@ export default class ObsidianBetterFinder extends Plugin {
     });
 
     // Register the FinderView
-    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderCard(leaf));
+    this.registerView(FINDER_VIEW_TYPE, (leaf) => new FinderMoodboard(leaf));
 
     this.addCommand({
       id: 'obsidian-better-finder-open-modal',

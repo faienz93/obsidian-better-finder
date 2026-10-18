@@ -37,21 +37,21 @@ When adding support for new file types (pdf, canvas, base, json), ensure both pr
 The plugin exposes two independent UIs that share the same search engine:
 
 - **`FinderModal`** (`src/FinderModal.ts`) — `SuggestModal` popup, keyboard-driven. Renders results via `ModalUI` → `SuggestionItem`.
-- **`FinderCard`** (`src/FinderCard.ts`) — `ItemView` sidebar panel with grid/list toggle. Renders results via `CardUI` (`GridCard` / `ListCard`). Considered legacy by the maintainer; do not extend it without explicit ask.
+- **`FinderMoodboard`** (`src/FinderMoodboard.ts`) — `ItemView` opened as a workspace tab (the Moodboard), with grid/list toggle. Renders results via `CardUI` (`GridCard` / `ListCard`). Considered legacy by the maintainer; do not extend it without explicit ask.
 
 Both are registered in `main.ts` and both call into the same `Finder` orchestrator.
 
 ### Core data flow
 
 ```
-User types in FinderModal or FinderCard
+User types in FinderModal or FinderMoodboard
   → LatestSearch.run() (one per UI: debounced 150ms, only the latest search settles)
     → Finder.getResults()
     → SearchStrategyFactory extracts filters from query text
     → Each matched strategy filters TFile[]
     → Remaining free text → SearchIndex.search() (MiniSearch) or fallback
     → Returns SearchResult[] (TFile | Command)
-  → UI renders via SuggestionItem (modal) or Card components (sidebar)
+  → UI renders via SuggestionItem (modal) or Card components (Moodboard)
 ```
 
 ### Key modules
@@ -66,9 +66,9 @@ User types in FinderModal or FinderCard
 | `src/engine/SearchIndex.ts`         | MiniSearch wrapper (singleton); full-text index of markdown files                  |
 | `src/engine/search-filters/`        | Individual strategy implementations split by concern                               |
 | `src/FinderModal.ts`                | `SuggestModal` UI — keyboard-driven popup                                          |
-| `src/FinderCard.ts`                 | `ItemView` sidebar panel (legacy)                                                  |
+| `src/FinderMoodboard.ts`            | `ItemView` workspace tab, the Moodboard (legacy)                                   |
 | `src/component/Modal/ModalUI.ts`    | Renders a single suggestion in the modal — pure renderer, no logic                 |
-| `src/component/Card/`               | `CardUI`, `GridCard`, `ListCard` — sidebar result rendering                        |
+| `src/component/Card/`               | `CardUI`, `GridCard`, `ListCard` — Moodboard result rendering                      |
 | `src/component/interface/Card.ts`   | Shared data interface for items rendered by both UIs                               |
 | `src/component/ui/`                 | Reusable atoms: `SuggestionItem`, `Title`, `Tags`, `ImagePreview`, `HintBar`, …    |
 | `src/FinderSetting.ts`              | Settings tab (currently only ribbon icon toggle)                                   |

@@ -14,7 +14,7 @@ export const FINDER_VIEW_TYPE = "better-finder-view";
 
 const PAGE_SIZE = 20;
 
-export class FinderCard extends ItemView {
+export class FinderMoodboard extends ItemView {
   private core: Finder;
   private latestSearch: LatestSearch;
   private cardContainer!: CardUI;
