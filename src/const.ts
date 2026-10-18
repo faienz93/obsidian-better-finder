@@ -21,3 +21,4 @@ export const i18n = {
   exportFailed: 'Esportazione fallita',
   exportButtonTitle: 'Esporta risultati in una nota',
 };
+export const HISTORY_MAX_ENTRIES = 20;

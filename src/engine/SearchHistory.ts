@@ -1,4 +1,4 @@
-const MAX_ENTRIES = 20;
+import { HISTORY_MAX_ENTRIES } from "src/const";
 
 /**
  * Cronologia delle ricerche (ultime N query che hanno portato all'apertura
@@ -19,7 +19,7 @@ export class SearchHistory {
   }
 
   init(entries: string[], persist: (entries: string[]) => void): void {
-    this.entries = entries.slice(0, MAX_ENTRIES);
+    this.entries = entries.slice(0, HISTORY_MAX_ENTRIES);
     this.persist = persist;
   }
 
@@ -29,7 +29,7 @@ export class SearchHistory {
     if (!trimmed) return;
 
     // Dedup: la query risale in cima
-    this.entries = [trimmed, ...this.entries.filter(e => e !== trimmed)].slice(0, MAX_ENTRIES);
+    this.entries = [trimmed, ...this.entries.filter(e => e !== trimmed)].slice(0, HISTORY_MAX_ENTRIES);
     this.persist(this.entries);
   }
 
