@@ -28,7 +28,11 @@ export class Body {
     const textEl = hasText(data) ? item.setSnippet() : null;
     const previewEl = data.renderPreview ? item.setPreview() : null;
 
-    this.drawWhenVisible(item.getElement(), data, 'item', textEl, previewEl);
+    this.drawWhenVisible(item.getElement(), data, 'item', textEl, previewEl, (emptyEl) => {
+      emptyEl.remove();
+
+      return item.setPreview();
+    });
   }
 
   /** Every passage and every task line, scrolling inside the Card's fixed height; or the Preview. */
@@ -36,7 +40,13 @@ export class Body {
     const textEl = hasText(data) ? cardEl.createDiv({ cls: 'body-card-text' }) : null;
     const previewEl = data.renderPreview ? cardEl.createDiv({ cls: 'finder-view-preview' }) : null;
 
-    this.drawWhenVisible(cardEl, data, 'card', textEl, previewEl);
+    this.drawWhenVisible(cardEl, data, 'card', textEl, previewEl, (emptyEl) => {
+      const el = createDiv({ cls: 'finder-view-preview' });
+
+      emptyEl.replaceWith(el);
+
+      return el;
+    });
   }
 
   private drawWhenVisible(
@@ -44,24 +54,45 @@ export class Body {
     data: ResultData,
     layout: BodyLayout,
     textEl: HTMLElement | null,
-    previewEl: HTMLElement | null
+    previewEl: HTMLElement | null,
+    previewInsteadOf: (emptyEl: HTMLElement) => HTMLElement
   ): void {
     if (!textEl && !previewEl) return;
 
     this.visibility.watch(watchedEl, () => {
-      if (textEl) this.drawText(data, textEl, layout).catch(console.error);
-      if (previewEl) new ImagePreview(this.app, this.component).load(data.file, previewEl).catch(console.error);
+      if (textEl) this.drawTextOrPreview(data, textEl, layout, previewEl ? null : previewInsteadOf).catch(console.error);
+      if (previewEl) this.drawPreview(data, previewEl).catch(console.error);
     });
   }
 
-  private async drawText(data: ResultData, el: HTMLElement, layout: BodyLayout): Promise<void> {
+  /** A word found only in the title leaves no text to draw: the Body shows the Preview instead. */
+  private async drawTextOrPreview(
+    data: ResultData,
+    textEl: HTMLElement,
+    layout: BodyLayout,
+    previewInsteadOf: ((emptyEl: HTMLElement) => HTMLElement) | null
+  ): Promise<void> {
+    const drawn = await this.drawText(data, textEl, layout);
+
+    if (!drawn && previewInsteadOf && ImagePreview.hasPreview(this.app, data.file, { hasSnippet: false })) {
+      await this.drawPreview(data, previewInsteadOf(textEl));
+    }
+  }
+
+  private drawPreview(data: ResultData, el: HTMLElement): Promise<void> {
+    return new ImagePreview(this.app, this.component).load(data.file, el);
+  }
+
+  /** False when the note holds none of the Occurrences or task lines the Data asked for. */
+  private async drawText(data: ResultData, el: HTMLElement, layout: BodyLayout): Promise<boolean> {
     let content: string;
 
     try {
       content = await this.app.vault.cachedRead(data.file);
     } catch {
-      // An unreadable file keeps its title and metadata: the result is still valid.
-      return;
+      // An unreadable file keeps its title and metadata: the result is still valid. No Preview
+      // either, since it would read the same file.
+      return true;
     }
 
     const { passages, tasks, hiddenTasks } = bodyText(content, data.snippetWords, data.taskLines, {
@@ -80,6 +111,8 @@ export class Body {
     if (tasks.length > 0) {
       this.drawTasks(el, tasks, hiddenTasks);
     }
+
+    return passages.length > 0 || tasks.length > 0;
   }
 
   /** The passages that fit in two lines, then the count of those left out. */
