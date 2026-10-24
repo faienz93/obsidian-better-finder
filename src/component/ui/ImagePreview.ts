@@ -1,5 +1,6 @@
 import { App, Component, TFile, MarkdownRenderer, setIcon } from "obsidian";
 import { XbergExtractor } from "../../engine/XbergExtractor";
+import { isExcalidraw } from "../../engine/excalidraw";
 import { CodePreview } from "./CodePreview";
 import "./ImagePreview.css";
 
@@ -21,14 +22,10 @@ export class ImagePreview {
     const ext = file.extension.toLowerCase();
 
     if (ext === 'md') {
-      return ImagePreview.isExcalidraw(app, file) || !options.hasSnippet;
+      return isExcalidraw(app, file) || !options.hasSnippet;
     }
 
     return EMBED_EXTENSIONS.includes(ext) || ext === 'json' || ext in OFFICE_ICONS;
-  }
-
-  private static isExcalidraw(app: App, file: TFile): boolean {
-    return app.metadataCache.getFileCache(file)?.frontmatter?.['excalidraw-plugin'] === 'parsed';
   }
 
   public async load(file: TFile, containerEl: HTMLElement): Promise<void> {
@@ -37,7 +34,7 @@ export class ImagePreview {
 
     try {
       // Excalidraw drawings are .md files but render as an embed, like images.
-      if (ext === 'md' && !ImagePreview.isExcalidraw(this.app, file)) {
+      if (ext === 'md' && !isExcalidraw(this.app, file)) {
         const rawContent = await this.app.vault.cachedRead(file);
         const cleaned = rawContent.replace(/^---[\s\S]*?---\n?/, '').slice(0, 500);
 

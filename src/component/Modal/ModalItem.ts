@@ -15,6 +15,10 @@ export class ModalItem {
     this.metadata = new Metadata(this.el);
   }
 
+  public getElement(): HTMLElement {
+    return this.el;
+  }
+
   public setTitle(text: string): Title {
     return new Title(this.el, text);
   }
@@ -55,13 +59,11 @@ export class ModalItem {
     badge.setContent(done, total);
   }
 
-  public setSnippet(fill: (snippetEl: HTMLElement) => void) {
-    const snippetEl = this.el.createDiv({ cls: 'modal-item-snippet' });
-
-    fill(snippetEl);
+  public setSnippet(): HTMLElement {
+    return this.el.createDiv({ cls: 'modal-item-snippet' });
   }
 
-  public setPreview(fill: (previewEl: HTMLElement) => void) {
+  public setPreview(): HTMLElement {
     this.el.addClass('has-modal-preview');
 
     const textWrapper = createDiv({ cls: 'modal-item-text' });
@@ -72,8 +74,6 @@ export class ModalItem {
 
     this.el.appendChild(textWrapper);
 
-    const previewEl = this.el.createDiv({ cls: 'modal-item-preview' });
-
-    fill(previewEl);
+    return this.el.createDiv({ cls: 'modal-item-preview' });
   }
 }

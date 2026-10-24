@@ -1,0 +1,67 @@
+/* Occurrences: the passages that fit in two lines, then the count of the others */
+.body-occurrences {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+
+.body-passages {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-height: 36px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.body-passage:not(:last-child) {
+  margin-right: 12px;
+}
+
+.body-more {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.snippet-highlight {
+  background: var(--text-highlight-bg);
+  color: inherit;
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+/* Task lines, with a task filter */
+.task-snippet {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.task-snippet-item {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-snippet-check {
+  flex-shrink: 0;
+}
+
+.task-snippet-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-snippet-more {
+  font-size: 11px;
+  color: var(--text-faint);
+}

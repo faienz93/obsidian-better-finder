@@ -52,6 +52,7 @@ export class FinderMoodboard extends ItemView {
   async onClose(): Promise<void> {
     this.latestSearch.cancel();
     this.destroyObserver();
+    this.cardContainer?.empty();
     this.core.dispose();
     this.contentEl.empty();
   }

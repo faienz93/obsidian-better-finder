@@ -1,10 +1,11 @@
-import { App, SuggestModal, TFile } from "obsidian";
+import { App, Component, SuggestModal, TFile } from "obsidian";
 import { Finder, SearchOutcome, SearchResult, isCommand } from "./Finder";
 import { ModalUI } from "./component/Modal/ModalUI";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
 import { buildResultData } from "./engine/ResultData";
+import { Body } from "./component/ui/Body";
 import "./FinderModal.css";
 
 class FinderModal extends SuggestModal<SearchResult> {
@@ -13,14 +14,19 @@ class FinderModal extends SuggestModal<SearchResult> {
   private uiHelper!: SearchUIHelper;
   // Rows are drawn from the search that settled, not from the input, which may already hold a newer query.
   private outcome: SearchOutcome | null = null;
+  // Owns the markdown rendered by Previews, so it is released when the Modal closes.
+  private previewComponent = new Component();
+  private body: Body;
 
   constructor(app: App) {
     super(app);
     this.core = new Finder(app);
     this.latestSearch = new LatestSearch(this.core);
+    this.body = new Body(app, this.previewComponent);
   }
 
   onOpen(): void {
+    this.previewComponent.load();
     this.modalEl.addClass('better-finder-modal');
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
 
@@ -42,11 +48,15 @@ class FinderModal extends SuggestModal<SearchResult> {
   onClose(): void {
     super.onClose();
     this.latestSearch.cancel();
+    this.body.reset();
+    this.previewComponent.unload();
     this.core.dispose();
   }
 
   async getSuggestions(query: string): Promise<SearchResult[]> {
     this.outcome = await this.latestSearch.run(query);
+    // Obsidian redraws every Item for the new results: the old ones no longer need reading.
+    this.body.reset();
 
     return this.outcome.results;
   }
@@ -75,7 +85,7 @@ class FinderModal extends SuggestModal<SearchResult> {
 
     if (!this.outcome) return;
 
-    new ModalUI(el, this.app).render(buildResultData(this.app, result as TFile, this.outcome));
+    new ModalUI(el, this.body).render(buildResultData(this.app, result as TFile, this.outcome));
   }
 
   private appendToQuery(token: string): void {

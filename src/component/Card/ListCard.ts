@@ -1,25 +1,26 @@
-import { App, Component } from "obsidian";
 import { ResultData } from "../../engine/ResultData";
 import { ModalItem } from "../Modal/ModalItem";
-import { ImagePreview } from "../ui/ImagePreview";
+import { Body } from "../ui/Body";
 import { Title } from "../ui/Title";
 
 export class ListCard {
   private item: ModalItem;
   private card: HTMLElement;
   private title!: Title;
+  private body: Body;
 
-  constructor(parentEl: HTMLElement) {
+  constructor(parentEl: HTMLElement, body: Body) {
     this.card = parentEl.createDiv({ cls: 'finder-view-result' });
     this.item = new ModalItem(this.card);
+    this.body = body;
   }
 
   public getElement(): HTMLElement {
     return this.card;
   }
 
-  public render(data: ResultData, app: App, component: Component): void {
-    const { file, tags, searchedTags, taskInfo, renderPreview } = data;
+  public render(data: ResultData): void {
+    const { file, tags, searchedTags, taskInfo } = data;
 
     this.title = this.item.setTitle(file.basename);
 
@@ -32,12 +33,7 @@ export class ListCard {
       file.parent?.path || '/'
     );
 
-    if (renderPreview) {
-      this.item.setPreview((previewEl) => {
-        new ImagePreview(app, component).load(file, previewEl);
-      });
-    }
-
+    this.body.drawInItem(data, this.item);
     this.item.setTags(tags, searchedTags);
 
     if (taskInfo && taskInfo.total > 0) {
