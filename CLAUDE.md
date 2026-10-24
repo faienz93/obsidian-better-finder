@@ -16,8 +16,6 @@ The plugin will be published. Everything that lands in the repo or on GitHub is 
 - **Data**: what is decided about one result for display. **Card** (Moodboard grid square), **Item** (row of a List, in the Modal or the Moodboard list layout) and **List** are the graphic components that draw it.
 - **Body**: the part of a Card or Item below the title. **Occurrences**: every place a searched word appears, with context (formerly "snippet"). **Preview**: what the file is (image, embed, excerpt).
 
-In code the Data interface is still named `Card` (`src/component/interface/Card.ts`) until the work in issue #2 renames it `ResultData`.
-
 ## Commands
 
 ```bash
@@ -34,6 +32,8 @@ npm run version      # Bump version, stage manifest.json + versions.json
 ```
 
 Always run `npm run build` after a change and fix TypeScript errors before committing.
+
+`npm run dev` usually runs in watch while the maintainer has Obsidian open, so any change to the working tree reloads the plugin. Inspect another commit with `git worktree`, never by checking it out here.
 
 Tests run in Node without Obsidian: `jest.config.js` maps `obsidian` and `minisearch` to the mocks in `test/mocks/`, and CSS imports to a stub. Tests build a fake `App` (metadata cache keyed by path, `cachedRead` over an in-memory map) and reset singletons through their private static field. Anything that touches the DOM is checked by hand: `npm run dev`, enable the plugin in Obsidian (the Hot Reload plugin reloads it on rebuild), exercise both the Modal and the Moodboard. When Obsidian runs with `--remote-debugging-port=9222`, `node scripts/obsidian-eval.mjs "<expression>"` reads its DOM, computed styles or state directly.
 
