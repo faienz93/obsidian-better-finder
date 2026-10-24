@@ -4,7 +4,7 @@ Come il codice diventa il `main.js` che Obsidian carica, cosa controlla GitHub A
 
 ## Il giro a colpo d'occhio
 
-Il repo ha un solo workflow e nessun deploy automatico. La CI verifica che il codice compili e passi il lint, poi butta via il risultato. Il plugin arriva nel vault perché il repo vive già dentro `.obsidian/plugins/obsidian-better-finder/`: la build scrive `main.js` e `styles.css` direttamente dove Obsidian li legge.
+Il repo ha un solo workflow e nessun deploy automatico. La CI verifica che il codice compili, passi il lint e i test, poi butta via il risultato. Il plugin arriva nel vault perché il repo vive già dentro `.obsidian/plugins/obsidian-better-finder/`: la build scrive `main.js` e `styles.css` direttamente dove Obsidian li legge.
 
 ```mermaid
 graph LR
@@ -33,7 +33,7 @@ Il workflow si chiama "Node.js build" e ha un solo job, `build`, eseguito due vo
 
 | Job | Quando parte | Cosa fa | Cosa produce |
 |---|---|---|---|
-| `build` (Node 20.x) | push su qualsiasi branch, PR verso qualsiasi branch | `npm ci`, `npm run build --if-present`, `npm run lint` | niente: nessun `upload-artifact` |
+| `build` (Node 20.x) | push su qualsiasi branch, PR verso qualsiasi branch | `npm ci`, `npm run build --if-present`, `npm run lint`, `npm test` | niente: nessun `upload-artifact` |
 | `build` (Node 22.x) | come sopra | come sopra | niente |
 
 Il file è corto e si legge tutto:
@@ -56,9 +56,10 @@ jobs:
             - run: npm ci
             - run: npm run build --if-present
             - run: npm run lint
+            - run: npm test
 ```
 
-`.github/workflows/lint.yml` righe 3-27
+`.github/workflows/lint.yml` righe 3-28
 
 `npm run build` lancia prima `tsc -noEmit -skipLibCheck`, quindi un errore di tipo blocca la CI anche se esbuild, che non controlla i tipi, produrrebbe un bundle. `package.json` riga 10
 
@@ -90,7 +91,7 @@ const renameCssPlugin = {
 
 `esbuild.config.mjs` righe 15-27
 
-**⚠️ Trappola**: `styles.css` è un artefatto di build ma è tracciato in git, mentre `main.js` no. `.gitignore` righe 11-16. Se modifichi un `.css` e committi senza aver lanciato `npm run dev` o `npm run build`, il `styles.css` nel repo resta vecchio. La CI ricostruisce ma non confronta il risultato con il file committato. Non modificare `styles.css` a mano: la build successiva lo sovrascrive.
+`styles.css` è un artefatto di build come `main.js`: nessuno dei due è in git, ed entrambi vanno allegati alla release. Prima era tracciato, e il watch di sviluppo lo riscriveva non minificato a ogni build, lasciandolo modificato in ogni working tree. `.gitignore` righe 11-19. Non modificarlo a mano: la build successiva lo sovrascrive.
 
 Il `catch` vuoto ignora qualsiasi errore del rename, non solo il caso "nessun CSS". Se il rename fallisce (file bloccato su Windows, permessi), la build risulta riuscita e `styles.css` resta quello vecchio.
 
@@ -118,11 +119,9 @@ Per tornare indietro il repo non prevede niente: si ripubblica una release prece
 
 ## Cosa la pipeline non fa
 
-- **Test**: `npm test` (Jest) non gira in CI. I test esistono e si lanciano in locale, vedi [Testarlo con Jest](./07-aggiungere-un-filtro.md#testarlo-con-jest).
 - **Formattazione**: `npm run format:check` esiste ma la CI non lo chiama. `package.json` riga 9
 - **Release**: nessun job crea tag, release o artefatti.
 - **Metadati**: `manifest.json` ha ancora la descrizione del template e `package.json` il nome `obsidian-sample-plugin`. `manifest.json` riga 6
-- **Controllo di `styles.css`**: vedi la trappola in [La build](#la-build).
 
 ## Variabili e segreti
 

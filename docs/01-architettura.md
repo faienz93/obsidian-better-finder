@@ -43,10 +43,10 @@ obsidian-better-finder/
 ├── test/                      → test Jest in Node, con obsidian e minisearch finti
 ├── docs/                      → questa wiki e le istruzioni per agenti (docs/agents/)
 ├── .claude/plans/             → roadmap e piani, con decisioni e alternative scartate
-├── .github/workflows/lint.yml → CI: build e lint
+├── .github/workflows/lint.yml → CI: build, lint e test
 ├── esbuild.config.mjs         → bundle main.ts → main.js, CSS → styles.css
 ├── manifest.json              → metadati letti da Obsidian
-├── styles.css                 → artefatto di build, tracciato in git
+├── styles.css                 → artefatto di build, fuori da git come main.js
 ├── CONTEXT.md                 → glossario del dominio
 ├── README.md, spec.md, PLAN_date_filter.md, TODO → note di progetto, in parte superate
 └── package.json               → script npm, una dipendenza runtime (minisearch)
@@ -98,7 +98,7 @@ graph LR
 | Xberg CLI | Programma che estrae testo da PDF e Office e fa OCR sulle immagini | Sidecar facoltativo: se manca, l'Extraction si spegne | [Xberg](./03-flusso-indicizzazione.md#4-xberg-estrae-il-testo-di-pdf-immagini-e-office) |
 | Jest 29 + ts-jest | Test runner per TypeScript | Test della logica in Node, senza Obsidian | [Testarlo con Jest](./07-aggiungere-un-filtro.md#testarlo-con-jest) |
 | ESLint 8.57 + Prettier 3 | Linter e formattatore | Regole in `.eslintrc`; il lint gira in CI | [CI/CD](./05-ci-cd.md) |
-| GitHub Actions | La CI di GitHub | Build e lint su Node 20 e 22 a ogni push | [I job](./05-ci-cd.md#i-job) |
+| GitHub Actions | La CI di GitHub | Build, lint e test su Node 20 e 22 a ogni push | [I job](./05-ci-cd.md#i-job) |
 
 ## Il giro completo
 
@@ -190,7 +190,7 @@ Lo schema in `spec.md` è superato. Le differenze con il codice:
 - **Singleton con `getInstance()`.** `SearchStrategyFactory`, le tre Common cache e `SearchHistory` sono condivisi da viste e filtri senza passarli per costruttore. Il prezzo: `onunload` è vuoto, quindi disabilitare il plugin non li libera, e i test azzerano `_instance` a mano. `main.ts` righe 195-197
 - **Lavoro a blocchi con cessione all'event loop.** `buildIndex` indicizza 100 note per volta con un `setTimeout(0)` fra i blocchi, e la lettura diretta legge 50 file in parallelo. Entrambi esistono perché la UI di Obsidian gira sullo stesso thread. `src/engine/SearchIndex.ts` righe 69-92
 - **Sidecar che si spegne da solo.** `XbergExtractor` prova `xberg` e poi `kreuzberg` con `--version`; se nessuno risponde si disattiva e lo scrive solo in console. `src/engine/XbergExtractor.ts` righe 55-75
-- **Viste che disegnano e basta.** La Data si decide in `buildResultData`, le Occurrences in `bodyText`, e `ImagePreview.hasPreview` è l'unico posto che dice se un file ha una Preview. `src/engine/ResultData.ts` righe 34-53; `src/engine/occurrences.ts` righe 46-66
+- **Viste che disegnano e basta.** La Data si decide in `buildResultData`, le Occurrences in `bodyText`, e `ImagePreview.hasPreview` è l'unico posto che dice se un file ha una Preview. `src/engine/ResultData.ts` righe 34-53; `src/engine/occurrences.ts` righe 46-71
 
 ### Documenti del progetto e codice
 
@@ -201,8 +201,7 @@ Lo schema in `spec.md` è superato. Le differenze con il codice:
 | [`README.md`](../README.md) righe 85-86: `today #react`, `this week task-todo:` | Servono `created:` o `modified:` davanti ([date](./04-sintassi-query.md#date)) |
 | [`README.md`](../README.md) righe 48-49 e 91-97: comandi "Open Smart Search" e "Open Command View" che elenca comandi | I comandi si chiamano "Open Better Finder Modal" e "Open Better Finder View", e la view è la Moodboard dei file (`main.ts` righe 47-61) |
 | [`spec.md`](../spec.md) righe 84-102: `Card.ts`, `HistoryBar.ts`, `ResultsContainer.ts` | Non esistono; la cronologia si naviga con le frecce nella Moodboard |
-| [`CONTEXT.md`](../CONTEXT.md) righe 82-99: Occurrences su Card e Item, pulsante per la Preview | Gli Item hanno le Occurrences; le Card della griglia non hanno ancora né Body né pulsante ([Body e Preview](./06-interfaccia.md#body-occurrences-e-preview)) |
-| `CLAUDE.md` riga 19: la Data si chiama ancora `Card`, in una cartella `component/interface/` | Si chiama già `ResultData`, in `src/engine/ResultData.ts`; la cartella `interface/` non c'è più |
+| [`CONTEXT.md`](../CONTEXT.md) righe 82-99: Occurrences su Card e Item, pulsante per la Preview | Card e Item hanno le Occurrences; il pulsante per la Preview non c'è ancora, issue #7 ([Body e Preview](./06-interfaccia.md#body-occurrences-e-preview)) |
 
 ## Avviarlo in locale
 
@@ -215,6 +214,8 @@ Il plugin si prova dentro un vault vero, perché Obsidian non ha un modo per lan
 5. Abilita "Obsidian Better Finder" fra i plugin della community e prova sia il Modal sia la Moodboard.
 
 Per la logica pura bastano `npm test`, che il README non nomina, e `npx jest test/<file>.test.ts`. I test girano in Node e sostituiscono `obsidian` e `minisearch` con dei mock, quindi tutto quello che tocca il DOM si controlla a mano in Obsidian. `jest.config.js` righe 1-11
+
+Con Obsidian avviato con `--remote-debugging-port=9222`, `node scripts/obsidian-eval.mjs "<espressione>"` valuta JavaScript nella finestra aperta e stampa il risultato in JSON: conta elementi, legge stili calcolati e stato senza aprire i DevTools. `scripts/obsidian-eval.mjs` righe 1-5
 
 Xberg non si installa con `npm`: serve il binario `xberg` o `kreuzberg` nel `PATH`, e senza la ricerca nei PDF resta spenta. Secondo il `TODO` non è mai stato provato con il binario reale.
 
@@ -231,7 +232,7 @@ Il plugin non ha ambienti di deploy: gira nel vault di chi lo installa.
 
 ## Pipeline di deploy
 
-La CI è un solo workflow GitHub Actions, [Node.js build](./05-ci-cd.md#i-job), che fa build e lint su Node 20 e 22 e non lancia i test. Il rilascio è manuale con [`npm run version`](./05-ci-cd.md#come-si-rilascia), che aggiorna `manifest.json` e `versions.json`, e `main.js` va allegato alla release perché non è in git. Tutto il resto è in [CI/CD](./05-ci-cd.md).
+La CI è un solo workflow GitHub Actions, [Node.js build](./05-ci-cd.md#i-job), che fa build, lint e test su Node 20 e 22. Il rilascio è manuale con [`npm run version`](./05-ci-cd.md#come-si-rilascia), che aggiorna `manifest.json` e `versions.json`, e `main.js` e `styles.css` vanno allegati alla release perché non sono in git. Tutto il resto è in [CI/CD](./05-ci-cd.md).
 
 ## File chiave
 

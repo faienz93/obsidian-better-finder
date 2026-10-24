@@ -1580,7 +1580,7 @@
     "Le virgolette nella Query non fanno una ricerca per frase: MiniSearch le scarta e \"ciao mondo\" trova le due parole anche lontane (issue #10)."
   ],
   "generatedAt": "2026-10-24",
-  "commit": "ae87d654de063e757ca3c49e945cda7e2a5f6caf",
+  "commit": "52091991b14b52d6c7da6c77ad4212c818f92e0d",
   "dirtyAtGeneration": true,
   "files": {
     "INDEX.md": {

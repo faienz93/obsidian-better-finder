@@ -35,7 +35,7 @@ export class PathFilter extends SearchFilter<string | undefined> {
   readonly desc = i18n.path;
 
   extract(query: string): string | undefined {
-    const match = query.match(/\bpath:\s*(\S+)/i);
+    const match = /\bpath:\s*(\S+)/i.exec(query);
 
     return match ? match[1].toLowerCase() : undefined;
   }
@@ -153,7 +153,7 @@ Dopo `filter()` il testo libero passa da `filterFreeText`. La scelta fra [l'indi
 
 **⚠️ Trappola**: se il nuovo filtro scrive in `fileTypes`, l'indice si spegne per le query che lo usano e il testo di PDF e immagini non si trova più ([dettagli](./02-flusso-ricerca.md#4-il-testo-libero-passa-dallindex)). Un filtro che non riguarda tipi di file usa un campo suo di `ParsedQuery`.
 
-Se il filtro introduce un tipo di file nuovo, anteprima e indicizzazione si aggiornano insieme (regola di `CLAUDE.md`). I punti da toccare:
+Se il filtro introduce un tipo di file nuovo, anteprima e indicizzazione si aggiornano insieme (regola di [`CODING_STANDARDS.md`](../CODING_STANDARDS.md)). I punti da toccare:
 
 - `ImagePreview.hasPreview` e `EMBED_EXTENSIONS`, la sola risposta a "questo file ha un'anteprima?", più `ImagePreview.load` per il rendering. `src/component/ui/ImagePreview.ts` righe 12-29
 - `XBERG_EXTENSIONS`, se il testo va estratto dal sidecar. `src/engine/XbergExtractor.ts` righe 6-11
