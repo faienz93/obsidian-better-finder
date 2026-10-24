@@ -35,7 +35,7 @@ npm run version      # Bump version, stage manifest.json + versions.json
 
 Always run `npm run build` after a change and fix TypeScript errors before committing.
 
-Tests run in Node without Obsidian: `jest.config.js` maps `obsidian` and `minisearch` to the mocks in `test/mocks/`, and CSS imports to a stub. Tests build a fake `App` (metadata cache keyed by path, `cachedRead` over an in-memory map) and reset singletons through their private static field. Anything that touches the DOM is checked by hand: `npm run dev`, enable the plugin in Obsidian (the Hot Reload plugin reloads it on rebuild), exercise both the Modal and the Moodboard.
+Tests run in Node without Obsidian: `jest.config.js` maps `obsidian` and `minisearch` to the mocks in `test/mocks/`, and CSS imports to a stub. Tests build a fake `App` (metadata cache keyed by path, `cachedRead` over an in-memory map) and reset singletons through their private static field. Anything that touches the DOM is checked by hand: `npm run dev`, enable the plugin in Obsidian (the Hot Reload plugin reloads it on rebuild), exercise both the Modal and the Moodboard. When Obsidian runs with `--remote-debugging-port=9222`, `node scripts/obsidian-eval.mjs "<expression>"` reads its DOM, computed styles or state directly.
 
 ## Architecture
 
