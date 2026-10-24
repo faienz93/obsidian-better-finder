@@ -15,6 +15,9 @@ main.js
 # Stale esbuild CSS output (gets renamed to styles.css)
 main.css
 
+# Built CSS, uploaded to GitHub releases like main.js
+styles.css
+
 # Exclude sourcemaps
 *.map
 
