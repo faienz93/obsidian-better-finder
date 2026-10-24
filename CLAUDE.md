@@ -41,8 +41,6 @@ Tests run in Node without Obsidian: `jest.config.js` maps `obsidian` and `minise
 
 TypeScript Obsidian plugin bundled to `main.js` by esbuild. The entry point is the root `main.ts`. `src/main.ts` and `src/settings.ts` are untouched leftovers of the sample template: ignore them. The settings tab is `src/FinderSetting.ts`.
 
-UI components only render; logic lives in the engine and in `Finder`. Prefer lazy loading with IntersectionObserver over pagination, and never cap the number of displayed results unless asked.
-
 ### Two views, one search
 
 - **Modal** (`src/FinderModal.ts`): a `SuggestModal`, keyboard-driven, closes on open. Draws Items via `ModalUI` → `ModalItem`.
@@ -77,9 +75,7 @@ When the Index is not ready, or free text runs over non-markdown files, `searchF
 
 ### Preview
 
-"Does this file get a Preview?" has one answer: `ImagePreview.hasPreview(app, file, { hasSnippet })`, next to the branches of `ImagePreview.load()` that draw it. Never keep a separate list of previewable extensions in a caller. `ImagePreview` draws a `.md` text excerpt, a `.json` code excerpt, an icon plus extracted text for docx/xlsx, and an `![[…]]` embed for images, canvas, pdf and Excalidraw (`excalidraw-plugin: parsed` in frontmatter). Rendering markdown runs every other plugin's post-processors (execute-code, mermaid, …), which is costly on long lists.
-
-When adding a file type, update the Preview and the search indexing together.
+"Does this file get a Preview?" has one answer: `ImagePreview.hasPreview(app, file, { hasSnippet })`, next to the branches of `ImagePreview.load()` that draw it. `ImagePreview` draws a `.md` text excerpt, a `.json` code excerpt, an icon plus extracted text for docx/xlsx, and an `![[…]]` embed for images, canvas, pdf and Excalidraw (`excalidraw-plugin: parsed` in frontmatter). Rendering markdown runs every other plugin's post-processors (execute-code, mermaid, …), which is costly on long lists.
 
 ### CSS
 
@@ -96,6 +92,7 @@ CSS sits next to its component and is imported from the `.ts`. esbuild bundles i
 - Singletons (`SearchStrategyFactory`, `SearchIndex`, the common caches) are obtained with `getInstance()`, never `new`.
 - ESLint enforces blank lines around `return`, block statements and variable declarations; follow the existing pattern.
 - How to behave and how to commit are in `.claude/rules/behaviour.md` and `.claude/rules/commit.md`.
+- Reviews apply `CODING_STANDARDS.md`: where logic lives, one function per question about a file, domain names, uncapped lazy results.
 
 ## Agent skills
 
