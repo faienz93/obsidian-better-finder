@@ -14,12 +14,12 @@ export class ModalUI {
   }
 
   public render(data: ResultData): void {
-    const { file, tags, searchedTags, taskInfo } = data;
+    const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
     this.title = this.item.setTitle(file.basename);
 
-    if (file.extension !== 'md') {
-      this.item.setBadge(this.title, ` ${file.extension.toUpperCase()}`);
+    if (typeIcon) {
+      this.title.addTypeIcon(typeIcon);
     }
 
     this.item.setMetadata(

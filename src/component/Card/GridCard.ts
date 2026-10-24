@@ -19,12 +19,12 @@ export class GridCard {
   }
 
   public render(data: ResultData): void {
-    const { file, tags, searchedTags, taskInfo } = data;
+    const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
     this.title = new Title(this.card, file.basename);
 
-    if (file.extension !== 'md') {
-      this.title.addBadge(` ${file.extension.toUpperCase()}`);
+    if (typeIcon) {
+      this.title.addTypeIcon(typeIcon);
     }
 
     this.body.drawInCard(data, this.card);

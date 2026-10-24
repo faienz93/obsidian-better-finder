@@ -3,6 +3,7 @@ import { SearchOutcome } from "../Finder";
 import { ImagePreview } from "../component/ui/ImagePreview";
 import { getFileTags } from "./fileTags";
 import { isExcalidraw } from "./excalidraw";
+import { fileTypeIcon, FileTypeIcon } from "./fileTypeIcon";
 import { isDoneTask } from "./search-filters/TaskFilter";
 import { matchesTag } from "./search-filters/TagsFilter";
 import { TaskStatus } from "./search-filters/types";
@@ -13,6 +14,8 @@ export interface ResultData {
   tags: string[];
   /** The tags of `tags` the query asked for, nested ones included. */
   searchedTags: string[];
+  /** Undefined for a note; every other file type, Excalidraw drawings included, shows an icon next to the title. */
+  typeIcon?: FileTypeIcon;
   taskInfo?: {
     done: number;
     total: number;
@@ -47,6 +50,7 @@ export function buildResultData(app: App, file: TFile, outcome: SearchOutcome): 
     file,
     tags,
     searchedTags,
+    typeIcon: fileTypeIcon(app, file),
     taskInfo: parsed.taskFilter ? countTasks(tasks) : undefined,
     renderPreview: ImagePreview.hasPreview(app, file, { hasSnippet: snippetWords.length > 0 || taskLines.length > 0 }),
     snippetWords,

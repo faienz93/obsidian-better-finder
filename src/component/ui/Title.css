@@ -11,3 +11,12 @@
   vertical-align: middle;
   letter-spacing: 0.03em;
 }
+
+/* File type icon (canvas, PDF, …); the extension shows as its tooltip */
+.finder-type-icon {
+  display: inline-flex;
+  margin-left: 6px;
+  vertical-align: middle;
+  color: var(--text-muted);
+  --icon-size: var(--icon-xs);
+}

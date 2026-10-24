@@ -139,6 +139,43 @@ describe('buildResultData: what a result shows for a query', () => {
     expect(data?.taskInfo).toEqual({ done: 1, total: 3 });
   });
 
+  describe('the file type icon', () => {
+    it.each([
+      ['report.canvas', 'layout-dashboard', 'canvas'],
+      ['report.pdf', 'book-open', 'pdf'],
+      ['report.png', 'image', 'png'],
+      ['report.JPG', 'image', 'jpg'],
+      ['report.docx', 'file-text', 'docx'],
+      ['report.xlsx', 'table', 'xlsx'],
+      ['report.json', 'braces', 'json'],
+      ['report.base', 'database', 'base'],
+      ['report.zip', 'file', 'zip'],
+    ])('%s shows the %s icon labelled %s', async (path, icon, label) => {
+      const app = fakeApp({ [path]: {} });
+
+      const data = (await search(app, 'report')).get(path);
+
+      expect(data?.typeIcon).toEqual({ icon, label });
+    });
+
+    it('an Excalidraw drawing shows an icon labelled excalidraw, not md', async () => {
+      const app = fakeApp({ 'sketch.md': { cache: { frontmatter: { 'excalidraw-plugin': 'parsed' } } } });
+
+      const data = (await search(app, 'sketch')).get('sketch.md');
+
+      expect(data?.typeIcon).toEqual({ icon: 'pencil', label: 'excalidraw' });
+    });
+
+    it('a note shows no icon', async () => {
+      const app = fakeApp({ 'alpha.md': ALPHA });
+
+      const data = (await search(app, 'alpha')).get('alpha.md');
+
+      expect(data).toBeDefined();
+      expect(data?.typeIcon).toBeUndefined();
+    });
+  });
+
   describe('the Body', () => {
     it('with ciao mondo, a note shows the Occurrences of both words and no Preview', async () => {
       const app = fakeApp({ 'greeting.md': { content: 'ciao a tutti\n\nil mondo intero' } });
