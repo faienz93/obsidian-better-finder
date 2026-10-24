@@ -1,4 +1,3 @@
-
 la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti permette di filtrare in base alla property che ci metti ad esempio `#tag` `#tag2` `@related`
 
 - [ ] Ottimizzazione mobile
@@ -10,8 +9,10 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 ## 🚧 In Progress
 
 - [ ] Verifica manuale roadmap (branch `feature/roadmap-better-finder`) — vedi `.claude/plans/roadmap-better-finder.md`
-	- [ ] installare binario `xberg` e verificare i flag CLI (`extract --format json`)
-	- [ ] provare backend OCR Candle vs Tesseract
+  - [ ] installare binario `xberg` e verificare i flag CLI (`extract --format json`)
+  - [ ] provare backend OCR Candle vs Tesseract
+  - lanciare simpplify e code-simplifier. togliere tutte le issue presenti con il mio agente anche perchè ci sono le trappole nella wiki
+  - highlights pure non funziona bene. pulire i md dei plan che sono vecchi
 
 ## ✅ Completato
 
@@ -29,12 +30,12 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 - [x] Bug: selezione risultato con click su Card
 - [x] Filtro date avanzato: `created:2024-01-01 2024-12-31`, `modified:yesterday`, `this-month`
 - [x] Preview: supporto Bases,
-- [x] Preview: evidenziazione highlights 
+- [x] Preview: evidenziazione highlights
 - [x] aggiungere il poter filtrare sulla base del path
 - [x] sistemare quando aggiungo o elimino un file
 - [x] Aggiungere supporto per excalidraw
 - [x] Modalità comandi (`>`): filtrare, eseguire, evidenziare token come `#`
-- [x] poter visualizzare l'highliths 
+- [x] poter visualizzare l'highliths
 - [x] mi deve dare la preview dei tag e di quello che cerco.. se inizio a cercare `#not` mi deve mostrare `#notion, note`
 - [x] Query parser: `folder:Projects`
 - [x] Migliorare la visualizzazioen della lista. Apporro un immagine sulla destra
@@ -58,8 +59,8 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 - [x] **BUG** hint `task:` non funzionava + ora mostra il testo dei task
 - [x] **BUG** Highlights evidenziavano troppe cose (match a confine di parola)
 
-
 ## Non previste
+
 - [ ] ~~Fuzzy search (es. "mtg" → "meeting")~~
 - [ ] ~~UI: tema dark/light, animazioni, shortcut personalizzabili, stato vuoto, loading~~
 - [ ] ~~Sidebar comandi: lista, categorie, preferiti, esecuzione~~
