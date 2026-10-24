@@ -7,7 +7,7 @@ export class PathFilter extends SearchFilter<string | undefined> {
   readonly desc = i18n.path;
 
   extract(query: string): string | undefined {
-    const match = query.match(/\bpath:\s*(\S+)/i);
+    const match = /\bpath:\s*(\S+)/i.exec(query);
 
     return match ? match[1].toLowerCase() : undefined;
   }

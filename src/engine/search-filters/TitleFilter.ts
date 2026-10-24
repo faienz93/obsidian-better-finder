@@ -10,7 +10,7 @@ export class TitleFilter extends SearchFilter<{ scope?: 'title' | 'content'; rem
   readonly desc = i18n.title;
 
   extract(query: string): { scope?: 'title' | 'content'; remainingText: string } {
-    const titleMatch = query.match(/\btitle:\s*(\S+)/i);
+    const titleMatch = /\btitle:\s*(\S+)/i.exec(query);
 
     if (titleMatch) {
       const searchTerm = titleMatch[1];
