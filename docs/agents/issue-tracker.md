@@ -13,7 +13,7 @@ Issues and specs for this repo live as GitHub issues on **`faienz93/obsidian-bet
 - **Apply / remove labels**: `gh issue edit <number> --add-label "..."` / `--remove-label "..."`
 - **Close**: `gh issue close <number> --comment "..."`
 
-Infer the repo from `git remote -v`; `gh` does this automatically when run inside a clone.
+With two remotes `gh` picks `upstream` unless a default is set. Run `gh repo set-default faienz93/obsidian-better-finder` once per clone, or pass `-R faienz93/obsidian-better-finder`.
 
 ## Pull requests as a triage surface
 
