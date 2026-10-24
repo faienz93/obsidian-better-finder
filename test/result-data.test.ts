@@ -149,6 +149,14 @@ describe('buildResultData: what a result shows for a query', () => {
       expect(data?.renderPreview).toBe(false);
     });
 
+    it('a note showing Occurrences offers its Preview on request', async () => {
+      const app = fakeApp({ 'greeting.md': { content: 'ciao a tutti' } });
+
+      const data = (await search(app, 'ciao', { withIndex: true })).get('greeting.md');
+
+      expect(data?.offersPreview).toBe(true);
+    });
+
     it('with a misspelt word, the Occurrences look for the word the search accepted', async () => {
       const app = fakeApp({ 'layers.md': { content: 'Notes on software architettura and layers' } });
 
@@ -197,6 +205,7 @@ describe('buildResultData: what a result shows for a query', () => {
       ]);
       expect(data?.snippetWords).toEqual([]);
       expect(data?.renderPreview).toBe(false);
+      expect(data?.offersPreview).toBe(false);
     });
 
     it('with task-todo:, a note shows only the lines of its open tasks', async () => {
@@ -231,6 +240,7 @@ describe('buildResultData: what a result shows for a query', () => {
 
       expect(data?.snippetWords).toEqual([]);
       expect(data?.renderPreview).toBe(true);
+      expect(data?.offersPreview).toBe(false);
     });
   });
 });

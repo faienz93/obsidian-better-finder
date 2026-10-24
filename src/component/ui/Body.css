@@ -92,3 +92,22 @@
 .body-card-text .task-snippet-text {
   white-space: normal;
 }
+
+/* In a Card showing Occurrences: the button that switches the Body to the Preview and back */
+.finder-view-result.has-preview-toggle {
+  position: relative;
+}
+
+.body-preview-toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.finder-view-results.grid-view .has-preview-toggle .suggestion-title {
+  padding-right: 36px;
+}
+
+.finder-view-results.list-view .body-preview-toggle {
+  display: none;
+}

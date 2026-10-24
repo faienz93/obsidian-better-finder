@@ -1,4 +1,5 @@
-import { App, Component } from "obsidian";
+import { App, Component, setIcon } from "obsidian";
+import { i18n } from "../../const";
 import { ResultData } from "../../engine/ResultData";
 import { bodyText, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
 import { ModalItem } from "../Modal/ModalItem";
@@ -35,10 +36,14 @@ export class Body {
     });
   }
 
-  /** Every passage and every task line, scrolling inside the Card's fixed height; or the Preview. */
+  /**
+   * Every passage and every task line, scrolling inside the Card's fixed height; or the Preview.
+   * Drawn Occurrences get the button that switches to the Preview when the Data offers it.
+   */
   public drawInCard(data: ResultData, cardEl: HTMLElement): void {
     const textEl = hasText(data) ? cardEl.createDiv({ cls: 'body-card-text' }) : null;
     const previewEl = data.renderPreview ? cardEl.createDiv({ cls: 'finder-view-preview' }) : null;
+    const onOccurrencesDrawn = textEl && data.offersPreview ? () => this.addPreviewToggle(data, cardEl, textEl) : undefined;
 
     this.drawWhenVisible(cardEl, data, 'card', textEl, previewEl, (emptyEl) => {
       const el = createDiv({ cls: 'finder-view-preview' });
@@ -46,6 +51,37 @@ export class Body {
       emptyEl.replaceWith(el);
 
       return el;
+    }, onOccurrencesDrawn);
+  }
+
+  /** The Preview is drawn on the first click and kept; the Card is rebuilt, so reset, by the next search. */
+  private addPreviewToggle(data: ResultData, cardEl: HTMLElement, textEl: HTMLElement): void {
+    const button = cardEl.createDiv({ cls: 'clickable-icon body-preview-toggle' });
+    let previewEl: HTMLElement | null = null;
+    let showingPreview = false;
+
+    const showPreview = (preview: boolean) => {
+      showingPreview = preview;
+      textEl.toggle(!preview);
+      previewEl?.toggle(preview);
+      setIcon(button, preview ? 'eye-off' : 'eye');
+      button.setAttribute('aria-label', preview ? i18n.showOccurrences : i18n.showPreview);
+    };
+
+    cardEl.addClass('has-preview-toggle');
+    showPreview(false);
+
+    button.addEventListener('click', (event) => {
+      // The Card opens its file on click.
+      event.stopPropagation();
+
+      if (!previewEl) {
+        previewEl = createDiv({ cls: 'finder-view-preview' });
+        textEl.after(previewEl);
+        this.drawPreview(data, previewEl).catch(console.error);
+      }
+
+      showPreview(!showingPreview);
     });
   }
 
@@ -55,12 +91,16 @@ export class Body {
     layout: BodyLayout,
     textEl: HTMLElement | null,
     previewEl: HTMLElement | null,
-    previewInsteadOf: (emptyEl: HTMLElement) => HTMLElement
+    previewInsteadOf: (emptyEl: HTMLElement) => HTMLElement,
+    onOccurrencesDrawn?: () => void
   ): void {
     if (!textEl && !previewEl) return;
 
     this.visibility.watch(watchedEl, () => {
-      if (textEl) this.drawTextOrPreview(data, textEl, layout, previewEl ? null : previewInsteadOf).catch(console.error);
+      if (textEl) {
+        this.drawTextOrPreview(data, textEl, layout, previewEl ? null : previewInsteadOf, onOccurrencesDrawn).catch(console.error);
+      }
+
       if (previewEl) this.drawPreview(data, previewEl).catch(console.error);
     });
   }
@@ -70,9 +110,12 @@ export class Body {
     data: ResultData,
     textEl: HTMLElement,
     layout: BodyLayout,
-    previewInsteadOf: ((emptyEl: HTMLElement) => HTMLElement) | null
+    previewInsteadOf: ((emptyEl: HTMLElement) => HTMLElement) | null,
+    onOccurrencesDrawn?: () => void
   ): Promise<void> {
-    const drawn = await this.drawText(data, textEl, layout);
+    const { drawn, occurrences } = await this.drawText(data, textEl, layout);
+
+    if (occurrences) onOccurrencesDrawn?.();
 
     if (!drawn && previewInsteadOf && ImagePreview.hasPreview(this.app, data.file, { hasSnippet: false })) {
       await this.drawPreview(data, previewInsteadOf(textEl));
@@ -83,8 +126,12 @@ export class Body {
     return new ImagePreview(this.app, this.component).load(data.file, el);
   }
 
-  /** False when the note holds none of the Occurrences or task lines the Data asked for. */
-  private async drawText(data: ResultData, el: HTMLElement, layout: BodyLayout): Promise<boolean> {
+  /** `drawn` is false when the note holds none of the Occurrences or task lines the Data asked for. */
+  private async drawText(
+    data: ResultData,
+    el: HTMLElement,
+    layout: BodyLayout
+  ): Promise<{ drawn: boolean; occurrences: boolean }> {
     let content: string;
 
     try {
@@ -92,7 +139,7 @@ export class Body {
     } catch {
       // An unreadable file keeps its title and metadata: the result is still valid. No Preview
       // either, since it would read the same file.
-      return true;
+      return { drawn: true, occurrences: false };
     }
 
     const { passages, tasks, hiddenTasks } = bodyText(content, data.snippetWords, data.taskLines, {
@@ -112,7 +159,7 @@ export class Body {
       this.drawTasks(el, tasks, hiddenTasks);
     }
 
-    return passages.length > 0 || tasks.length > 0;
+    return { drawn: passages.length > 0 || tasks.length > 0, occurrences: passages.length > 0 };
   }
 
   /** The passages that fit in two lines, then the count of those left out. */

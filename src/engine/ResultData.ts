@@ -22,6 +22,8 @@ export interface ResultData {
   snippetWords: string[];
   /** With a task filter: the lines of the tasks it asked for, which the Body shows. */
   taskLines: TaskLine[];
+  /** A Card showing Occurrences offers a button that switches its Body to the Preview and back. */
+  offersPreview: boolean;
 }
 
 export interface TaskLine {
@@ -49,6 +51,7 @@ export function buildResultData(app: App, file: TFile, outcome: SearchOutcome): 
     renderPreview: ImagePreview.hasPreview(app, file, { hasSnippet: snippetWords.length > 0 || taskLines.length > 0 }),
     snippetWords,
     taskLines,
+    offersPreview: snippetWords.length > 0 && ImagePreview.hasPreview(app, file, { hasSnippet: false }),
   };
 }
 

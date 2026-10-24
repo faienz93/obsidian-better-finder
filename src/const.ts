@@ -20,5 +20,7 @@ export const i18n = {
   exportEmpty: 'Nessun risultato da esportare',
   exportFailed: 'Esportazione fallita',
   exportButtonTitle: 'Esporta risultati in una nota',
+  showPreview: 'Mostra anteprima',
+  showOccurrences: 'Mostra occorrenze',
 };
 export const HISTORY_MAX_ENTRIES = 20;
