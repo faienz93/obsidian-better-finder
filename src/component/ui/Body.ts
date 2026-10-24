@@ -1,10 +1,13 @@
 import { App, Component } from "obsidian";
 import { ResultData } from "../../engine/ResultData";
-import { bodyText, Passage, TaskText } from "../../engine/occurrences";
+import { bodyText, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
 import { ModalItem } from "../Modal/ModalItem";
 import { ImagePreview } from "./ImagePreview";
 import { VisibilityWatcher } from "./VisibilityWatcher";
 import "./Body.css";
+
+/** An Item clips its Occurrences to two lines; a Card shows them all and scrolls. */
+type BodyLayout = 'item' | 'card';
 
 /**
  * Draws what the Data chose for a result below its title: Occurrences, task lines, Preview or
@@ -22,19 +25,36 @@ export class Body {
 
   /** Occurrences and task lines under the metadata, the Preview beside the text. */
   public drawInItem(data: ResultData, item: ModalItem): void {
-    const { file, snippetWords, taskLines, renderPreview } = data;
-    const textEl = snippetWords.length > 0 || taskLines.length > 0 ? item.setSnippet() : null;
-    const previewEl = renderPreview ? item.setPreview() : null;
+    const textEl = hasText(data) ? item.setSnippet() : null;
+    const previewEl = data.renderPreview ? item.setPreview() : null;
 
+    this.drawWhenVisible(item.getElement(), data, 'item', textEl, previewEl);
+  }
+
+  /** Every passage and every task line, scrolling inside the Card's fixed height; or the Preview. */
+  public drawInCard(data: ResultData, cardEl: HTMLElement): void {
+    const textEl = hasText(data) ? cardEl.createDiv({ cls: 'body-card-text' }) : null;
+    const previewEl = data.renderPreview ? cardEl.createDiv({ cls: 'finder-view-preview' }) : null;
+
+    this.drawWhenVisible(cardEl, data, 'card', textEl, previewEl);
+  }
+
+  private drawWhenVisible(
+    watchedEl: HTMLElement,
+    data: ResultData,
+    layout: BodyLayout,
+    textEl: HTMLElement | null,
+    previewEl: HTMLElement | null
+  ): void {
     if (!textEl && !previewEl) return;
 
-    this.visibility.watch(item.getElement(), () => {
-      if (textEl) this.drawText(data, textEl).catch(console.error);
-      if (previewEl) new ImagePreview(this.app, this.component).load(file, previewEl).catch(console.error);
+    this.visibility.watch(watchedEl, () => {
+      if (textEl) this.drawText(data, textEl, layout).catch(console.error);
+      if (previewEl) new ImagePreview(this.app, this.component).load(data.file, previewEl).catch(console.error);
     });
   }
 
-  private async drawText(data: ResultData, el: HTMLElement): Promise<void> {
+  private async drawText(data: ResultData, el: HTMLElement, layout: BodyLayout): Promise<void> {
     let content: string;
 
     try {
@@ -44,10 +64,17 @@ export class Body {
       return;
     }
 
-    const { passages, tasks, hiddenTasks } = bodyText(content, data.snippetWords, data.taskLines);
+    const { passages, tasks, hiddenTasks } = bodyText(content, data.snippetWords, data.taskLines, {
+      // A Card scrolls, so it leaves no task line out.
+      maxTasks: layout === 'card' ? Infinity : MAX_TASK_LINES,
+    });
 
     if (passages.length > 0) {
-      this.drawPassages(el, passages);
+      if (layout === 'card') {
+        this.drawEveryPassage(el, passages);
+      } else {
+        this.drawPassages(el, passages);
+      }
     }
 
     if (tasks.length > 0) {
@@ -59,22 +86,21 @@ export class Body {
   private drawPassages(el: HTMLElement, passages: Passage[]): void {
     const occurrencesEl = el.createDiv({ cls: 'body-occurrences' });
     const box = occurrencesEl.createDiv({ cls: 'body-passages' });
-    const passageEls = passages.map((passage) => {
-      const passageEl = box.createSpan({ cls: 'body-passage' });
-
-      if (passage.cutStart) passageEl.appendText('… ');
-
-      appendHighlighted(passageEl, passage.text, passage.highlights);
-
-      if (passage.cutEnd) passageEl.appendText(' …');
-
-      return passageEl;
-    });
+    const passageEls = passages.map(passage => appendPassage(box.createSpan({ cls: 'body-passage' }), passage));
     // The box is the offset parent and clips at two lines: a passage starting below them is hidden.
     const hidden = passageEls.filter(passageEl => passageEl.offsetTop >= box.clientHeight).length;
 
     if (hidden > 0) {
       occurrencesEl.createSpan({ cls: 'body-more', text: `+${hidden}` });
+    }
+  }
+
+  /** One passage per line: the Card scrolls, so none is left out. */
+  private drawEveryPassage(el: HTMLElement, passages: Passage[]): void {
+    const occurrencesEl = el.createDiv({ cls: 'body-card-occurrences' });
+
+    for (const passage of passages) {
+      appendPassage(occurrencesEl.createDiv({ cls: 'body-card-passage' }), passage);
     }
   }
 
@@ -92,6 +118,20 @@ export class Body {
       tasksEl.createDiv({ cls: 'task-snippet-more', text: `+${hiddenTasks}` });
     }
   }
+}
+
+function hasText(data: ResultData): boolean {
+  return data.snippetWords.length > 0 || data.taskLines.length > 0;
+}
+
+function appendPassage(el: HTMLElement, passage: Passage): HTMLElement {
+  if (passage.cutStart) el.appendText('… ');
+
+  appendHighlighted(el, passage.text, passage.highlights);
+
+  if (passage.cutEnd) el.appendText(' …');
+
+  return el;
 }
 
 function appendHighlighted(el: HTMLElement, text: string, highlights: Array<[number, number]>): void {

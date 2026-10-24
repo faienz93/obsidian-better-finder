@@ -30,7 +30,7 @@ export interface TaskText {
 export interface BodyText {
   passages: Passage[];
   tasks: TaskText[];
-  /** Task lines left out after the first `MAX_TASK_LINES`. */
+  /** Task lines left out after the first `maxTasks`. */
   hiddenTasks: number;
 }
 
@@ -43,10 +43,15 @@ export function findOccurrences(text: string, words: string[]): Passage[] {
   return passagesIn(text.split('\n'), wordsPattern(words));
 }
 
-export function bodyText(content: string, words: string[], taskLines: TaskLine[]): BodyText {
+export function bodyText(
+  content: string,
+  words: string[],
+  taskLines: TaskLine[],
+  { maxTasks = MAX_TASK_LINES }: { maxTasks?: number } = {}
+): BodyText {
   const lines = content.split('\n');
   const pattern = wordsPattern(words);
-  const shown = taskLines.slice(0, MAX_TASK_LINES);
+  const shown = taskLines.slice(0, maxTasks);
   const shownLineNumbers = new Set(shown.map(task => task.line));
   const tasks = shown
     .map(task => {
@@ -61,7 +66,7 @@ export function bodyText(content: string, words: string[], taskLines: TaskLine[]
     // A task line shown below carries its own highlight: it is never repeated as an Occurrence.
     passages: passagesIn(lines, pattern).filter(p => !shownLineNumbers.has(p.line)),
     tasks,
-    hiddenTasks: Math.max(0, taskLines.length - MAX_TASK_LINES),
+    hiddenTasks: taskLines.length - shown.length,
   };
 }
 

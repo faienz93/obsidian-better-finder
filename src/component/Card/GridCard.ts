@@ -1,6 +1,5 @@
-import { App, Component } from "obsidian";
 import { ResultData } from "../../engine/ResultData";
-import { ImagePreview } from "../ui/ImagePreview";
+import { Body } from "../ui/Body";
 import { Metadata } from "../ui/Metadata";
 import { Tags } from "../ui/Tags";
 import { Title } from "../ui/Title";
@@ -8,17 +7,19 @@ import { Title } from "../ui/Title";
 export class GridCard {
   private card: HTMLElement;
   private title!: Title;
+  private body: Body;
 
-  constructor(parentEl: HTMLElement) {
+  constructor(parentEl: HTMLElement, body: Body) {
     this.card = parentEl.createDiv({ cls: 'finder-view-result suggestion-item' });
+    this.body = body;
   }
 
   public getElement(): HTMLElement {
     return this.card;
   }
 
-  public render(data: ResultData, app: App, component: Component): void {
-    const { file, tags, searchedTags, taskInfo, renderPreview } = data;
+  public render(data: ResultData): void {
+    const { file, tags, searchedTags, taskInfo } = data;
 
     this.title = new Title(this.card, file.basename);
 
@@ -26,11 +27,7 @@ export class GridCard {
       this.title.addBadge(` ${file.extension.toUpperCase()}`);
     }
 
-    if (renderPreview) {
-      const previewEl = this.card.createDiv({ cls: 'finder-view-preview' });
-
-      new ImagePreview(app, component).load(file, previewEl);
-    }
+    this.body.drawInCard(data, this.card);
 
     const metadata = new Metadata(this.card);
 

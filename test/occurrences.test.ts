@@ -97,4 +97,15 @@ describe('bodyText: Occurrences and task lines together', () => {
     expect(body.tasks.map(task => task.text)).toEqual(['task 0', 'task 1', 'task 2']);
     expect(body.hiddenTasks).toBe(2);
   });
+
+  it('shows every task line on a Card, which scrolls instead of counting', () => {
+    const lines = Array.from({ length: 5 }, (_, i) => `- [ ] task ${i} ciao`).join('\n');
+    const taskLines = [0, 1, 2, 3, 4].map(line => ({ line, done: false }));
+
+    const body = bodyText(lines, ['ciao'], taskLines, { maxTasks: Infinity });
+
+    expect(body.tasks.map(task => task.text)).toEqual(['task 0 ciao', 'task 1 ciao', 'task 2 ciao', 'task 3 ciao', 'task 4 ciao']);
+    expect(body.hiddenTasks).toBe(0);
+    expect(body.passages).toEqual([]);
+  });
 });

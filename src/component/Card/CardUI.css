@@ -85,7 +85,8 @@
   margin-top: 2px;
 }
 
-.finder-view-results.list-view .finder-view-preview {
+.finder-view-results.list-view .finder-view-preview,
+.finder-view-results.list-view .body-card-text {
   display: none;
 }
 

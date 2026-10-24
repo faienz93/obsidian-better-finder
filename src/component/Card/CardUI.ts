@@ -11,14 +11,10 @@ export type CardViewMode = 'grid' | 'list';
 export class CardUI {
   private el: HTMLElement;
   private mode: CardViewMode = 'grid';
-  private app: App;
-  private component: Component;
   private body: Body;
 
   constructor(parentEl: HTMLElement, toggle: ToggleButton, app: App, component: Component) {
     this.el = parentEl.createDiv({ cls: "finder-view-results grid-view" });
-    this.app = app;
-    this.component = component;
     this.body = new Body(app, component);
 
     toggle.onClick((isGridView) => {
@@ -33,9 +29,9 @@ export class CardUI {
     onOpen: () => void,
     onContextMenu: (event: MouseEvent) => void
   ): void {
-    const card = this.mode === 'grid' ? new GridCard(this.el) : new ListCard(this.el, this.body);
+    const card = this.mode === 'grid' ? new GridCard(this.el, this.body) : new ListCard(this.el, this.body);
 
-    card.render(data, this.app, this.component);
+    card.render(data);
     card.onClick(onOpen);
     card.onContextMenu(onContextMenu);
   }
