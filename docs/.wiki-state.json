@@ -397,13 +397,14 @@
       "name": "Preview",
       "kind": "componente",
       "file": "06-interfaccia.md",
-      "anchor": "body-preview-e-estratto",
+      "anchor": "body-occurrences-e-preview",
       "aliases": [
         "ImagePreview",
         "hasPreview",
         "Body",
-        "SnippetPreview",
-        "TaskSnippet"
+        "Occurrences",
+        "bodyText",
+        "VisibilityWatcher"
       ]
     },
     {
@@ -538,15 +539,15 @@
             "src/engine/fileTags.ts",
             "src/component/Modal/ModalUI.ts",
             "src/component/Modal/ModalItem.ts",
-            "src/component/ui/ImagePreview.ts",
-            "src/component/ui/SnippetPreview.ts",
-            "src/component/ui/TaskSnippet.ts"
+            "src/component/ui/Body.ts",
+            "src/engine/occurrences.ts",
+            "src/component/ui/ImagePreview.ts"
           ],
-          "cit": "src/engine/ResultData.ts righe 27-44",
+          "cit": "src/engine/ResultData.ts righe 34-53",
           "example": {
             "title": "Data di alpha.md per la Query \"#project task:\", dai test",
             "lang": "json",
-            "body": "{\n  \"file\": \"alpha.md\",\n  \"tags\": [\"#project/alpha\", \"#idea\"],\n  \"searchedTags\": [\"#project/alpha\"],\n  \"taskInfo\": { \"done\": 1, \"total\": 3 },\n  \"renderPreview\": false,\n  \"taskSnippet\": \"all\"\n}"
+            "body": "{\n  \"file\": \"alpha.md\",\n  \"tags\": [\"#project/alpha\", \"#idea\"],\n  \"searchedTags\": [\"#project/alpha\"],\n  \"taskInfo\": { \"done\": 1, \"total\": 3 },\n  \"renderPreview\": false,\n  \"snippetWords\": [],\n  \"taskLines\": [{ \"line\": 1, \"done\": false }, { \"line\": 2, \"done\": true }, { \"line\": 3, \"done\": false }]\n}"
           }
         },
         {
@@ -695,9 +696,9 @@
       "name": "ResultData.ts",
       "domain": "Ricerca",
       "kind": "module",
-      "description": "buildResultData(): decide una volta per risultato e Query cosa mostrare (tag, tag cercati, conteggio task, Preview, termine per il Body). Unico builder per Modal e Moodboard.",
+      "description": "buildResultData(): decide una volta per risultato e Query cosa mostrare (tag, tag cercati, conteggio task, Preview, parole e righe dei task per il Body). Unico builder per Modal e Moodboard.",
       "file": "src/engine/ResultData.ts",
-      "loc": 50,
+      "loc": 67,
       "language": "typescript"
     },
     {
@@ -971,26 +972,6 @@
       "language": "typescript"
     },
     {
-      "id": "src/component/ui/SnippetPreview.ts",
-      "name": "SnippetPreview.ts",
-      "domain": "Interfaccia",
-      "kind": "module",
-      "description": "Estratto di 60 caratteri attorno alla prima occorrenza del testo libero, con il termine evidenziato.",
-      "file": "src/component/ui/SnippetPreview.ts",
-      "loc": 59,
-      "language": "typescript"
-    },
-    {
-      "id": "src/component/ui/TaskSnippet.ts",
-      "name": "TaskSnippet.ts",
-      "domain": "Interfaccia",
-      "kind": "module",
-      "description": "Mostra fino a 3 righe di task nello stato filtrato, rilette dal file.",
-      "file": "src/component/ui/TaskSnippet.ts",
-      "loc": 57,
-      "language": "typescript"
-    },
-    {
       "id": "src/component/ui/HintBar.ts",
       "name": "HintBar.ts",
       "domain": "Interfaccia",
@@ -1141,6 +1122,46 @@
       "domain": "Servizi esterni",
       "kind": "datastore",
       "description": "Sidecar CLI facoltativo per estrarre testo e fare OCR."
+    },
+    {
+      "id": "src/component/ui/Body.ts",
+      "name": "Body.ts",
+      "domain": "Interfaccia",
+      "kind": "module",
+      "description": "Disegna il Body di un Item: Occurrences in due righe con +N, righe dei task, Preview. Legge il file solo quando l'Item è visibile.",
+      "file": "src/component/ui/Body.ts",
+      "loc": 107,
+      "language": "typescript"
+    },
+    {
+      "id": "src/component/ui/VisibilityWatcher.ts",
+      "name": "VisibilityWatcher.ts",
+      "domain": "Interfaccia",
+      "kind": "module",
+      "description": "Un IntersectionObserver per vista: chiama una callback la prima volta che un elemento si vede.",
+      "file": "src/component/ui/VisibilityWatcher.ts",
+      "loc": 36,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/occurrences.ts",
+      "name": "occurrences.ts",
+      "domain": "Ricerca",
+      "kind": "module",
+      "description": "Funzioni pure: findOccurrences (passaggi con 5 parole di contesto, fusi se vicini) e bodyText (Occurrences più righe dei task senza doppioni).",
+      "file": "src/engine/occurrences.ts",
+      "loc": 132,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/excalidraw.ts",
+      "name": "excalidraw.ts",
+      "domain": "Ricerca",
+      "kind": "module",
+      "description": "isExcalidraw(): un .md con excalidraw-plugin: parsed è un disegno, non una nota.",
+      "file": "src/engine/excalidraw.ts",
+      "loc": 6,
+      "language": "typescript"
     }
   ],
   "edges": [
@@ -1416,21 +1437,6 @@
     },
     {
       "source": "src/component/Modal/ModalUI.ts",
-      "target": "src/component/ui/ImagePreview.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/component/Modal/ModalUI.ts",
-      "target": "src/component/ui/SnippetPreview.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/component/Modal/ModalUI.ts",
-      "target": "src/component/ui/TaskSnippet.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/component/Modal/ModalUI.ts",
       "target": "src/component/Modal/ModalItem.ts",
       "kind": "call"
     },
@@ -1446,11 +1452,6 @@
     },
     {
       "source": "src/component/Card/GridCard.ts",
-      "target": "src/component/ui/ImagePreview.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/component/Card/ListCard.ts",
       "target": "src/component/ui/ImagePreview.ts",
       "kind": "call"
     },
@@ -1523,6 +1524,41 @@
       "source": "test",
       "target": "src/engine/CommonCache.ts",
       "kind": "call"
+    },
+    {
+      "source": "src/component/Modal/ModalUI.ts",
+      "target": "src/component/ui/Body.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/component/Card/ListCard.ts",
+      "target": "src/component/ui/Body.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/component/ui/Body.ts",
+      "target": "src/engine/occurrences.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/component/ui/Body.ts",
+      "target": "src/component/ui/ImagePreview.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/component/ui/Body.ts",
+      "target": "src/component/ui/VisibilityWatcher.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/engine/ResultData.ts",
+      "target": "src/engine/excalidraw.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/component/ui/ImagePreview.ts",
+      "target": "src/engine/excalidraw.ts",
+      "kind": "call"
     }
   ],
   "entryPoints": [
@@ -1535,16 +1571,16 @@
   "observations": [
     "Con un tipo file esplicito nella Query (es. 'pdf contratto') l'Index viene saltato e la lettura diretta guarda solo il contenuto dei .md e i nomi file: il testo dei PDF estratto da Xberg si trova solo senza la parola 'pdf' (src/engine/SearchStrategy.ts righe 167-185, src/engine/SearchIndex.ts righe 343-359).",
     "I filtri si estraggono in un ordine (comando, negazioni, tag, date, tipi, title, task, path, highlight, metadati per ultimi) e si applicano in un altro (archivio, tag, data, path, tipi, metadati, negazioni, task, titolo): src/engine/SearchStrategy.ts righe 68-107 e 210-293.",
-    "CONTEXT.md descrive le Occurrences come ogni parola cercata da sola con le varianti accettate, e un Body che con testo libero e task mostra entrambi: il codice cerca il testo libero intero con indexOf (src/component/ui/SnippetPreview.ts riga 23), il Modal mostra righe dei task oppure estratto (src/component/Modal/ModalUI.ts righe 33-42), le Card non mostrano estratti e matchedWords non ha consumatori nella UI.",
     "Le note di progetto sono in parte superate: README (today, this week senza prefisso, nomi dei comandi), spec.md (FinderCard, HistoryBar, debounce in Finder.search), CLAUDE.md (src/component/interface/Card.ts e isFile() non esistono).",
     "manifest.json dichiara isDesktopOnly false, ma XbergExtractor importa child_process al caricamento del modulo: su mobile il plugin probabilmente non parte (non verificato).",
     "La CI fa build e lint su Node 20 e 22 ma non lancia i test Jest; il rilascio è manuale (npm run version più upload di main.js, che è in .gitignore).",
     "Cronologia con le frecce ed export dei risultati esistono solo nella Moodboard (src/FinderMoodboard.ts righe 68-70 e 85-103).",
     "Il supporto Xberg non è mai stato provato con il binario reale: i flag della CLI sono da confermare (src/engine/XbergExtractor.ts righe 214-216, TODO righe 12-13).",
-    "Il log all'avvio è invertito: 'Plugin runned from Mobile!' si stampa quando Platform.isMobile è false (main.ts righe 32-34)."
+    "Il log all'avvio è invertito: 'Plugin runned from Mobile!' si stampa quando Platform.isMobile è false (main.ts righe 32-34).",
+    "Le virgolette nella Query non fanno una ricerca per frase: MiniSearch le scarta e \"ciao mondo\" trova le due parole anche lontane (issue #10)."
   ],
   "generatedAt": "2026-10-24",
-  "commit": "db7a8ab798ee523cbea5e28b63690735259f94e1",
+  "commit": "ae87d654de063e757ca3c49e945cda7e2a5f6caf",
   "dirtyAtGeneration": true,
   "files": {
     "INDEX.md": {

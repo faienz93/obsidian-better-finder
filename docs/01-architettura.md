@@ -180,7 +180,7 @@ Lo schema in `spec.md` è superato. Le differenze con il codice:
 - **Common cache** (`src/engine/`): [`SearchIndex`](./03-flusso-indicizzazione.md#2-lindex-minisearch-si-costruisce-a-blocchi-di-100-note) con la ricerca senza Index, [`CanvasTagCache`](./03-flusso-indicizzazione.md#3-i-tag-dei-canvas-vanno-in-cache) e `XbergExtractor`.
 - **`buildResultData`** e **`getFileTags`**, in `src/engine/ResultData.ts` e `src/engine/fileTags.ts`: la Data di un risultato e i tag di un file, condivisi da viste e `TagsFilter`.
 - **[`SearchHistory`](./06-interfaccia.md#cronologia-delle-ricerche)** (`src/engine/SearchHistory.ts`): le ultime 20 Query che hanno portato ad aprire qualcosa.
-- **Viste e componenti** (`src/FinderModal.ts`, `src/FinderMoodboard.ts`, `src/component/`): `ModalUI` e `ModalItem` per gli Item, `CardUI`, `GridCard` e `ListCard` per la Moodboard, e in `ui/` la [Preview](./06-interfaccia.md#body-preview-e-estratto), gli estratti e i chip.
+- **Viste e componenti** (`src/FinderModal.ts`, `src/FinderMoodboard.ts`, `src/component/`): `ModalUI` e `ModalItem` per gli Item, `CardUI`, `GridCard` e `ListCard` per la Moodboard, e in `ui/` il [Body](./06-interfaccia.md#body-occurrences-e-preview) con Occurrences e Preview, e i chip.
 
 ## Pattern architetturali rilevati
 
@@ -190,7 +190,7 @@ Lo schema in `spec.md` è superato. Le differenze con il codice:
 - **Singleton con `getInstance()`.** `SearchStrategyFactory`, le tre Common cache e `SearchHistory` sono condivisi da viste e filtri senza passarli per costruttore. Il prezzo: `onunload` è vuoto, quindi disabilitare il plugin non li libera, e i test azzerano `_instance` a mano. `main.ts` righe 195-197
 - **Lavoro a blocchi con cessione all'event loop.** `buildIndex` indicizza 100 note per volta con un `setTimeout(0)` fra i blocchi, e la lettura diretta legge 50 file in parallelo. Entrambi esistono perché la UI di Obsidian gira sullo stesso thread. `src/engine/SearchIndex.ts` righe 69-92
 - **Sidecar che si spegne da solo.** `XbergExtractor` prova `xberg` e poi `kreuzberg` con `--version`; se nessuno risponde si disattiva e lo scrive solo in console. `src/engine/XbergExtractor.ts` righe 55-75
-- **Viste che disegnano e basta.** La Data si decide in `buildResultData`, e `ImagePreview.hasPreview` è l'unico posto che dice se un file ha una Preview. `src/engine/ResultData.ts` righe 27-44
+- **Viste che disegnano e basta.** La Data si decide in `buildResultData`, le Occurrences in `bodyText`, e `ImagePreview.hasPreview` è l'unico posto che dice se un file ha una Preview. `src/engine/ResultData.ts` righe 34-53; `src/engine/occurrences.ts` righe 46-66
 
 ### Documenti del progetto e codice
 
@@ -201,7 +201,7 @@ Lo schema in `spec.md` è superato. Le differenze con il codice:
 | [`README.md`](../README.md) righe 85-86: `today #react`, `this week task-todo:` | Servono `created:` o `modified:` davanti ([date](./04-sintassi-query.md#date)) |
 | [`README.md`](../README.md) righe 48-49 e 91-97: comandi "Open Smart Search" e "Open Command View" che elenca comandi | I comandi si chiamano "Open Better Finder Modal" e "Open Better Finder View", e la view è la Moodboard dei file (`main.ts` righe 47-61) |
 | [`spec.md`](../spec.md) righe 84-102: `Card.ts`, `HistoryBar.ts`, `ResultsContainer.ts` | Non esistono; la cronologia si naviga con le frecce nella Moodboard |
-| [`CONTEXT.md`](../CONTEXT.md) righe 82-99: Occurrences per ogni parola, Body con task ed estratto insieme, pulsante per la Preview | Il Body cerca il testo libero intero, il Modal mostra task **oppure** estratto, le Card non hanno estratti né il pulsante ([Body e Preview](./06-interfaccia.md#body-preview-e-estratto)) |
+| [`CONTEXT.md`](../CONTEXT.md) righe 82-99: Occurrences su Card e Item, pulsante per la Preview | Gli Item hanno le Occurrences; le Card della griglia non hanno ancora né Body né pulsante ([Body e Preview](./06-interfaccia.md#body-occurrences-e-preview)) |
 | `CLAUDE.md` riga 19: la Data si chiama ancora `Card`, in una cartella `component/interface/` | Si chiama già `ResultData`, in `src/engine/ResultData.ts`; la cartella `interface/` non c'è più |
 
 ## Avviarlo in locale

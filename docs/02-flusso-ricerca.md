@@ -42,7 +42,7 @@ sequenceDiagram
 
 ### 1. Digiti e parte solo l'ultima ricerca
 
-`FinderModal` è una `SuggestModal` di Obsidian: a ogni tasto Obsidian chiama `getSuggestions`, che passa la Query a `LatestSearch.run`. Ogni apertura del Modal crea il suo `Finder` e il suo `LatestSearch`. `src/FinderModal.ts` righe 17-21 e 48-52
+`FinderModal` è una `SuggestModal` di Obsidian: a ogni tasto Obsidian chiama `getSuggestions`, che passa la Query a `LatestSearch.run`. Ogni apertura del Modal crea il suo `Finder` e il suo `LatestSearch`. `src/FinderModal.ts` righe 21-26 e 56-62
 
 `LatestSearch` aspetta 150 ms senza tasti e numera ogni ricerca con una `generation`; la Promise si risolve solo se nel frattempo non è partita una ricerca più nuova:
 
@@ -203,19 +203,17 @@ L'Index cerca su tutto il vault e i filtri del passo 3 entrano solo come interse
 
 Con `pomo` la nota `recipe.md` ha `["pomodoro"]`; con `diagram` il file `architettura-diagram.png` si trova per nome e ha `["diagram"]`. `test/search-outcome.test.ts` righe 88-112
 
-**⚠️ Trappola.** `matchedWords` si calcola ma nessuna vista lo usa ancora: servirà alle Occurrences parola per parola di `CONTEXT.md`.
-
 **⚠️ Trappola.** Un tipo file esplicito spegne l'Index. Con `pdf contratto` la `ParsedQuery` ha `fileTypes: ["pdf"]` e passa dalla lettura diretta, che legge il contenuto **solo dei `.md`**. Il testo dei PDF estratto da [Xberg](./03-flusso-indicizzazione.md#4-xberg-estrae-il-testo-di-pdf-immagini-e-office) vive solo nell'Index, quindi un PDF si trova solo se "contratto" è nel nome. `src/engine/SearchIndex.ts` righe 349-359
 
 **⚠️ Trappola.** Finché l'Index non è pronto, nei primi secondi dopo l'avvio, ogni tasto legge tutti i candidati dal disco. Senza testo libero l'ordine finale è sempre per data di modifica, anche con `created:` che aveva ordinato per data di creazione. `src/engine/SearchStrategy.ts` righe 162-164
 
 ### 5. Ogni risultato diventa una Data e un Item
 
-Per ogni risultato Obsidian chiama `renderSuggestion`: un comando si disegna con nome, id e hotkey, un file passa da `buildResultData`, che decide la [Data](./06-interfaccia.md#la-data-di-un-risultato), e da `ModalUI`, che la disegna come Item. Si parte dall'outcome risolto e non dall'input, che può già contenere una Query più nuova. `src/FinderModal.ts` righe 67-79
+Per ogni risultato Obsidian chiama `renderSuggestion`: un comando si disegna con nome, id e hotkey, un file passa da `buildResultData`, che decide la [Data](./06-interfaccia.md#la-data-di-un-risultato), e da `ModalUI`, che la disegna come Item. Si parte dall'outcome risolto e non dall'input, che può già contenere una Query più nuova. `src/FinderModal.ts` righe 77-89
 
-`buildResultData` decide la Data una volta per Modal e Moodboard, leggendo solo metadati in cache: le regole stanno nella [sua casa](./06-interfaccia.md#la-data-di-un-risultato). `src/engine/ResultData.ts` righe 27-44
+`buildResultData` decide la Data una volta per Modal e Moodboard, leggendo solo metadati in cache: le regole stanno nella [sua casa](./06-interfaccia.md#la-data-di-un-risultato). Da `matchedWords` prende le parole da cercare nel Body. `src/engine/ResultData.ts` righe 34-53
 
-**Esempio tracciato.** `alpha.md` ha i tag `#project/alpha` e `#idea` e tre task, una fatta. Con la Query `#project task:` la Data è:
+**Esempio tracciato.** `alpha.md` ha i tag `#project/alpha` e `#idea` e tre task, una fatta, sulle righe 1-3. Con la Query `#project task:` la Data è:
 
 ```json
 {
@@ -224,17 +222,24 @@ Per ogni risultato Obsidian chiama `renderSuggestion`: un comando si disegna con
   "searchedTags": ["#project/alpha"],
   "taskInfo": { "done": 1, "total": 3 },
   "renderPreview": false,
-  "taskSnippet": "all"
+  "snippetWords": [],
+  "taskLines": [
+    { "line": 1, "done": false },
+    { "line": 2, "done": true },
+    { "line": 3, "done": false }
+  ]
 }
 ```
 
-`test/result-data.test.ts` righe 116-123
+`test/result-data.test.ts` righe 133-139
 
-Nel Body del Modal le righe dei task hanno la precedenza sulle Occurrences, e la [Preview](./06-interfaccia.md#body-preview-e-estratto) di una nota compare solo quando non c'è né l'una né l'altra cosa. `CONTEXT.md` dice che con testo libero e filtro task il Body le mostra insieme: il codice ne mostra una sola. `src/component/Modal/ModalUI.ts` righe 33-48
+Con `ciao task:` la stessa nota ha anche `snippetWords: ["ciao"]`, e il Body mostra Occurrences e righe dei task insieme. `test/result-data.test.ts` righe 210-217
 
-**⚠️ Trappola.** Le Occurrences oggi sono un solo passaggio attorno alla prima posizione del testo libero **intero**, cercato con un `indexOf`. Con `ciao mondo` su una nota dove le due parole sono lontane, MiniSearch trova la nota ma `SnippetPreview` non trova la stringa; `renderPreview` è già `false` perché c'era un testo libero, quindi il Body resta vuoto. `src/component/ui/SnippetPreview.ts` righe 18-25
+`ModalUI` passa la Data al [Body](./06-interfaccia.md#body-occurrences-e-preview), che legge la nota solo quando l'Item diventa visibile. `src/component/Modal/ModalUI.ts` righe 16-36
 
-**⚠️ Trappola.** `FinderModal` definisce sia `renderSuggestion` sia `renderModalItem`, con lo stesso corpo. Le typings installate di Obsidian dichiarano solo `renderSuggestion`, che è quello chiamato; `renderModalItem` non lo chiama nessuno. `src/FinderModal.ts` righe 54-60
+**⚠️ Trappola.** Le virgolette non fanno una ricerca per frase: il tokenizer di MiniSearch le scarta, e `"ciao mondo"` trova le note con le due parole anche lontane, ciascuna evidenziata da sola (issue #10).
+
+**⚠️ Trappola.** `FinderModal` definisce sia `renderSuggestion` sia `renderModalItem`, con lo stesso corpo. Le typings installate di Obsidian dichiarano solo `renderSuggestion`, che è quello chiamato; `renderModalItem` non lo chiama nessuno. `src/FinderModal.ts` righe 64-70
 
 ### 6. La scelta apre il file o lancia il comando
 

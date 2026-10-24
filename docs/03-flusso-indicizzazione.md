@@ -8,7 +8,7 @@ I termini vengono dal glossario del progetto, [`CONTEXT.md`](../CONTEXT.md): Ind
 |---|---|---|---|
 | `SearchIndex` (Index MiniSearch) | memoria | path del file | il testo libero nel [flusso di ricerca](./02-flusso-ricerca.md#4-il-testo-libero-passa-dallindex) |
 | `CanvasTagCache` | memoria | path del `.canvas` | il filtro [`#tag`](./04-sintassi-query.md#tag), tramite `getFileTags` |
-| `XbergExtractor` | memoria più `xberg-cache.json` su disco | path del file | se stesso, che riversa il testo nell'Index; la [Preview](./06-interfaccia.md#body-preview-e-estratto) dei docx/xlsx |
+| `XbergExtractor` | memoria più `xberg-cache.json` su disco | path del file | se stesso, che riversa il testo nell'Index; la [Preview](./06-interfaccia.md#body-occurrences-e-preview) dei docx/xlsx |
 
 ```mermaid
 sequenceDiagram
@@ -129,7 +129,7 @@ I tag restano come sono scritti, maiuscole comprese. Il confronto con la query i
 { "mtime": 0, "tags": ["#project", "#Meeting"] }
 ```
 
-`test/result-data.test.ts` righe 90-99
+`test/result-data.test.ts` righe 106-115
 
 La cache si legge in modo sincrono perché un Filter la interroga a metà ricerca e non può aspettare. Se la voce manca o ha un `mtime` diverso dal file, `getTags` restituisce i tag vecchi e lancia un refresh in background: la ricerca dopo vede quelli nuovi. Chi la chiama passa da `getFileTags`, che sceglie fra la cache dei canvas e il metadata cache in base all'estensione. `src/engine/CanvasTagCache.ts` righe 99-109
 
@@ -173,7 +173,7 @@ Il testo, troncato a 10.000 caratteri, entra nell'Index con `addExternalDocument
 
 `src/engine/XbergExtractor.ts` righe 259-284
 
-L'estrazione all'avvio va un file alla volta, quindi alla prima esecuzione su un vault con centinaia di PDF il testo arriva nell'Index dopo minuti. Dalla seconda quasi tutto viene dalla cache. Anche la Preview di un docx o xlsx chiama `getText` mentre disegna, e su un file senza voce in cache questo lancia un'estrazione. `src/component/ui/ImagePreview.ts` riga 83
+L'estrazione all'avvio va un file alla volta, quindi alla prima esecuzione su un vault con centinaia di PDF il testo arriva nell'Index dopo minuti. Dalla seconda quasi tutto viene dalla cache. Anche la Preview di un docx o xlsx chiama `getText` mentre disegna, e su un file senza voce in cache questo lancia un'estrazione. `src/component/ui/ImagePreview.ts` riga 80
 
 **⚠️ Trappola.** L'integrazione non è mai stata provata con il Sidecar reale: il commento sopra `execFile` dice che i flag `extract <path> --format json` sono da riconfermare. Se la CLI risponde in un altro modo, ogni estrazione fallisce con un `console.error` e l'Index resta senza PDF. `src/engine/XbergExtractor.ts` righe 213-216
 

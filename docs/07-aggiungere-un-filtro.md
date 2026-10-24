@@ -58,7 +58,7 @@ Tre regole che il codice dà per scontate:
 
 1. `filter` con valore vuoto restituisce i file invariati: la factory chiama alcuni filtri anche senza token.
 2. `extract` e `removeFrom` usano lo stesso pattern, altrimenti un pezzo del token finisce nel testo libero e passa dall'indice.
-3. La regex tollera lo spazio dopo i due punti (`\s*`). Il click sulla chip inserisce `label` seguito da uno spazio, quindi `path: wiki` deve funzionare come `path:wiki`. `src/FinderModal.ts` righe 81-91
+3. La regex tollera lo spazio dopo i due punti (`\s*`). Il click sulla chip inserisce `label` seguito da uno spazio, quindi `path: wiki` deve funzionare come `path:wiki`. `src/FinderModal.ts` righe 91-101
 
 Un filtro che deve leggere i file estende invece `SearchFilterAsync`, con `filterAsync`. L'unico esempio è [`highlight:`](./04-sintassi-query.md#evidenziazioni): la factory lo tiene fuori dalla `strategyMap` e lo chiama a parte in `filterFreeText`, al posto della ricerca testuale. `src/engine/search-filters/types.ts` righe 52-59 e `src/engine/SearchStrategy.ts` righe 156-160
 
@@ -155,19 +155,19 @@ Dopo `filter()` il testo libero passa da `filterFreeText`. La scelta fra [l'indi
 
 Se il filtro introduce un tipo di file nuovo, anteprima e indicizzazione si aggiornano insieme (regola di `CLAUDE.md`). I punti da toccare:
 
-- `ImagePreview.hasPreview` e `EMBED_EXTENSIONS`, la sola risposta a "questo file ha un'anteprima?", più `ImagePreview.load` per il rendering. `src/component/ui/ImagePreview.ts` righe 11-28
+- `ImagePreview.hasPreview` e `EMBED_EXTENSIONS`, la sola risposta a "questo file ha un'anteprima?", più `ImagePreview.load` per il rendering. `src/component/ui/ImagePreview.ts` righe 12-29
 - `XBERG_EXTENSIONS`, se il testo va estratto dal sidecar. `src/engine/XbergExtractor.ts` righe 6-11
 
 ## Se il filtro cambia cosa mostra un risultato
 
-Un filtro che decide anche come si disegna una riga (come i tag o `task:`) va riflesso in `buildResultData`, che costruisce la Data di ogni risultato per Modal e Moodboard e legge `parsed`. `src/engine/ResultData.ts` righe 27-44
+Un filtro che decide anche come si disegna una riga (come i tag o `task:`) va riflesso in `buildResultData`, che costruisce la Data di ogni risultato per Modal e Moodboard e legge `parsed`. `src/engine/ResultData.ts` righe 34-53
 
 Due vincoli:
 
 - I tag di un file si leggono con `getFileTags`, mai da `metadataCache`: per i canvas passa dalla cache dei tag. `src/engine/fileTags.ts` righe 8-16
-- `buildResultData` legge solo metadati in cache, non il contenuto dei file. `src/engine/ResultData.ts` riga 26
+- `buildResultData` legge solo metadati in cache, non il contenuto dei file. `src/engine/ResultData.ts` riga 33
 
-`test/result-data.test.ts` lo prova con la ricerca vera e un vault finto. `test/result-data.test.ts` righe 38-50
+`test/result-data.test.ts` lo prova con la ricerca vera e un vault finto. `test/result-data.test.ts` righe 45-61
 
 ## Hint e sub-hint nella UI
 
