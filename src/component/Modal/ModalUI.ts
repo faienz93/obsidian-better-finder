@@ -1,12 +1,10 @@
 import { App, Component } from "obsidian";
-import { Card } from "../interface/Card";
+import { ResultData } from "../../engine/ResultData";
 import { ImagePreview } from "../ui/ImagePreview";
 import { SnippetPreview } from "../ui/SnippetPreview";
 import { TaskSnippet } from "../ui/TaskSnippet";
 import { ModalItem } from "./ModalItem";
 import { Title } from "../ui/Title";
-
-export type { Card as ModalData };
 
 export class ModalUI {
   private item: ModalItem;
@@ -18,7 +16,7 @@ export class ModalUI {
     this.item = new ModalItem(el);
   }
 
-  public render(data: Card): void {
+  public render(data: ResultData): void {
     const { file, tags, searchedTags, taskInfo, renderPreview, snippetTerm, taskSnippet } = data;
 
     this.title = this.item.setTitle(file.basename);
@@ -49,11 +47,7 @@ export class ModalUI {
       });
     }
 
-    if (file.extension !== 'md') return;
-
-    if (tags.length > 0) {
-      this.item.setTags(tags, searchedTags);
-    }
+    this.item.setTags(tags, searchedTags);
 
     if (taskInfo && taskInfo.total > 0) {
       this.item.setTaskBadge(taskInfo.done, taskInfo.total);

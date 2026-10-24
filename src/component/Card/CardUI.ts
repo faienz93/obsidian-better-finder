@@ -1,9 +1,11 @@
 import { App, Component } from "obsidian";
-import { Card, CardViewMode } from "../interface/Card";
+import { ResultData } from "../../engine/ResultData";
 import { GridCard } from "./GridCard";
 import { ListCard } from "./ListCard";
 import { ToggleButton } from "../ui/ToggleButton";
 import "./CardUI.css";
+
+export type CardViewMode = 'grid' | 'list';
 
 export class CardUI {
   private el: HTMLElement;
@@ -24,7 +26,7 @@ export class CardUI {
   }
 
   public render(
-    data: Card,
+    data: ResultData,
     onOpen: () => void,
     onContextMenu: (event: MouseEvent) => void
   ): void {

@@ -1,14 +1,12 @@
-import { ItemView, WorkspaceLeaf, TFile, Menu, getAllTags } from "obsidian";
+import { ItemView, WorkspaceLeaf, TFile, Menu } from "obsidian";
 import { Finder, SearchOutcome, SearchResult, isCommand } from "./Finder";
 import { i18n } from "./const";
-import { Card } from "./component/interface/Card";
 import { CardUI } from "./component/Card/CardUI";
-import { ImagePreview } from "./component/ui/ImagePreview";
 import { SearchBar } from "./component/ui/SearchBar";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
-import { isDoneTask } from "./engine/search-filters/TaskFilter";
+import { buildResultData } from "./engine/ResultData";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -154,31 +152,18 @@ export class FinderMoodboard extends ItemView {
       return;
     }
 
+    if (!this.outcome) return;
+
     const file = result as TFile;
 
     this.cardContainer.render(
-      this.buildCardData(file),
+      buildResultData(this.app, file, this.outcome),
       () => {
         SearchHistory.getInstance().add(this.searchBar.getValue());
         this.core.openResult(file);
       },
       (event) => this.showContextMenu(event, file)
     );
-  }
-
-  private buildCardData(file: TFile): Card {
-    const fileCache = this.app.metadataCache.getFileCache(file);
-    const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
-    const tasks = fileCache?.listItems?.filter(i => i.task) || [];
-    const doneCount = tasks.filter(t => isDoneTask(t.task)).length;
-
-    return {
-      file,
-      tags: fileTags,
-      searchedTags: [],
-      taskInfo: tasks.length > 0 ? { done: doneCount, total: tasks.length } : undefined,
-      renderPreview: ImagePreview.hasPreview(this.app, file, { hasSnippet: false }),
-    };
   }
 
   private showContextMenu(event: MouseEvent, file: TFile): void {

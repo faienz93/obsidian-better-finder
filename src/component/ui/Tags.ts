@@ -23,7 +23,7 @@ export class Tags {
         fontSize: '11px',
       });
 
-      const isMatched = searchedTags.some(st => tag.toLowerCase() === st.toLowerCase());
+      const isMatched = searchedTags.includes(tag);
 
       if (isMatched) {
         tagEl.setCssStyles({

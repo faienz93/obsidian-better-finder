@@ -1,11 +1,10 @@
-import { App, SuggestModal, getAllTags, TFile } from "obsidian";
+import { App, SuggestModal, TFile } from "obsidian";
 import { Finder, SearchOutcome, SearchResult, isCommand } from "./Finder";
 import { ModalUI } from "./component/Modal/ModalUI";
 import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
-import { ImagePreview } from "./component/ui/ImagePreview";
-import { isDoneTask } from "./engine/search-filters/TaskFilter";
+import { buildResultData } from "./engine/ResultData";
 import "./FinderModal.css";
 
 class FinderModal extends SuggestModal<SearchResult> {
@@ -76,25 +75,7 @@ class FinderModal extends SuggestModal<SearchResult> {
 
     if (!this.outcome) return;
 
-    const file = result as TFile;
-    const parsed = this.outcome.parsed;
-    const fileCache = this.app.metadataCache.getFileCache(file);
-    const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
-    const tasks = fileCache?.listItems?.filter(i => i.task) || [];
-    const doneCount = tasks.filter(t => isDoneTask(t.task)).length;
-    const ext = file.extension.toLowerCase();
-    const snippetTerm = ext === 'md' && parsed.freeText ? parsed.freeText : undefined;
-    const taskSnippet = ext === 'md' ? parsed.taskFilter : undefined;
-
-    new ModalUI(el, this.app).render({
-      file,
-      tags: fileTags,
-      searchedTags: parsed.tags,
-      taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined,
-      renderPreview: ImagePreview.hasPreview(this.app, file, { hasSnippet: !!(snippetTerm || taskSnippet) }),
-      snippetTerm,
-      taskSnippet,
-    });
+    new ModalUI(el, this.app).render(buildResultData(this.app, result as TFile, this.outcome));
   }
 
   private appendToQuery(token: string): void {
