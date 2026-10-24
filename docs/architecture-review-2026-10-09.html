@@ -22,7 +22,7 @@
 
       <header class="border-b border-slate-300 pb-6">
         <h1 class="font-serif text-4xl tracking-tight">Revisione architetturale</h1>
-        <p class="mt-1 font-mono text-sm text-slate-500">obsidian-better-finder · feature/roadmap-better-finder @ 6fd649f · 9 ottobre 2026</p>
+        <p class="mt-1 font-mono text-sm text-slate-500">obsidian-better-finder · feature/roadmap-better-finder @ 6fd649f · 9 ottobre 2026 · stato aggiornato il 24 ottobre @ 00a9e42</p>
         <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600">
           <span class="flex items-center gap-2"><span class="inline-block w-5 h-3 border-2 border-slate-700"></span> modulo</span>
           <span class="flex items-center gap-2"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#475569" stroke-width="2" class="seam"/></svg> giunzione</span>
@@ -139,6 +139,7 @@ flowchart TB
           <div class="flex items-baseline justify-between gap-4 flex-wrap">
             <h2 class="font-serif text-2xl">2 · Un solo costruttore di Card dietro un'interfaccia</h2>
             <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-600 text-white ring-1 ring-emerald-700">✓ Fatto · db7a8ab</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200">in-process</span>
             </div>
@@ -212,6 +213,14 @@ taskInfo: tasks.length > 0
             </div>
           </div>
           <p class="mt-2 text-xs text-slate-600">Stesso concetto, due risposte. Ecco com'è fatta la mancanza di <span class="italic">locality</span>: la conoscenza sta in due posti, quindi una correzione ne raggiunge uno solo.</p>
+
+          <div class="mt-4 rounded bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-900">
+            <p class="font-semibold mb-1">Fatto — db7a8ab</p>
+            <p class="leading-relaxed">
+              <span class="font-mono">buildResultData(app, file, outcome)</span> in <span class="font-mono">src/engine/ResultData.ts</span> è l'unico costruttore: lo chiamano <span class="font-mono">FinderModal</span> e <span class="font-mono">FinderMoodboard</span>, che si limitano a disegnare. Prende l'intero <span class="font-mono">SearchOutcome</span> invece della sola <span class="font-mono">ParsedQuery</span>, perché la Data dipende anche dalle parole che la ricerca ha accettato (Occurrences).
+              Nel glossario la "Card" di questa scheda si chiama ora <span class="italic">Data</span>; Card e Item sono i componenti che la disegnano. Il Moodboard evidenzia i tag cercati come il Modal; i casi sono in <span class="font-mono">test/result-data.test.ts</span>.
+            </p>
+          </div>
         </article>
 
         <!-- ============ CANDIDATO 3 ============ -->
@@ -462,6 +471,14 @@ flowchart LR
             </div>
           </div>
           <p class="mt-4 text-xs text-slate-600">Nota: questo rende di più <span class="italic">dopo</span> il candidato 1 — è il registro che rende sensato scrivere un test di composizione.</p>
+
+          <div class="mt-4 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+            <p class="font-semibold mb-1">Stato al 24 ottobre — a metà</p>
+            <p class="leading-relaxed">
+              Il vantaggio principale è già arrivato per un'altra strada: <span class="font-mono">getResults()</span> restituisce un <span class="font-mono">SearchOutcome</span> (4e9e5a4) e la composizione dei Filtri è testata con un <span class="font-mono">App</span> finto in <span class="font-mono">test/search-outcome.test.ts</span> e <span class="font-mono">test/result-data.test.ts</span>.
+              <span class="font-mono">search()</span> non esiste più (la sostituisce <span class="font-mono">LatestSearch</span>). Restano in <span class="font-mono">Finder</span> i tre mestieri estranei: <span class="font-mono">renderCommand</span>, <span class="font-mono">exportResults</span>, <span class="font-mono">openResult</span>.
+            </p>
+          </div>
         </article>
 
         <!-- ============ CANDIDATO 6 ============ -->
@@ -629,6 +646,7 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
 
           <div class="mt-4 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
             <span class="font-semibold">Collegato:</span> <span class="font-mono">Finder.lastResultCount</span> (:15, assegnato a :151) è un campo pubblico mutabile che porta un'informazione già presente nel valore di ritorno — <span class="font-mono">FinderCard.ts:114</span> lo legge mentre ha <span class="font-mono">results</span> in mano a :110. Con le ricerche sorpassate riflette l'ultima ricerca conclusa, non quella a schermo.
+            <span class="block mt-1 font-semibold text-emerald-800">✓ Rimosso in c593648 insieme al debounce.</span>
           </div>
         </article>
 
@@ -636,11 +654,11 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
         <article class="rounded-lg border border-slate-200 bg-white p-5">
           <h3 class="font-serif text-lg">Trovato anche questo — minore, ma da sapere</h3>
           <ul class="mt-3 space-y-2 text-sm text-slate-700">
-            <li><span class="font-semibold">Il motore dipende da un tipo della UI.</span> <span class="font-mono text-xs">SearchFilter</span> implementa <span class="font-mono text-xs">HintsType</span> (types.ts:2,39), quindi <span class="font-mono text-xs">label</span> è insieme il prefisso di parsing, il testo del chip e la sonda di attivazione. <span class="font-mono text-xs">Finder.getActiveHints</span> fa <span class="font-mono text-xs">q.includes(label)</span>, così il chip di NegationFilter (<span class="font-mono text-xs">'-'</span>) si accende su <span class="font-mono text-xs">this-week</span> — che il parser invece, deliberatamente, <em>non</em> tratta come negazione. Parser ed evidenziatore sono in disaccordo per costruzione.</li>
-            <li><span class="font-semibold">Undici downcast dall'unica astrazione che doveva evitarli.</span> Il registro è <span class="font-mono text-xs">Map&lt;string, SearchFilter&lt;unknown&gt;&gt;</span>, e ogni smistamento riafferma a mano il tipo concreto (<span class="font-mono text-xs">as TagsFilter</span>, <span class="font-mono text-xs">as PdfFilter</span>, …). Confluisce nel candidato 1.</li>
-            <li><span class="font-semibold"><span class="font-mono text-xs">applyFileTypes</span> prende il filtro PDF per usarlo come matcher generico di estensioni</span> (SearchStrategy.ts:128) e gli passa un sentinella <span class="font-mono text-xs">'*'</span> non tipizzato. Se un domani <span class="font-mono text-xs">PdfFilter.filter</span> cominciasse a usare le proprie <span class="font-mono text-xs">extensions</span>, salterebbe tutto il filtraggio per tipo.</li>
-            <li><span class="font-semibold"><span class="font-mono text-xs">src/main.ts</span> e <span class="font-mono text-xs">src/settings.ts</span> sono il template di esempio intatto</span> — un secondo <span class="font-mono text-xs">main.ts</span>, un secondo <span class="font-mono text-xs">DEFAULT_SETTINGS</span>, una seconda scheda impostazioni, niente di tutto ciò compilato. CLAUDE.md già dice di ignorarli; cancellarli non costa nulla ed evita che una ricerca per nome restituisca prima il file sbagliato.</li>
-            <li><span class="font-semibold">I test bucano un campo static privato con <span class="font-mono text-xs">as any</span> per azzerare i singleton</span> (search-index.test.ts:25). La superficie di test è il campo, non l'interfaccia: è il segnale più chiaro che i singleton sono ciò che blocca la testabilità.</li>
+            <li><span class="font-semibold">Il motore dipende da un tipo della UI.</span> <span class="font-mono text-xs">SearchFilter</span> implementa <span class="font-mono text-xs">HintsType</span> (types.ts:2,39), quindi <span class="font-mono text-xs">label</span> è insieme il prefisso di parsing, il testo del chip e la sonda di attivazione. <span class="font-mono text-xs">Finder.getActiveHints</span> fa <span class="font-mono text-xs">q.includes(label)</span>, così il chip di NegationFilter (<span class="font-mono text-xs">'-'</span>) si accende su <span class="font-mono text-xs">this-week</span> — che il parser invece, deliberatamente, <em>non</em> tratta come negazione. Parser ed evidenziatore sono in disaccordo per costruzione. <span class="text-xs text-amber-800 font-semibold">Ancora aperto.</span></li>
+            <li><span class="font-semibold">Undici downcast dall'unica astrazione che doveva evitarli.</span> Il registro è <span class="font-mono text-xs">Map&lt;string, SearchFilter&lt;unknown&gt;&gt;</span>, e ogni smistamento riafferma a mano il tipo concreto (<span class="font-mono text-xs">as TagsFilter</span>, <span class="font-mono text-xs">as PdfFilter</span>, …). Confluisce nel candidato 1. <span class="text-xs text-amber-800 font-semibold">Ancora aperto: oggi sono 14.</span></li>
+            <li><span class="font-semibold"><span class="font-mono text-xs">applyFileTypes</span> prende il filtro PDF per usarlo come matcher generico di estensioni</span> (SearchStrategy.ts:128) e gli passa un sentinella <span class="font-mono text-xs">'*'</span> non tipizzato. Se un domani <span class="font-mono text-xs">PdfFilter.filter</span> cominciasse a usare le proprie <span class="font-mono text-xs">extensions</span>, salterebbe tutto il filtraggio per tipo. <span class="text-xs text-amber-800 font-semibold">Ancora aperto (SearchStrategy.ts:134–136).</span></li>
+            <li><span class="font-semibold"><span class="font-mono text-xs">src/main.ts</span> e <span class="font-mono text-xs">src/settings.ts</span> sono il template di esempio intatto</span> — un secondo <span class="font-mono text-xs">main.ts</span>, un secondo <span class="font-mono text-xs">DEFAULT_SETTINGS</span>, una seconda scheda impostazioni, niente di tutto ciò compilato. CLAUDE.md già dice di ignorarli; cancellarli non costa nulla ed evita che una ricerca per nome restituisca prima il file sbagliato. <span class="text-xs text-amber-800 font-semibold">Ancora aperto.</span></li>
+            <li><span class="font-semibold">I test bucano un campo static privato con <span class="font-mono text-xs">as any</span> per azzerare i singleton</span> (search-index.test.ts:25). La superficie di test è il campo, non l'interfaccia: è il segnale più chiaro che i singleton sono ciò che blocca la testabilità. <span class="text-xs text-slate-500 font-semibold">Ancora così in 4 file di test; CLAUDE.md lo documenta come prassi.</span></li>
           </ul>
         </article>
 
@@ -684,8 +702,8 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
               <li><span class="text-slate-500 font-mono mr-2">1</span><span class="line-through text-slate-500"><a href="#c3" class="underline">Giunzione cache derivate</a> — sistema il bug della cancellazione</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (0b39e04)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">2</span><span class="line-through text-slate-500"><a href="#c7" class="underline">Debounce</a> — sistema le promise abbandonate; la diff più piccola dei tre bug</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (LatestSearch)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">3</span><span class="line-through text-slate-500"><a href="#c6" class="underline">Decisione sulla Preview</a> — mette d'accordo griglia, lista e modal</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (hasPreview)</span></li>
-              <li><span class="text-slate-500 font-mono mr-2">4</span><a href="#c2" class="underline">Costruttore di Card</a> — sistema i tag divergenti nella sidebar</li>
-              <li><span class="text-slate-500 font-mono mr-2">5</span><a href="#c1" class="underline">Pipeline di parsing</a> — il grosso; rende sensati anche il <a href="#c5" class="underline">5</a> e il <a href="#c4" class="underline">4</a></li>
+              <li><span class="text-slate-500 font-mono mr-2">4</span><span class="line-through text-slate-500"><a href="#c2" class="underline">Costruttore di Card</a> — sistema i tag divergenti nella sidebar</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (db7a8ab)</span></li>
+              <li><span class="text-slate-500 font-mono mr-2">5</span><a href="#c1" class="underline">Pipeline di parsing</a> — il grosso; rende sensati anche il <a href="#c5" class="underline">5</a> e il <a href="#c4" class="underline">4</a> <span class="ml-1 text-amber-300 font-semibold">← prossimo</span></li>
             </ol>
             <p class="mt-3 text-slate-400 text-xs">Prima i bug, poi la struttura: i primi quattro sono piccoli e rilasciabili uno alla volta, e ciascuno elimina una decisione duplicata.</p>
           </div>
