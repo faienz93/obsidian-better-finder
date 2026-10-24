@@ -14,8 +14,13 @@
         "main.ts",
         "src/Finder.ts",
         "src/engine/",
-        "src/component/"
-      ]
+        "src/component/",
+        "README.md",
+        "CONTEXT.md",
+        "spec.md",
+        "package.json"
+      ],
+      "words": 1800
     },
     {
       "file": "02-flusso-ricerca.md",
@@ -23,13 +28,18 @@
       "flows": [
         1
       ],
-      "why": "È il motivo per cui esiste il plugin: una query passa da parse, 15 filtri in due ordini diversi, indice o fallback e rendering. Qui stanno quasi tutte le trappole (title:, tipi file che spengono l'indice).",
+      "why": "È il motivo per cui il plugin esiste: una Query passa da LatestSearch, parse, 15 filtri applicati in un ordine diverso da quello di estrazione, Index o lettura diretta, e diventa una Data per risultato. Qui stanno le trappole (title:, tipi file che spengono l'Index, ricerca superata che non si risolve).",
       "covers": [
         "src/Finder.ts",
+        "src/engine/LatestSearch.ts",
         "src/engine/SearchStrategy.ts",
+        "src/engine/ResultData.ts",
+        "src/engine/fileTags.ts",
         "src/FinderModal.ts",
-        "src/component/Modal/"
-      ]
+        "src/component/Modal/",
+        "CONTEXT.md"
+      ],
+      "words": 1920
     },
     {
       "file": "03-flusso-indicizzazione.md",
@@ -37,81 +47,99 @@
       "flows": [
         2
       ],
-      "why": "Tre strutture (indice MiniSearch, cache dei tag dei canvas, cache Xberg) si costruiscono all'avvio e restano allineate con 5 tipi di evento in main.ts. Ci sono buchi: PDF modificati non riestratti, cache Xberg che non si pulisce.",
+      "why": "Tre Common cache (Index MiniSearch, tag dei canvas, Extraction Xberg) si costruiscono in onLayoutReady e restano allineate con 5 eventi smistati da main.ts attraverso CommonCache. Ognuna risponde in modo diverso a una lettura stantia, per scelta (CONTEXT.md, Deliberate asymmetry).",
       "covers": [
         "main.ts",
+        "src/engine/CommonCache.ts",
         "src/engine/SearchIndex.ts",
         "src/engine/CanvasTagCache.ts",
-        "src/engine/XbergExtractor.ts"
-      ]
+        "src/engine/XbergExtractor.ts",
+        "CONTEXT.md"
+      ],
+      "words": 1800
     },
     {
       "file": "04-sintassi-query.md",
       "kind": "api",
-      "why": "L'interfaccia pubblica è la sintassi della query: 15 filtri registrati più highlight:, 2 comandi e 3 chiavi di impostazione. README e spec.md ne descrivono una versione superata (today, this week senza prefisso).",
+      "why": "L'interfaccia pubblica è la sintassi della Query: 15 filtri in strategyMap più highlight:, 2 comandi e 1 impostazione visibile. README e spec.md ne descrivono una versione superata (today, this week senza prefisso).",
       "covers": [
         "src/engine/search-filters/",
-        "src/FinderSetting.ts"
-      ]
+        "src/FinderSetting.ts",
+        "main.ts",
+        "README.md",
+        "spec.md",
+        "PLAN_date_filter.md"
+      ],
+      "words": 1900
     },
     {
       "file": "05-ci-cd.md",
       "kind": "cicd",
-      "why": "Un workflow GitHub Actions (build e lint su Node 20 e 22, senza test) e un rilascio manuale con version-bump.mjs. styles.css è un artefatto di build tracciato in git.",
+      "why": "Un workflow GitHub Actions (build e lint su Node 20 e 22, senza test) e un rilascio manuale con npm run version e version-bump.mjs. styles.css è un artefatto di build tracciato in git, main.js no.",
       "covers": [
         ".github/workflows/",
         "esbuild.config.mjs",
         "version-bump.mjs",
-        "package.json"
-      ]
+        "package.json",
+        "manifest.json",
+        "versions.json",
+        "README.md"
+      ],
+      "words": 1000
     },
     {
       "file": "06-interfaccia.md",
       "kind": "frontend",
-      "why": "Due UI con lo stesso motore ma comportamenti diversi: la modale ha snippet e tag evidenziati, la vista laterale ha griglia/lista, scroll infinito, cronologia ed export. Componenti DOM senza framework, CSS bundlato.",
+      "why": "Due viste con lo stesso motore e la stessa Data: il Modal (List di Item, righe dei task o estratto) e la Moodboard (griglia di Card o List, scroll infinito a blocchi di 20, cronologia con le frecce, export). Componenti DOM senza framework, CSS bundlato in styles.css.",
       "covers": [
         "src/FinderModal.ts",
-        "src/FinderCard.ts",
+        "src/FinderMoodboard.ts",
         "src/SearchUIHelper.ts",
-        "src/component/"
-      ]
+        "src/engine/ResultData.ts",
+        "src/engine/SearchHistory.ts",
+        "src/component/",
+        "CONTEXT.md"
+      ],
+      "words": 1450
     },
     {
       "file": "07-aggiungere-un-filtro.md",
       "kind": "libera",
       "title": "Aggiungere un filtro alla query",
-      "why": "Aggiungere un filtro tocca 4 punti (classe, index.ts, strategyMap, ParsedQuery) e due ordini diversi in SearchStrategy.ts. Sbagliare l'ordine fa diventare il token un filtro di frontmatter (MetadataFilter è per ultimo) o spegne l'indice. 9 filtri su 12 sono stati aggiunti così nella roadmap.",
+      "why": "Un filtro nuovo tocca a mano 5 punti: la classe, search-filters/index.ts, ParsedQuery in types.ts, strategyMap, e i due metodi parse() e filter() di SearchStrategy.ts con ordini diversi. Sbagliare l'ordine trasforma il token in un filtro di frontmatter (MetadataFilter è per ultimo) o spegne l'Index.",
       "outline": [
         "Anatomia di un filtro",
         "Registrarlo nella factory",
         "I due ordini: estrazione e applicazione",
-        "Filtri, indice e anteprime",
+        "Filtri, Index e Preview",
         "Hint e sub-hint nella UI",
         "Testarlo con Jest"
       ],
       "covers": [
         "src/engine/search-filters/",
         "src/engine/SearchStrategy.ts",
+        "src/SearchUIHelper.ts",
         "test/"
-      ]
+      ],
+      "words": 1300
     }
   ],
   "skippedSections": [
     {
       "kind": "dati",
-      "why": "Nessun database: 4 strutture, di cui 2 in memoria (indice MiniSearch, cache dei tag dei canvas) e 2 file JSON (xberg-cache.json, data.json). Si raccontano nel flusso di indicizzazione e nelle impostazioni."
+      "why": "Nessun database: 4 strutture, due in memoria (Index MiniSearch, tag dei canvas) e due file JSON (xberg-cache.json, data.json). Si raccontano nel flusso di indicizzazione e nelle impostazioni."
     },
     {
       "kind": "classi",
-      "why": "L'unica gerarchia è SearchFilter con 12 sottoclassi, che ha già la sua casa nella guida per aggiungere un filtro."
+      "why": "L'unica gerarchia è SearchFilter con le sue sottoclassi, che ha già la sua casa nella guida per aggiungere un filtro; CommonCache ha tre implementazioni, raccontate nel flusso di indicizzazione."
     },
     {
       "kind": "dipendenze",
-      "why": "Una sola dipendenza runtime (minisearch) più il binario Xberg opzionale: basta la tabella stack in architettura."
+      "why": "Una sola dipendenza runtime (minisearch 7.2.0) più il sidecar Xberg facoltativo: basta la tabella dello stack in architettura."
     },
     {
       "kind": "pattern",
-      "why": "Gli idiomi trasportabili (strategy extract/remove/filter, cache validata per mtime, sidecar con degrado silenzioso, scroll infinito) servono dentro i flussi e la guida; un capitolo a parte li ripeterebbe in un repo da ~4.000 righe."
+      "why": "Gli idiomi trasportabili (filtro extract/removeFrom/filter, cache validata per mtime, sidecar che si spegne se manca, ultima ricerca che vince, scroll infinito) servono dentro i flussi e la guida; un capitolo a parte li ripeterebbe in un repo di circa 3.900 righe."
     }
   ],
   "concepts": [
@@ -122,7 +150,8 @@
       "anchor": "tag",
       "aliases": [
         "TagsFilter",
-        "tag"
+        "matchesTag",
+        "tag nidificati"
       ]
     },
     {
@@ -132,7 +161,8 @@
       "anchor": "archivio",
       "aliases": [
         "archive",
-        "archiviati"
+        "archiviati",
+        "ARCHIVE_TAG"
       ]
     },
     {
@@ -141,10 +171,10 @@
       "file": "04-sintassi-query.md",
       "anchor": "negazione",
       "aliases": [
+        "Negation",
         "NegationFilter",
         "-image",
-        "-#tag",
-        "negazione"
+        "-#tag"
       ]
     },
     {
@@ -182,7 +212,7 @@
       "anchor": "titolo",
       "aliases": [
         "TitleFilter",
-        "scope"
+        "Scope"
       ]
     },
     {
@@ -221,7 +251,6 @@
       "anchor": "metadati-del-frontmatter",
       "aliases": [
         "MetadataFilter",
-        "key:value",
         "chiave:valore"
       ]
     },
@@ -231,7 +260,7 @@
       "file": "04-sintassi-query.md",
       "anchor": "comandi-obsidian",
       "aliases": [
-        "command mode",
+        "Command mode",
         "CommandFilter",
         "isCommandMode"
       ]
@@ -259,6 +288,17 @@
       ]
     },
     {
+      "name": "LatestSearch",
+      "kind": "classe",
+      "file": "02-flusso-ricerca.md",
+      "anchor": "1-digiti-e-parte-solo-lultima-ricerca",
+      "aliases": [
+        "Superseded search",
+        "SEARCH_DEBOUNCE_MS",
+        "debounce"
+      ]
+    },
+    {
       "name": "ParsedQuery",
       "kind": "struttura",
       "file": "02-flusso-ricerca.md",
@@ -268,13 +308,24 @@
       ]
     },
     {
-      "name": "SearchIndex",
-      "kind": "indice",
-      "file": "03-flusso-indicizzazione.md",
-      "anchor": "2-lindice-minisearch-si-costruisce-a-blocchi-di-100-note",
+      "name": "SearchOutcome",
+      "kind": "struttura",
+      "file": "02-flusso-ricerca.md",
+      "anchor": "4-il-testo-libero-passa-dallindex",
       "aliases": [
+        "matchedWords",
+        "filterFreeText",
+        "searchFilesWithoutIndex"
+      ]
+    },
+    {
+      "name": "SearchIndex",
+      "kind": "cache",
+      "file": "03-flusso-indicizzazione.md",
+      "anchor": "2-lindex-minisearch-si-costruisce-a-blocchi-di-100-note",
+      "aliases": [
+        "Index",
         "MiniSearch",
-        "indice",
         "IndexedDocument"
       ]
     },
@@ -295,27 +346,64 @@
       "aliases": [
         "XbergExtractor",
         "Xberg",
-        "kreuzberg"
+        "kreuzberg",
+        "Extraction",
+        "Sidecar"
       ]
     },
     {
-      "name": "FinderModal",
-      "kind": "schermata",
-      "file": "06-interfaccia.md",
-      "anchor": "la-modale-di-ricerca",
+      "name": "CommonCache",
+      "kind": "interfaccia",
+      "file": "03-flusso-indicizzazione.md",
+      "anchor": "5-gli-eventi-del-vault-arrivano-alle-tre-common-cache",
       "aliases": [
-        "modale"
+        "Common cache",
+        "handles",
+        "deferred"
       ]
     },
     {
-      "name": "FinderCard",
+      "name": "Modal",
       "kind": "schermata",
       "file": "06-interfaccia.md",
-      "anchor": "la-vista-laterale",
+      "anchor": "il-modal",
       "aliases": [
-        "vista laterale",
+        "FinderModal"
+      ]
+    },
+    {
+      "name": "Moodboard",
+      "kind": "schermata",
+      "file": "06-interfaccia.md",
+      "anchor": "la-moodboard",
+      "aliases": [
+        "FinderMoodboard",
         "better-finder-view",
-        "export risultati"
+        "FINDER_VIEW_TYPE",
+        "export dei risultati"
+      ]
+    },
+    {
+      "name": "Data",
+      "kind": "struttura",
+      "file": "06-interfaccia.md",
+      "anchor": "la-data-di-un-risultato",
+      "aliases": [
+        "ResultData",
+        "buildResultData"
+      ]
+    },
+    {
+      "name": "Preview",
+      "kind": "componente",
+      "file": "06-interfaccia.md",
+      "anchor": "body-preview-e-estratto",
+      "aliases": [
+        "ImagePreview",
+        "hasPreview",
+        "Body",
+        "SnippetPreview",
+        "TaskSnippet"
       ]
     },
     {
@@ -324,8 +412,8 @@
       "file": "06-interfaccia.md",
       "anchor": "cronologia-delle-ricerche",
       "aliases": [
-        "searchHistory",
-        "cronologia"
+        "cronologia",
+        "searchHistory"
       ]
     },
     {
@@ -354,8 +442,7 @@
       "file": "05-ci-cd.md",
       "anchor": "i-job",
       "aliases": [
-        "lint.yml",
-        "build"
+        "lint.yml"
       ]
     },
     {
@@ -383,32 +470,32 @@
   "flows": [
     {
       "id": 1,
-      "name": "Ricerca dalla modale",
-      "file": "02-flusso-ricerca.md",
+      "name": "Ricerca dal Modal",
       "persona": "utente del vault Obsidian",
-      "description": "L'utente scrive una query che mescola filtri e testo libero. Ottiene file del vault o comandi Obsidian, con anteprima, e apre quello che sceglie. La vista laterale usa lo stesso motore.",
+      "description": "L'utente scrive una Query che mescola filtri e testo libero e ottiene note, allegati o comandi Obsidian, ciascuno con il suo Body. La Moodboard fa lo stesso giro e cambia solo nel disegno (Card a blocchi di 20) e nell'apertura (tab nuova, la vista resta aperta).",
       "steps": [
         {
-          "label": "Digiti nella modale e parte la ricerca",
+          "label": "Digiti e parte solo l'ultima ricerca",
           "nodes": [
             "src/FinderModal.ts",
+            "src/engine/LatestSearch.ts",
             "src/Finder.ts"
           ],
-          "cit": "src/Finder.ts righe 141-155"
+          "cit": "src/engine/LatestSearch.ts righe 23-39"
         },
         {
           "label": "La query diventa una ParsedQuery",
           "nodes": [
             "src/engine/SearchStrategy.ts",
+            "src/engine/search-filters/CommandFilter.ts",
             "src/engine/search-filters/NegationFilter.ts",
             "src/engine/search-filters/TagsFilter.ts",
             "src/engine/search-filters/DateFilter.ts",
-            "src/engine/search-filters/MetadataFilter.ts",
-            "src/engine/search-filters/CommandFilter.ts"
+            "src/engine/search-filters/MetadataFilter.ts"
           ],
-          "cit": "src/engine/SearchStrategy.ts righe 209-231",
+          "cit": "src/engine/SearchStrategy.ts righe 221-243",
           "example": {
-            "title": "ParsedQuery per la query \"#spring -image created:this-week author:rossi architettura\"",
+            "title": "ParsedQuery per \"#spring -image created:this-week author:rossi architettura\"",
             "lang": "json",
             "body": "{\n  \"rawInput\": \"#spring -image created:this-week author:rossi architettura\",\n  \"isCommandMode\": false,\n  \"negations\": { \"extensions\": [\"png\", \"jpg\", \"jpeg\", \"gif\", \"webp\"], \"tags\": [] },\n  \"tags\": [\"#spring\"],\n  \"dateFilter\": { \"field\": \"created\", \"value\": \"this-week\" },\n  \"fileTypes\": [],\n  \"metadataFilters\": [{ \"key\": \"author\", \"value\": \"rossi\" }],\n  \"freeText\": \"architettura\"\n}"
           }
@@ -426,29 +513,41 @@
             "src/engine/search-filters/TaskFilter.ts",
             "src/engine/search-filters/TitleFilter.ts"
           ],
-          "cit": "src/engine/SearchStrategy.ts righe 62-83"
+          "cit": "src/engine/SearchStrategy.ts righe 68-92"
         },
         {
-          "label": "Il testo libero passa dall'indice",
+          "label": "Il testo libero passa dall'Index",
           "nodes": [
             "src/engine/SearchStrategy.ts",
             "src/engine/SearchIndex.ts",
             "ds:indice-minisearch",
             "src/engine/search-filters/HighlightFilter.ts"
           ],
-          "cit": "src/engine/SearchStrategy.ts righe 156-175"
+          "cit": "src/engine/SearchStrategy.ts righe 166-187",
+          "example": {
+            "title": "SearchOutcome per la Query \"architetura\" (con un errore di battitura), dai test",
+            "lang": "json",
+            "body": "{\n  \"parsed\": { \"freeText\": \"architetura\", \"tags\": [], \"fileTypes\": [] },\n  \"results\": [\"layers.md\"],\n  \"matchedWords\": { \"layers.md\": [\"architettura\"] }\n}"
+          }
         },
         {
-          "label": "Ogni risultato diventa una riga con anteprima",
+          "label": "Ogni risultato diventa una Data e un Item",
           "nodes": [
             "src/FinderModal.ts",
+            "src/engine/ResultData.ts",
+            "src/engine/fileTags.ts",
             "src/component/Modal/ModalUI.ts",
             "src/component/Modal/ModalItem.ts",
             "src/component/ui/ImagePreview.ts",
             "src/component/ui/SnippetPreview.ts",
             "src/component/ui/TaskSnippet.ts"
           ],
-          "cit": "src/FinderModal.ts righe 84-102"
+          "cit": "src/engine/ResultData.ts righe 27-44",
+          "example": {
+            "title": "Data di alpha.md per la Query \"#project task:\", dai test",
+            "lang": "json",
+            "body": "{\n  \"file\": \"alpha.md\",\n  \"tags\": [\"#project/alpha\", \"#idea\"],\n  \"searchedTags\": [\"#project/alpha\"],\n  \"taskInfo\": { \"done\": 1, \"total\": 3 },\n  \"renderPreview\": false,\n  \"taskSnippet\": \"all\"\n}"
+          }
         },
         {
           "label": "La scelta apre il file o lancia il comando",
@@ -458,54 +557,55 @@
             "src/engine/SearchHistory.ts",
             "ext:obsidian"
           ],
-          "cit": "src/Finder.ts righe 188-199"
+          "cit": "src/Finder.ts righe 178-187"
         }
-      ]
+      ],
+      "file": "02-flusso-ricerca.md"
     },
     {
       "id": 2,
-      "name": "Indicizzazione all'avvio e aggiornamento live",
-      "file": "03-flusso-indicizzazione.md",
+      "name": "Indicizzazione all'avvio e Common cache allineate",
       "persona": "Obsidian (avvio del plugin ed eventi del vault)",
-      "description": "All'avvio il plugin costruisce l'indice full-text delle note, la cache dei tag dei canvas e, se c'è il binario Xberg, il testo di PDF e immagini. Poi gli eventi del vault tengono tutto allineato.",
+      "description": "All'avvio il plugin costruisce l'Index delle note, la cache dei tag dei canvas e, se c'è il sidecar Xberg, il testo di PDF, immagini e documenti Office. Poi main.ts passa ogni evento del vault alle tre Common cache attraverso la stessa interfaccia.",
       "steps": [
         {
           "label": "Obsidian carica il plugin",
           "nodes": [
             "main.ts",
             "src/engine/SearchHistory.ts",
-            "src/FinderCard.ts",
+            "src/FinderMoodboard.ts",
             "src/FinderSetting.ts",
             "ds:data.json"
           ],
-          "cit": "main.ts righe 35-59"
+          "cit": "main.ts righe 36-60"
         },
         {
-          "label": "L'indice MiniSearch si costruisce a blocchi di 100 note",
+          "label": "L'Index MiniSearch si costruisce a blocchi di 100 note",
           "nodes": [
             "main.ts",
             "src/engine/SearchIndex.ts",
             "ds:indice-minisearch",
             "ext:obsidian"
           ],
-          "cit": "src/engine/SearchIndex.ts righe 62-85",
+          "cit": "src/engine/SearchIndex.ts righe 69-92",
           "example": {
-            "title": "Documento indicizzato per una nota",
+            "title": "Documento indicizzato per una nota (dati dei test)",
             "lang": "json",
-            "body": "{\n  \"id\": \"Engineering Wiki/Docker.md\",\n  \"basename\": \"Docker\",\n  \"content\": \"# Docker\\n\\n## Comandi base\\n docker compose up -d ...\",\n  \"mtime\": 1752220800000,\n  \"extension\": \"md\"\n}"
+            "body": "{\n  \"id\": \"layers.md\",\n  \"basename\": \"layers\",\n  \"content\": \"Notes on software architettura and layers\",\n  \"mtime\": 0,\n  \"extension\": \"md\"\n}"
           }
         },
         {
           "label": "I tag dei canvas vanno in cache",
           "nodes": [
             "src/engine/CanvasTagCache.ts",
-            "src/engine/search-filters/TagsFilter.ts"
+            "ds:canvas-tags",
+            "src/engine/fileTags.ts"
           ],
-          "cit": "src/engine/CanvasTagCache.ts righe 77-94",
+          "cit": "src/engine/CanvasTagCache.ts righe 111-128",
           "example": {
-            "title": "Da un nodo del canvas Spring.canvas alla voce in cache",
+            "title": "Da un nodo di board.canvas alla voce in cache (dati dei test)",
             "lang": "json",
-            "body": "// nodo nel file .canvas\n{ \"type\": \"text\", \"text\": \"Note su #spring e #java/jvm\" }\n// voce in CanvasTagCache per \"Spring.canvas\"\n{ \"mtime\": 1752220800000, \"tags\": [\"#spring\", \"#java/jvm\"] }"
+            "body": "// nodo nel file .canvas\n{ \"type\": \"text\", \"text\": \"kickoff #project and #Meeting\" }\n// voce in CanvasTagCache per \"board.canvas\"\n{ \"mtime\": 0, \"tags\": [\"#project\", \"#Meeting\"] }"
           }
         },
         {
@@ -516,25 +616,27 @@
             "ds:xberg-cache.json",
             "src/engine/SearchIndex.ts"
           ],
-          "cit": "src/engine/XbergExtractor.ts righe 134-158",
+          "cit": "src/engine/XbergExtractor.ts righe 81-101",
           "example": {
-            "title": "Voce di xberg-cache.json",
+            "title": "Voce di xberg-cache.json (testo dei test)",
             "lang": "json",
-            "body": "{\n  \"Work/Contratto-consulenza.pdf\": {\n    \"mtime\": 1752220800000,\n    \"text\": \"CONTRATTO DI CONSULENZA tra ... durata 12 mesi ...\"\n  }\n}"
+            "body": "{\n  \"vecchio.pdf\": { \"mtime\": 0, \"text\": \"quarterly report\" }\n}"
           }
         },
         {
-          "label": "Gli eventi del vault tengono allineati indice e cache",
+          "label": "Gli eventi del vault arrivano alle tre Common cache",
           "nodes": [
             "main.ts",
+            "src/engine/CommonCache.ts",
             "src/engine/SearchIndex.ts",
             "src/engine/CanvasTagCache.ts",
             "src/engine/XbergExtractor.ts",
             "ext:obsidian"
           ],
-          "cit": "main.ts righe 140-157"
+          "cit": "main.ts righe 93-117"
         }
-      ]
+      ],
+      "file": "03-flusso-indicizzazione.md"
     }
   ],
   "modules": [
@@ -543,465 +645,502 @@
       "name": "main.ts",
       "domain": "Ciclo di vita",
       "kind": "module",
+      "description": "Entry point del plugin: carica le impostazioni, registra i due comandi, la Moodboard e il tab impostazioni; in onLayoutReady costruisce le tre Common cache e smista loro gli eventi del vault.",
       "file": "main.ts",
-      "loc": 197,
-      "language": "typescript",
-      "description": "Classe del plugin: carica le impostazioni, registra due comandi, la vista laterale, il ribbon e il setting tab. A layout pronto costruisce indice e cache e aggancia gli eventi create/delete/rename/modify del vault e changed della metadataCache."
+      "loc": 206,
+      "language": "typescript"
     },
     {
       "id": "src/FinderSetting.ts",
       "name": "FinderSetting.ts",
       "domain": "Ciclo di vita",
-      "kind": "screen",
+      "kind": "module",
+      "description": "Tab delle impostazioni: un solo toggle, showRibbonIcon, che aggiunge o toglie l'icona nella barra laterale e salva.",
       "file": "src/FinderSetting.ts",
       "loc": 37,
-      "language": "typescript",
-      "description": "Tab delle impostazioni con un solo toggle: mostra o nasconde l'icona nel ribbon."
+      "language": "typescript"
     },
     {
       "id": "src/Finder.ts",
       "name": "Finder.ts",
       "domain": "Ricerca",
       "kind": "module",
+      "description": "Il motore lato UI: getResults() restituisce un SearchOutcome (ParsedQuery, risultati, parole trovate per file), tiene in cache la lista dei file invalidata da create/delete/rename, apre file e lancia comandi, esporta i risultati in una nota.",
       "file": "src/Finder.ts",
-      "loc": 200,
-      "language": "typescript",
-      "description": "Orchestratore usato da entrambe le UI: debounce di 150 ms, lista file in cache invalidata dagli eventi del vault, command mode, dedup per path, export dei risultati in una nota, apertura del risultato in una nuova tab."
+      "loc": 188,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/LatestSearch.ts",
+      "name": "LatestSearch.ts",
+      "domain": "Ricerca",
+      "kind": "module",
+      "description": "Debounce di 150 ms per vista; una ricerca superata non si risolve mai, perché SuggestModal mostrerebbe qualunque promessa risolta.",
+      "file": "src/engine/LatestSearch.ts",
+      "loc": 51,
+      "language": "typescript"
     },
     {
       "id": "src/engine/SearchStrategy.ts",
-      "name": "SearchStrategyFactory",
+      "name": "SearchStrategy.ts",
       "domain": "Ricerca",
       "kind": "module",
+      "description": "SearchStrategyFactory, singleton: registra i filtri in strategyMap, parse() trasforma la Query in ParsedQuery, filter() applica i filtri in un ordine fisso, filterFreeText() passa dall'Index o dalla lettura diretta.",
       "file": "src/engine/SearchStrategy.ts",
-      "loc": 285,
-      "language": "typescript",
-      "description": "Singleton che registra 15 filtri. parse() li estrae dalla query in un ordine fisso, filter() li applica in un altro ordine, filterFreeText() sceglie fra indice MiniSearch, fallback a lettura file e filtro highlight."
+      "loc": 297,
+      "language": "typescript"
     },
     {
-      "id": "src/engine/search-filters/types.ts",
-      "name": "types.ts (SearchFilter)",
-      "domain": "Filtri",
+      "id": "src/engine/ResultData.ts",
+      "name": "ResultData.ts",
+      "domain": "Ricerca",
       "kind": "module",
-      "file": "src/engine/search-filters/types.ts",
-      "loc": 59,
-      "language": "typescript",
-      "description": "Interfaccia ParsedQuery e classi astratte SearchFilter e SearchFilterAsync con extract, removeFrom e filter."
+      "description": "buildResultData(): decide una volta per risultato e Query cosa mostrare (tag, tag cercati, conteggio task, Preview, termine per il Body). Unico builder per Modal e Moodboard.",
+      "file": "src/engine/ResultData.ts",
+      "loc": 50,
+      "language": "typescript"
     },
     {
-      "id": "src/engine/search-filters/TagsFilter.ts",
-      "name": "TagsFilter",
-      "domain": "Filtri",
+      "id": "src/engine/fileTags.ts",
+      "name": "fileTags.ts",
+      "domain": "Ricerca",
       "kind": "module",
-      "file": "src/engine/search-filters/TagsFilter.ts",
-      "loc": 77,
-      "language": "typescript",
-      "description": "Filtro #tag: AND fra i tag, match esatto o gerarchico #tag/figlio, case-insensitive. Legge i tag dei canvas da CanvasTagCache ed esclude per default le note con #archive."
-    },
-    {
-      "id": "src/engine/search-filters/DateFilter.ts",
-      "name": "DateFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/DateFilter.ts",
-      "loc": 155,
-      "language": "typescript",
-      "description": "Filtri created: e modified: su ctime/mtime con valori relativi (today, this-week...), anno secco o data assoluta. Esporta DATE_VALUES, usati anche dalla sub-hint bar."
-    },
-    {
-      "id": "src/engine/search-filters/FileTypeFilter.ts",
-      "name": "FileTypeFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/FileTypeFilter.ts",
-      "loc": 61,
-      "language": "typescript",
-      "description": "Parole chiave pdf, image/img/png..., canvas, json, base mappate su estensioni. Con lista vuota restituisce tutti i file."
-    },
-    {
-      "id": "src/engine/search-filters/ExcalidrawFilter.ts",
-      "name": "ExcalidrawFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/ExcalidrawFilter.ts",
-      "loc": 29,
-      "language": "typescript",
-      "description": "Parola chiave excalidraw: tiene i file con frontmatter excalidraw-plugin: parsed."
-    },
-    {
-      "id": "src/engine/search-filters/TitleFilter.ts",
-      "name": "TitleFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/TitleFilter.ts",
-      "loc": 35,
-      "language": "typescript",
-      "description": "Prefisso title: che limita la ricerca al basename. Il termine resta nel testo libero."
-    },
-    {
-      "id": "src/engine/search-filters/TaskFilter.ts",
-      "name": "TaskFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/TaskFilter.ts",
-      "loc": 48,
-      "language": "typescript",
-      "description": "Token task:, task-todo:, task-done: sulle listItems della metadataCache. Solo markdown."
-    },
-    {
-      "id": "src/engine/search-filters/PathFilter.ts",
-      "name": "PathFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/PathFilter.ts",
-      "loc": 24,
-      "language": "typescript",
-      "description": "Token path: con match per sottostringa, case-insensitive, sul percorso della cartella padre."
-    },
-    {
-      "id": "src/engine/search-filters/HighlightFilter.ts",
-      "name": "HighlightFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/HighlightFilter.ts",
-      "loc": 55,
-      "language": "typescript",
-      "description": "Filtro asincrono highlight: che legge le note e cerca la parola intera dentro i blocchi ==evidenziati==."
-    },
-    {
-      "id": "src/engine/search-filters/NegationFilter.ts",
-      "name": "NegationFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/NegationFilter.ts",
-      "loc": 77,
-      "language": "typescript",
-      "description": "Token preceduti da '-' che escludono estensioni (keyword o letterali) o tag. L'esclusione per tag vale solo per i markdown."
-    },
-    {
-      "id": "src/engine/search-filters/MetadataFilter.ts",
-      "name": "MetadataFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/MetadataFilter.ts",
-      "loc": 70,
-      "language": "typescript",
-      "description": "Ogni chiave:valore rimasto dopo i token riservati diventa un filtro sul frontmatter, con match per sottostringa e supporto ai valori array. Ignora gli URL."
-    },
-    {
-      "id": "src/engine/search-filters/CommandFilter.ts",
-      "name": "CommandFilter",
-      "domain": "Filtri",
-      "kind": "module",
-      "file": "src/engine/search-filters/CommandFilter.ts",
-      "loc": 26,
-      "language": "typescript",
-      "description": "Riconosce il prefisso '>' che porta la query in command mode; filter() lancia un errore e non viene mai chiamato."
-    },
-    {
-      "id": "src/engine/SearchIndex.ts",
-      "name": "SearchIndex",
-      "domain": "Indice",
-      "kind": "module",
-      "file": "src/engine/SearchIndex.ts",
-      "loc": 351,
-      "language": "typescript",
-      "description": "Singleton che avvolge MiniSearch: build a blocchi di 100 note, aggiornamenti per file, documenti esterni da Xberg. Contiene anche il fallback che legge i file e la ricerca per solo titolo."
-    },
-    {
-      "id": "src/engine/CanvasTagCache.ts",
-      "name": "CanvasTagCache",
-      "domain": "Indice",
-      "kind": "module",
-      "file": "src/engine/CanvasTagCache.ts",
-      "loc": 95,
-      "language": "typescript",
-      "description": "Cache in memoria dei #tag trovati nei nodi testo dei .canvas, validata per mtime e rinfrescata in background."
-    },
-    {
-      "id": "src/engine/XbergExtractor.ts",
-      "name": "XbergExtractor",
-      "domain": "Indice",
-      "kind": "module",
-      "file": "src/engine/XbergExtractor.ts",
-      "loc": 215,
-      "language": "typescript",
-      "description": "Lancia il binario xberg o kreuzberg con child_process per estrarre il testo di PDF, immagini, docx e xlsx. Se il binario manca si disattiva. Tiene una cache per mtime su xberg-cache.json."
+      "description": "getFileTags(): i tag di un file come sono scritti, dal metadataCache per le note e da CanvasTagCache per i canvas.",
+      "file": "src/engine/fileTags.ts",
+      "loc": 16,
+      "language": "typescript"
     },
     {
       "id": "src/engine/SearchHistory.ts",
-      "name": "SearchHistory",
+      "name": "SearchHistory.ts",
       "domain": "Ricerca",
       "kind": "module",
+      "description": "Cronologia delle Query che hanno portato ad aprire un risultato: massimo 20 voci, deduplicate, persistite nei dati del plugin tramite callback.",
       "file": "src/engine/SearchHistory.ts",
       "loc": 39,
-      "language": "typescript",
-      "description": "Ultime 20 query che hanno portato ad aprire un risultato, deduplicate, salvate tramite una callback iniettata da main.ts."
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/types.ts",
+      "name": "types.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "ParsedQuery e le classi astratte SearchFilter (extract, removeFrom, filter) e SearchFilterAsync.",
+      "file": "src/engine/search-filters/types.ts",
+      "loc": 59,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/TagsFilter.ts",
+      "name": "TagsFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "Filtro #tag: estrae i tag in minuscolo, richiede tutti i tag (match esatto o nidificato via matchesTag) ed esclude #archive di default.",
+      "file": "src/engine/search-filters/TagsFilter.ts",
+      "loc": 59,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/DateFilter.ts",
+      "name": "DateFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "created: e modified: con valori relativi (DATE_VALUES), anno o data assoluta; filtra su ctime o mtime e ordina dal più recente.",
+      "file": "src/engine/search-filters/DateFilter.ts",
+      "loc": 155,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/FileTypeFilter.ts",
+      "name": "FileTypeFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "Cinque filtri per estensione (pdf, image, canvas, json, base) attivati da parole chiave nella Query.",
+      "file": "src/engine/search-filters/FileTypeFilter.ts",
+      "loc": 61,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/ExcalidrawFilter.ts",
+      "name": "ExcalidrawFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "Filtro excalidraw: tiene i file con excalidraw-plugin: parsed nel frontmatter.",
+      "file": "src/engine/search-filters/ExcalidrawFilter.ts",
+      "loc": 29,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/TitleFilter.ts",
+      "name": "TitleFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "title: restringe lo Scope ai nomi file; il termine resta nel testo libero.",
+      "file": "src/engine/search-filters/TitleFilter.ts",
+      "loc": 35,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/TaskFilter.ts",
+      "name": "TaskFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "task:, task-todo:, task-done: tengono le note con checkbox nello stato chiesto, letti dal metadataCache.",
+      "file": "src/engine/search-filters/TaskFilter.ts",
+      "loc": 53,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/PathFilter.ts",
+      "name": "PathFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "path: tiene i file la cui cartella contiene il valore, senza distinguere maiuscole.",
+      "file": "src/engine/search-filters/PathFilter.ts",
+      "loc": 24,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/HighlightFilter.ts",
+      "name": "HighlightFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "highlight: legge il contenuto delle note e tiene quelle con il termine dentro un ==evidenziato==; fuori da strategyMap.",
+      "file": "src/engine/search-filters/HighlightFilter.ts",
+      "loc": 55,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/NegationFilter.ts",
+      "name": "NegationFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "Negation: -tipo, -estensione e -#tag escludono i file; si estrae per prima.",
+      "file": "src/engine/search-filters/NegationFilter.ts",
+      "loc": 76,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/MetadataFilter.ts",
+      "name": "MetadataFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "chiave:valore generico sul frontmatter (match per sottostringa); si estrae per ultimo fra i chiave:valore.",
+      "file": "src/engine/search-filters/MetadataFilter.ts",
+      "loc": 70,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/search-filters/CommandFilter.ts",
+      "name": "CommandFilter.ts",
+      "domain": "Filtri",
+      "kind": "module",
+      "description": "> a inizio Query attiva il Command mode; filter() lancia un errore se chiamato.",
+      "file": "src/engine/search-filters/CommandFilter.ts",
+      "loc": 26,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/CommonCache.ts",
+      "name": "CommonCache.ts",
+      "domain": "Common cache",
+      "kind": "module",
+      "description": "Interfaccia comune alle tre Common cache: handles(file, oldPath), deferred, onCreate/onUpdate/onDelete/onRename.",
+      "file": "src/engine/CommonCache.ts",
+      "loc": 40,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/SearchIndex.ts",
+      "name": "SearchIndex.ts",
+      "domain": "Common cache",
+      "kind": "module",
+      "description": "L'Index: MiniSearch su basename (peso 5) e contenuto troncato a 10.000 caratteri, costruito a blocchi di 100 note; contiene anche i documenti esterni di Xberg. Ha anche la ricerca senza Index.",
+      "file": "src/engine/SearchIndex.ts",
+      "loc": 400,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/CanvasTagCache.ts",
+      "name": "CanvasTagCache.ts",
+      "domain": "Common cache",
+      "kind": "module",
+      "description": "Tag dei nodi testo dei .canvas, che il metadataCache non vede; lettura sincrona che restituisce il dato vecchio e aggiorna in background.",
+      "file": "src/engine/CanvasTagCache.ts",
+      "loc": 129,
+      "language": "typescript"
+    },
+    {
+      "id": "src/engine/XbergExtractor.ts",
+      "name": "XbergExtractor.ts",
+      "domain": "Common cache",
+      "kind": "module",
+      "description": "Extraction via sidecar xberg/kreuzberg (PDF, immagini, docx, xlsx): cache per mtime in xberg-cache.json, deduplica delle estrazioni in corso, si disattiva se il binario manca.",
+      "file": "src/engine/XbergExtractor.ts",
+      "loc": 285,
+      "language": "typescript"
     },
     {
       "id": "src/FinderModal.ts",
-      "name": "FinderModal",
+      "name": "FinderModal.ts",
       "domain": "Interfaccia",
-      "kind": "screen",
+      "kind": "module",
+      "description": "Il Modal: SuggestModal che passa da LatestSearch e disegna ogni risultato con ModalUI; registra la Query nella cronologia quando si sceglie.",
       "file": "src/FinderModal.ts",
-      "loc": 124,
-      "language": "typescript",
-      "description": "SuggestModal guidata da tastiera: hint bar sotto l'input, parse memoizzato per riga, decide anteprima, snippet e snippet dei task di ogni risultato."
+      "loc": 100,
+      "language": "typescript"
     },
     {
-      "id": "src/FinderCard.ts",
-      "name": "FinderCard",
+      "id": "src/FinderMoodboard.ts",
+      "name": "FinderMoodboard.ts",
       "domain": "Interfaccia",
-      "kind": "screen",
-      "file": "src/FinderCard.ts",
-      "loc": 209,
-      "language": "typescript",
-      "description": "ItemView laterale con card a griglia o lista, scroll infinito a blocchi di 20 con IntersectionObserver, cronologia con le frecce, export e menu contestuale nativo."
+      "kind": "module",
+      "description": "La Moodboard: ItemView in una tab, griglia o lista, scroll infinito a blocchi di 20 con IntersectionObserver, cronologia con le frecce, export, menu contestuale.",
+      "file": "src/FinderMoodboard.ts",
+      "loc": 207,
+      "language": "typescript"
     },
     {
       "id": "src/SearchUIHelper.ts",
-      "name": "SearchUIHelper",
+      "name": "SearchUIHelper.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Hint bar, sub-hint delle date e anteprima dei tag condivisi fra Modal e Moodboard; toggleDateValue() per i chip delle date.",
       "file": "src/SearchUIHelper.ts",
       "loc": 81,
-      "language": "typescript",
-      "description": "Monta hint bar, autocomplete dei tag e sub-hint delle date, condivisi dalle due UI. toggleDateValue sostituisce o rimuove il valore data nella query."
+      "language": "typescript"
     },
     {
       "id": "src/component/Modal/ModalUI.ts",
-      "name": "ModalUI",
+      "name": "ModalUI.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Disegna la Data di un file come Item del Modal: righe dei task o estratto del testo, Preview, tag, badge dei task.",
       "file": "src/component/Modal/ModalUI.ts",
-      "loc": 62,
-      "language": "typescript",
-      "description": "Renderizza una riga della modale da una Card: titolo, badge, metadati, snippet o snippet dei task, anteprima, tag e badge task."
+      "loc": 56,
+      "language": "typescript"
     },
     {
       "id": "src/component/Modal/ModalItem.ts",
-      "name": "ModalItem",
+      "name": "ModalItem.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Item: la riga che compone titolo, metadati, tag, badge, estratto e Preview; usata dal Modal e dalla Moodboard in lista.",
       "file": "src/component/Modal/ModalItem.ts",
       "loc": 79,
-      "language": "typescript",
-      "description": "Builder DOM della riga: titolo, metadati, hotkey, tag, snippet; setPreview sposta il testo in un wrapper e aggiunge la colonna di anteprima."
-    },
-    {
-      "id": "src/component/interface/Card.ts",
-      "name": "Card",
-      "domain": "Interfaccia",
-      "kind": "module",
-      "file": "src/component/interface/Card.ts",
-      "loc": 16,
-      "language": "typescript",
-      "description": "View-model di un risultato: file, tag, tag cercati, conteggio task, flag renderPreview, snippetTerm, taskSnippet."
+      "language": "typescript"
     },
     {
       "id": "src/component/Card/CardUI.ts",
-      "name": "CardUI",
+      "name": "CardUI.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Contenitore della Moodboard: sceglie GridCard o ListCard secondo il layout e collega click e menu contestuale.",
       "file": "src/component/Card/CardUI.ts",
-      "loc": 53,
-      "language": "typescript",
-      "description": "Contenitore dei risultati della vista laterale; il toggle cambia classe CSS e il tipo delle card renderizzate dopo."
+      "loc": 47,
+      "language": "typescript"
     },
     {
       "id": "src/component/Card/GridCard.ts",
-      "name": "GridCard",
+      "name": "GridCard.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Card della griglia: titolo, Preview, data e cartella, tag, conteggio task.",
       "file": "src/component/Card/GridCard.ts",
-      "loc": 83,
-      "language": "typescript",
-      "description": "Card a griglia con anteprima, metadati, tag e badge task, con stili inline."
+      "loc": 65,
+      "language": "typescript"
     },
     {
       "id": "src/component/Card/ListCard.ts",
-      "name": "ListCard",
+      "name": "ListCard.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Riga della Moodboard in lista, costruita su ModalItem.",
       "file": "src/component/Card/ListCard.ts",
-      "loc": 57,
-      "language": "typescript",
-      "description": "Card a lista costruita con ModalItem e anteprima a destra."
+      "loc": 55,
+      "language": "typescript"
     },
     {
       "id": "src/component/ui/ImagePreview.ts",
-      "name": "ImagePreview",
+      "name": "ImagePreview.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "hasPreview() decide se un file ha una Preview; load() la disegna: estratto markdown, estratto JSON, icona e testo per docx/xlsx, embed per immagini, canvas, pdf ed Excalidraw.",
       "file": "src/component/ui/ImagePreview.ts",
-      "loc": 76,
-      "language": "typescript",
-      "description": "Anteprima per tipo: embed Excalidraw, primi 500 caratteri di markdown, primi 300 di JSON, icona ed estratto Xberg per docx/xlsx, embed ![[...]] per il resto."
+      "loc": 89,
+      "language": "typescript"
     },
     {
       "id": "src/component/ui/SnippetPreview.ts",
-      "name": "SnippetPreview",
+      "name": "SnippetPreview.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Estratto di 60 caratteri attorno alla prima occorrenza del testo libero, con il termine evidenziato.",
       "file": "src/component/ui/SnippetPreview.ts",
       "loc": 59,
-      "language": "typescript",
-      "description": "Estratto di 60 caratteri per lato attorno alla prima occorrenza letterale del testo libero, con il termine evidenziato."
+      "language": "typescript"
     },
     {
       "id": "src/component/ui/TaskSnippet.ts",
-      "name": "TaskSnippet",
+      "name": "TaskSnippet.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Mostra fino a 3 righe di task nello stato filtrato, rilette dal file.",
       "file": "src/component/ui/TaskSnippet.ts",
       "loc": 57,
-      "language": "typescript",
-      "description": "Mostra fino a 3 task del file nello stato richiesto, letti dalle righe indicate dalla metadataCache."
+      "language": "typescript"
     },
     {
       "id": "src/component/ui/HintBar.ts",
-      "name": "HintBar",
+      "name": "HintBar.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Chip cliccabili, uno per filtro (label e desc dei filtri).",
       "file": "src/component/ui/HintBar.ts",
       "loc": 37,
-      "language": "typescript",
-      "description": "Chip cliccabili con la label di ogni filtro, accese quando la label compare nella query."
+      "language": "typescript"
     },
     {
       "id": "src/component/ui/HintBarSub.ts",
-      "name": "HintBarSub",
+      "name": "HintBarSub.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Seconda riga di chip con i valori delle date.",
       "file": "src/component/ui/HintBarSub.ts",
       "loc": 45,
-      "language": "typescript",
-      "description": "Riga di chip con i valori data, senza logica: i valori arrivano dal chiamante."
+      "language": "typescript"
     },
     {
       "id": "src/component/ui/TagsPreview.ts",
-      "name": "TagsPreview",
+      "name": "TagsPreview.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Suggerisce fino a 20 tag del vault mentre si scrive un #tag parziale.",
       "file": "src/component/ui/TagsPreview.ts",
       "loc": 51,
-      "language": "typescript",
-      "description": "Autocomplete del tag che si sta digitando: i primi 20 tag del vault per frequenza."
+      "language": "typescript"
     },
     {
       "id": "src/component/ui/SearchBar.ts",
-      "name": "SearchBar",
+      "name": "SearchBar.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Input della Moodboard con contatore dei risultati, toggle del layout e pulsante di export.",
       "file": "src/component/ui/SearchBar.ts",
       "loc": 68,
-      "language": "typescript",
-      "description": "Header della vista laterale: input, contatore dei risultati, toggle griglia/lista e pulsanti azione."
+      "language": "typescript"
     },
     {
       "id": "src/const.ts",
       "name": "const.ts",
       "domain": "Interfaccia",
       "kind": "module",
+      "description": "Stringhe di interfaccia in italiano (i18n), icone del toggle, HISTORY_MAX_ENTRIES = 20.",
       "file": "src/const.ts",
-      "loc": 23,
-      "language": "typescript",
-      "description": "Stringhe UI in italiano (i18n) ed emoji delle icone del toggle."
+      "loc": 24,
+      "language": "typescript"
     },
     {
       "id": "src/main.ts",
-      "name": "src/main.ts (template)",
+      "name": "main.ts",
       "domain": "Codice morto",
       "kind": "module",
+      "description": "Plugin di esempio del template Obsidian, non importato da main.ts.",
       "file": "src/main.ts",
       "loc": 103,
-      "language": "typescript",
-      "description": "Plugin di esempio del template Obsidian; non è l'entry point di esbuild e nessuno lo importa tranne src/settings.ts."
+      "language": "typescript"
     },
     {
       "id": "src/settings.ts",
-      "name": "src/settings.ts (template)",
+      "name": "settings.ts",
       "domain": "Codice morto",
       "kind": "module",
+      "description": "Impostazioni del plugin di esempio, importate solo da src/main.ts.",
       "file": "src/settings.ts",
       "loc": 36,
-      "language": "typescript",
-      "description": "Settings tab di esempio del template; importato solo da src/main.ts."
+      "language": "typescript"
     },
     {
       "id": "esbuild.config.mjs",
       "name": "esbuild.config.mjs",
       "domain": "Build e CI",
       "kind": "module",
+      "description": "Build: bundle di main.ts in main.js (cjs, es2018); renameCssPlugin rinomina main.css in styles.css.",
       "file": "esbuild.config.mjs",
       "loc": 65,
-      "language": "javascript",
-      "description": "Bundle di main.ts in main.js (cjs, es2018), watch in dev, minify in produzione; rinomina main.css in styles.css."
+      "language": "javascript"
     },
     {
       "id": "version-bump.mjs",
       "name": "version-bump.mjs",
       "domain": "Build e CI",
       "kind": "module",
+      "description": "Scrive la versione di package.json in manifest.json e aggiunge la voce in versions.json.",
       "file": "version-bump.mjs",
       "loc": 14,
-      "language": "javascript",
-      "description": "Lanciato da npm version: scrive la nuova versione in manifest.json e la coppia versione/minAppVersion in versions.json."
+      "language": "javascript"
     },
     {
       "id": ".github/workflows/lint.yml",
-      "name": "Node.js build",
+      "name": "lint.yml",
       "domain": "Build e CI",
-      "kind": "job",
+      "kind": "module",
+      "description": "Workflow Node.js build: npm ci, build e lint su Node 20.x e 22.x a ogni push e pull request. Non lancia i test.",
       "file": ".github/workflows/lint.yml",
       "loc": 28,
-      "language": "yaml",
-      "description": "Su ogni push e PR, con Node 20.x e 22.x: npm ci, npm run build, npm run lint. Non lancia i test."
+      "language": "yaml"
     },
     {
       "id": "test",
-      "name": "test/ (Jest)",
+      "name": "test/",
       "domain": "Build e CI",
       "kind": "module",
       "file": "test",
-      "loc": 382,
+      "loc": 954,
       "language": "typescript",
-      "description": "Test Jest sulla logica pura (parse, filtri, fallback senza indice) con mock di obsidian e minisearch."
+      "description": "Test Jest in Node con mock di obsidian e minisearch; search-outcome.test.ts usa il MiniSearch vero."
     },
     {
       "id": "ds:indice-minisearch",
-      "name": "Indice MiniSearch (memoria)",
+      "name": "Index MiniSearch",
       "domain": "Dati",
       "kind": "datastore",
-      "description": "Documenti {id, basename, content, mtime, extension} di note markdown e testo estratto da Xberg; vive in memoria."
+      "description": "In memoria, ricostruito a ogni avvio."
     },
     {
       "id": "ds:xberg-cache.json",
       "name": "xberg-cache.json",
       "domain": "Dati",
       "kind": "datastore",
-      "description": "Testo estratto per path con mtime, salvato nella cartella del plugin."
+      "description": "Testo estratto per path con mtime, in .obsidian/plugins/obsidian-better-finder/."
+    },
+    {
+      "id": "ds:canvas-tags",
+      "name": "Tag dei canvas",
+      "domain": "Dati",
+      "kind": "datastore",
+      "description": "Mappa in memoria path -> {mtime, tags}."
     },
     {
       "id": "ds:data.json",
-      "name": "data.json del plugin",
+      "name": "data.json",
       "domain": "Dati",
       "kind": "datastore",
-      "description": "Impostazioni del plugin salvate da Obsidian: mySetting, showRibbonIcon, searchHistory."
+      "description": "Dati del plugin salvati da Obsidian: showRibbonIcon, searchHistory, mySetting."
     },
     {
       "id": "ext:obsidian",
-      "name": "Obsidian (vault, metadataCache, commands)",
+      "name": "Obsidian API",
       "domain": "Servizi esterni",
       "kind": "datastore",
-      "description": "API dell'app: file del vault, cache dei metadati (tag, frontmatter, listItems), eventi, comandi e hotkey (API private)."
+      "description": "Vault, metadataCache, workspace, comandi."
     },
     {
       "id": "ext:xberg",
-      "name": "Xberg / kreuzberg CLI",
+      "name": "xberg / kreuzberg",
       "domain": "Servizi esterni",
       "kind": "datastore",
-      "description": "Binario esterno opzionale nel PATH, invocato con extract <path> --format json."
+      "description": "Sidecar CLI facoltativo per estrarre testo e fare OCR."
     }
   ],
   "edges": [
@@ -1012,8 +1151,8 @@
     },
     {
       "source": "main.ts",
-      "target": "src/FinderCard.ts",
-      "kind": "dispatch"
+      "target": "src/FinderMoodboard.ts",
+      "kind": "call"
     },
     {
       "source": "main.ts",
@@ -1042,6 +1181,11 @@
     },
     {
       "source": "main.ts",
+      "target": "src/engine/CommonCache.ts",
+      "kind": "dispatch"
+    },
+    {
+      "source": "main.ts",
       "target": "ds:data.json",
       "kind": "write"
     },
@@ -1051,13 +1195,53 @@
       "kind": "read"
     },
     {
-      "source": "src/FinderSetting.ts",
-      "target": "main.ts",
+      "source": "src/FinderModal.ts",
+      "target": "src/Finder.ts",
       "kind": "call"
     },
     {
       "source": "src/FinderModal.ts",
+      "target": "src/engine/LatestSearch.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderModal.ts",
+      "target": "src/engine/ResultData.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderModal.ts",
+      "target": "src/SearchUIHelper.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderModal.ts",
+      "target": "src/engine/SearchHistory.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderMoodboard.ts",
       "target": "src/Finder.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderMoodboard.ts",
+      "target": "src/engine/LatestSearch.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderMoodboard.ts",
+      "target": "src/engine/ResultData.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderMoodboard.ts",
+      "target": "src/SearchUIHelper.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderMoodboard.ts",
+      "target": "src/engine/SearchHistory.ts",
       "kind": "call"
     },
     {
@@ -1066,43 +1250,18 @@
       "kind": "call"
     },
     {
-      "source": "src/FinderModal.ts",
-      "target": "src/SearchUIHelper.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/FinderModal.ts",
-      "target": "src/engine/SearchHistory.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/FinderModal.ts",
-      "target": "src/engine/SearchStrategy.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/FinderCard.ts",
-      "target": "src/Finder.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/FinderCard.ts",
+      "source": "src/FinderMoodboard.ts",
       "target": "src/component/Card/CardUI.ts",
       "kind": "call"
     },
     {
-      "source": "src/FinderCard.ts",
+      "source": "src/FinderMoodboard.ts",
       "target": "src/component/ui/SearchBar.ts",
       "kind": "call"
     },
     {
-      "source": "src/FinderCard.ts",
-      "target": "src/SearchUIHelper.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/FinderCard.ts",
-      "target": "src/engine/SearchHistory.ts",
+      "source": "src/engine/LatestSearch.ts",
+      "target": "src/Finder.ts",
       "kind": "call"
     },
     {
@@ -1117,38 +1276,8 @@
     },
     {
       "source": "src/Finder.ts",
-      "target": "src/const.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/Finder.ts",
       "target": "ext:obsidian",
       "kind": "read"
-    },
-    {
-      "source": "src/SearchUIHelper.ts",
-      "target": "src/component/ui/HintBar.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/SearchUIHelper.ts",
-      "target": "src/component/ui/HintBarSub.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/SearchUIHelper.ts",
-      "target": "src/component/ui/TagsPreview.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/SearchUIHelper.ts",
-      "target": "src/engine/search-filters/DateFilter.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/SearchUIHelper.ts",
-      "target": "src/engine/SearchStrategy.ts",
-      "kind": "call"
     },
     {
       "source": "src/engine/SearchStrategy.ts",
@@ -1188,7 +1317,7 @@
     {
       "source": "src/engine/SearchStrategy.ts",
       "target": "src/engine/search-filters/HighlightFilter.ts",
-      "kind": "call"
+      "kind": "dispatch"
     },
     {
       "source": "src/engine/SearchStrategy.ts",
@@ -1207,28 +1336,8 @@
     },
     {
       "source": "src/engine/SearchStrategy.ts",
-      "target": "src/engine/search-filters/types.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/engine/SearchStrategy.ts",
       "target": "src/engine/SearchIndex.ts",
       "kind": "call"
-    },
-    {
-      "source": "src/engine/search-filters/TagsFilter.ts",
-      "target": "src/engine/CanvasTagCache.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/engine/search-filters/TitleFilter.ts",
-      "target": "src/engine/SearchIndex.ts",
-      "kind": "call"
-    },
-    {
-      "source": "src/engine/search-filters/HighlightFilter.ts",
-      "target": "ext:obsidian",
-      "kind": "read"
     },
     {
       "source": "src/engine/SearchIndex.ts",
@@ -1237,18 +1346,13 @@
     },
     {
       "source": "src/engine/SearchIndex.ts",
-      "target": "ds:indice-minisearch",
-      "kind": "read"
-    },
-    {
-      "source": "src/engine/SearchIndex.ts",
       "target": "ext:obsidian",
       "kind": "read"
     },
     {
       "source": "src/engine/CanvasTagCache.ts",
-      "target": "ext:obsidian",
-      "kind": "read"
+      "target": "ds:canvas-tags",
+      "kind": "write"
     },
     {
       "source": "src/engine/XbergExtractor.ts",
@@ -1258,11 +1362,6 @@
     {
       "source": "src/engine/XbergExtractor.ts",
       "target": "ds:xberg-cache.json",
-      "kind": "read"
-    },
-    {
-      "source": "src/engine/XbergExtractor.ts",
-      "target": "ds:xberg-cache.json",
       "kind": "write"
     },
     {
@@ -1271,9 +1370,49 @@
       "kind": "call"
     },
     {
-      "source": "src/component/Modal/ModalUI.ts",
-      "target": "src/component/Modal/ModalItem.ts",
+      "source": "src/engine/ResultData.ts",
+      "target": "src/engine/fileTags.ts",
       "kind": "call"
+    },
+    {
+      "source": "src/engine/ResultData.ts",
+      "target": "src/component/ui/ImagePreview.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/engine/ResultData.ts",
+      "target": "src/engine/search-filters/TagsFilter.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/engine/ResultData.ts",
+      "target": "src/engine/search-filters/TaskFilter.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/engine/fileTags.ts",
+      "target": "src/engine/CanvasTagCache.ts",
+      "kind": "read"
+    },
+    {
+      "source": "src/engine/search-filters/TagsFilter.ts",
+      "target": "src/engine/fileTags.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/engine/search-filters/TitleFilter.ts",
+      "target": "src/engine/SearchIndex.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/engine/search-filters/NegationFilter.ts",
+      "target": "src/engine/search-filters/TagsFilter.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/engine/SearchHistory.ts",
+      "target": "ds:data.json",
+      "kind": "write"
     },
     {
       "source": "src/component/Modal/ModalUI.ts",
@@ -1292,21 +1431,26 @@
     },
     {
       "source": "src/component/Modal/ModalUI.ts",
-      "target": "src/component/interface/Card.ts",
+      "target": "src/component/Modal/ModalItem.ts",
       "kind": "call"
     },
     {
       "source": "src/component/Card/CardUI.ts",
       "target": "src/component/Card/GridCard.ts",
-      "kind": "call"
+      "kind": "dispatch"
     },
     {
       "source": "src/component/Card/CardUI.ts",
       "target": "src/component/Card/ListCard.ts",
-      "kind": "call"
+      "kind": "dispatch"
     },
     {
       "source": "src/component/Card/GridCard.ts",
+      "target": "src/component/ui/ImagePreview.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/component/Card/ListCard.ts",
       "target": "src/component/ui/ImagePreview.ts",
       "kind": "call"
     },
@@ -1316,18 +1460,48 @@
       "kind": "call"
     },
     {
-      "source": "src/component/Card/ListCard.ts",
-      "target": "src/component/ui/ImagePreview.ts",
-      "kind": "call"
-    },
-    {
       "source": "src/component/ui/ImagePreview.ts",
       "target": "src/engine/XbergExtractor.ts",
       "kind": "call"
     },
     {
+      "source": "src/SearchUIHelper.ts",
+      "target": "src/component/ui/HintBar.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/SearchUIHelper.ts",
+      "target": "src/component/ui/HintBarSub.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/SearchUIHelper.ts",
+      "target": "src/component/ui/TagsPreview.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/SearchUIHelper.ts",
+      "target": "src/engine/SearchStrategy.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/SearchUIHelper.ts",
+      "target": "src/engine/search-filters/DateFilter.ts",
+      "kind": "call"
+    },
+    {
+      "source": "src/FinderSetting.ts",
+      "target": "main.ts",
+      "kind": "call"
+    },
+    {
       "source": "src/main.ts",
       "target": "src/settings.ts",
+      "kind": "call"
+    },
+    {
+      "source": "esbuild.config.mjs",
+      "target": "main.ts",
       "kind": "call"
     },
     {
@@ -1342,12 +1516,12 @@
     },
     {
       "source": "test",
-      "target": "src/engine/SearchIndex.ts",
+      "target": "src/engine/ResultData.ts",
       "kind": "call"
     },
     {
       "source": "test",
-      "target": "src/SearchUIHelper.ts",
+      "target": "src/engine/CommonCache.ts",
       "kind": "call"
     }
   ],
@@ -1359,18 +1533,19 @@
     "src/settings.ts"
   ],
   "observations": [
-    "Con un tipo file esplicito nella query (es. 'pdf contratto') l'indice MiniSearch viene saltato e il fallback legge solo il contenuto dei .md: il testo dei PDF estratto da Xberg si trova solo senza la parola 'pdf' (src/engine/SearchStrategy.ts righe 161-175, src/engine/SearchIndex.ts righe 299-310).",
-    "I filtri si estraggono in un ordine (negazioni prima, metadati per ultimi) e si applicano in un altro (archivio, tag, data, path, tipo, metadati, negazioni, task, titolo): src/engine/SearchStrategy.ts righe 62-102 e 178-284.",
-    "Le note di progetto (CLAUDE.md, spec.md, README.md) sono in parte superate: filtri data piatti, callback renderPreview, renderModalItem richiesto da SuggestModal, file che non esistono più, nomi dei comandi diversi.",
-    "PDF e immagini modificati non vengono riestratti fino al riavvio, e le voci di xberg-cache.json non si cancellano mai: l'evento modify gestisce solo i canvas (main.ts righe 140-147).",
+    "Con un tipo file esplicito nella Query (es. 'pdf contratto') l'Index viene saltato e la lettura diretta guarda solo il contenuto dei .md e i nomi file: il testo dei PDF estratto da Xberg si trova solo senza la parola 'pdf' (src/engine/SearchStrategy.ts righe 167-185, src/engine/SearchIndex.ts righe 343-359).",
+    "I filtri si estraggono in un ordine (comando, negazioni, tag, date, tipi, title, task, path, highlight, metadati per ultimi) e si applicano in un altro (archivio, tag, data, path, tipi, metadati, negazioni, task, titolo): src/engine/SearchStrategy.ts righe 68-107 e 210-293.",
+    "CONTEXT.md descrive le Occurrences come ogni parola cercata da sola con le varianti accettate, e un Body che con testo libero e task mostra entrambi: il codice cerca il testo libero intero con indexOf (src/component/ui/SnippetPreview.ts riga 23), il Modal mostra righe dei task oppure estratto (src/component/Modal/ModalUI.ts righe 33-42), le Card non mostrano estratti e matchedWords non ha consumatori nella UI.",
+    "Le note di progetto sono in parte superate: README (today, this week senza prefisso, nomi dei comandi), spec.md (FinderCard, HistoryBar, debounce in Finder.search), CLAUDE.md (src/component/interface/Card.ts e isFile() non esistono).",
     "manifest.json dichiara isDesktopOnly false, ma XbergExtractor importa child_process al caricamento del modulo: su mobile il plugin probabilmente non parte (non verificato).",
-    "La CI fa build e lint su Node 20 e 22 ma non lancia i test Jest; il rilascio è manuale (npm version più upload di main.js, che è in .gitignore).",
-    "FinderCard è dichiarata legacy in CLAUDE.md, ma cronologia con le frecce ed export dei risultati esistono solo lì.",
-    "Il supporto Xberg non è mai stato provato con il binario reale: i flag della CLI sono da confermare (src/engine/XbergExtractor.ts righe 144-145, TODO righe 12-14)."
+    "La CI fa build e lint su Node 20 e 22 ma non lancia i test Jest; il rilascio è manuale (npm run version più upload di main.js, che è in .gitignore).",
+    "Cronologia con le frecce ed export dei risultati esistono solo nella Moodboard (src/FinderMoodboard.ts righe 68-70 e 85-103).",
+    "Il supporto Xberg non è mai stato provato con il binario reale: i flag della CLI sono da confermare (src/engine/XbergExtractor.ts righe 214-216, TODO righe 12-13).",
+    "Il log all'avvio è invertito: 'Plugin runned from Mobile!' si stampa quando Platform.isMobile è false (main.ts righe 32-34)."
   ],
-  "generatedAt": "2026-10-09",
-  "commit": "5c89bfb28f0ad31178f4908379910beefc74ef9b",
-  "dirtyAtGeneration": false,
+  "generatedAt": "2026-10-24",
+  "commit": "db7a8ab798ee523cbea5e28b63690735259f94e1",
+  "dirtyAtGeneration": true,
   "files": {
     "INDEX.md": {
       "origin": "generated"

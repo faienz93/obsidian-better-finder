@@ -1,21 +1,24 @@
-# Flusso: ricerca dalla modale
+# Flusso: ricerca dal Modal
 
-L'utente apre la modale con il comando [Open Better Finder Modal](./04-sintassi-query.md#comandi-del-plugin) e scrive una query che mescola filtri e testo libero, per esempio `#spring -image created:this-week author:rossi architettura`. Ottiene una lista di file del vault (o di comandi Obsidian, se la query inizia con `>`), con anteprima, e apre quello che sceglie.
+L'utente apre il [Modal](./06-interfaccia.md#il-modal) con il comando [Open Better Finder Modal](./04-sintassi-query.md#comandi-del-plugin) e scrive una Query che mescola filtri e testo libero, per esempio `#spring -image created:this-week author:rossi architettura`. Ottiene una lista di note, allegati o comandi Obsidian, se la Query inizia con [`>`](./04-sintassi-query.md#comandi-obsidian), e apre quello che sceglie. Ti serve quando un risultato manca, compare dove non dovrebbe o mostra il Body sbagliato.
 
-Questo capitolo ti serve quando un risultato manca o compare dove non dovrebbe, o quando devi toccare il motore di ricerca. La [vista laterale](./06-interfaccia.md#la-vista-laterale) usa lo stesso motore (`Finder`): cambia solo il rendering. La sintassi dei singoli filtri è in [Sintassi della query](./04-sintassi-query.md); come si costruisce l'indice è in [Indicizzazione](./03-flusso-indicizzazione.md).
+La [Moodboard](./06-interfaccia.md#la-moodboard) fa lo stesso giro e cambia nel disegno, a Card in blocchi di 20, e nel restare aperta. La sintassi dei filtri è in [Sintassi della query](./04-sintassi-query.md), l'Index in [Indicizzazione](./03-flusso-indicizzazione.md).
 
 ```mermaid
 sequenceDiagram
   participant U as Utente
   participant M as FinderModal
+  participant L as LatestSearch
   participant F as Finder
   participant S as SearchStrategyFactory
   participant I as SearchIndex
+  participant R as buildResultData
   participant O as Obsidian
 
-  U->>M: digita la query
-  M->>F: search(query)
-  Note over F: debounce 150 ms
+  U->>M: digita la Query
+  M->>L: run(query)
+  Note over L: 150 ms senza tasti,<br/>vince solo l'ultima generation
+  L->>F: getResults(query)
   F->>S: parse(query)
   S-->>F: ParsedQuery
   alt isCommandMode
@@ -25,77 +28,89 @@ sequenceDiagram
     F->>S: filter(allFiles, parsed)
     S-->>F: TFile[] candidati
     F->>S: filterFreeText(candidati, parsed)
-    alt highlight: presente
-      S->>O: legge le note e cerca dentro ==...==
-    else nessun tipo file e indice pronto
-      S->>I: search(freeText) su MiniSearch
-    else tipo file esplicito o indice non pronto
-      S->>I: searchFilesWithoutIndex legge i .md
-    end
-    S-->>F: TFile[] ordinati
+    S->>I: search(freeText) oppure lettura diretta
+    S-->>F: files + matchedWords
   end
-  F-->>M: SearchResult[]
-  M->>M: renderResult per ogni riga
+  F-->>L: SearchOutcome
+  L-->>M: SearchOutcome (solo se ancora l'ultima)
+  M->>R: buildResultData(file, outcome) per ogni Item
+  R-->>M: Data
   U->>M: sceglie un risultato
   M->>F: openResult(result)
-  F->>O: openFile in nuova tab o executeCommandById
+  F->>O: openFile in tab nuova o executeCommandById
 ```
 
-## 1. Digiti nella modale e parte la ricerca
+### 1. Digiti e parte solo l'ultima ricerca
 
-`FinderModal` è una `SuggestModal` di Obsidian: a ogni tasto Obsidian chiama `getSuggestions`, che passa la query a `Finder.search`. `Finder` è l'orchestratore condiviso dalle due UI; ne esiste un'istanza per ogni modale o vista aperta. La ricerca parte solo dopo 150 ms senza tasti:
+`FinderModal` è una `SuggestModal` di Obsidian: a ogni tasto Obsidian chiama `getSuggestions`, che passa la Query a `LatestSearch.run`. Ogni apertura del Modal crea il suo `Finder` e il suo `LatestSearch`. `src/FinderModal.ts` righe 17-21 e 48-52
+
+`LatestSearch` aspetta 150 ms senza tasti e numera ogni ricerca con una `generation`; la Promise si risolve solo se nel frattempo non è partita una ricerca più nuova:
 
 ```typescript
-async search(query: string): Promise<SearchResult[]> {
-  if (this.debounceTimer !== null) {
-    clearTimeout(this.debounceTimer);
+run(query: string): Promise<T> {
+  if (this.timer !== null) {
+    window.clearTimeout(this.timer);
   }
 
-  return new Promise<SearchResult[]>((resolve) => {
-    this.debounceTimer = window.setTimeout(async () => {
-      this.debounceTimer = null;
-      const results = await this.getResults(query);
+  const generation = ++this.generation;
 
-      this.lastResultCount = results.length;
-      resolve(results);
-    }, Finder.DEBOUNCE_MS);
+  return new Promise((resolve) => {
+    this.timer = window.setTimeout(async () => {
+      this.timer = null;
+      const outcome = await this.source.getResults(query);
+
+      if (generation === this.generation) {
+        resolve(outcome);
+      }
+    }, this.delayMs);
   });
 }
 ```
 
-`src/Finder.ts` righe 141-155
+`src/engine/LatestSearch.ts` righe 23-40
 
-**⚠️ Trappola.** Un tasto che arriva prima dei 150 ms cancella il timer precedente, ma la Promise di quella chiamata resta appesa per sempre: nessuno la risolve né la rifiuta. Nella modale sembra innocuo perché Obsidian usa solo l'ultima risposta, ma non è verificato. Se aggiungi codice che fa `await` su `search` aspettandosi una risposta per ogni chiamata, si blocca.
+Una ricerca superata (la *Superseded search* di [`CONTEXT.md`](../CONTEXT.md)) resta appesa per sempre, senza risolversi né fallire. È voluto: `SuggestModal` disegna qualunque Promise si risolva senza guardare la Query, quindi risolverla mostrerebbe risultati vecchi e rifiutarla scriverebbe un errore. Alla chiusura del Modal `cancel()` scarta anche la ricerca in volo. `src/engine/LatestSearch.ts` righe 9-13 e 42-50
 
-`getResults` è il giro completo: parse, ritorno anticipato per i comandi, filtri, testo libero e dedup per path. Il dedup tiene la prima occorrenza, quella con il ranking più alto. La lista dei file del vault non si rilegge a ogni tasto. `Finder` la tiene in cache e la segna sporca sugli eventi `create`, `delete` e `rename`: ricostruirla a ogni ricerca contribuiva al freeze sui vault grandi. `dispose()` stacca i listener quando la modale si chiude. `src/Finder.ts` righe 20-57 e 82-99
+**⚠️ Trappola.** Un `await` su `run` per ogni chiamata resta bloccato: le chiamate superate non tornano mai.
 
-## 2. La query diventa una ParsedQuery
+`Finder.getResults` fa i passi 2-4. La lista dei file del vault sta in cache e si invalida solo su `create`, `delete` e `rename`, perché ricostruirla a ogni tasto contribuiva al freeze sui vault grandi. `src/Finder.ts` righe 89-105
 
-`SearchStrategyFactory.parse` trasforma la stringa in una `ParsedQuery`, la struttura che tutto il resto del flusso legge. Ogni filtro riconosce il suo token con `extract` e lo toglie dal testo con `removeFrom`. La factory li chiama in cascata e ognuno vede il testo già ripulito dai precedenti. Quello che resta alla fine è il testo libero. Le regole per scrivere un filtro sono nella guida [Aggiungere un filtro](./07-aggiungere-un-filtro.md#anatomia-di-un-filtro).
+### 2. La query diventa una ParsedQuery
 
-La struttura è questa:
+`SearchStrategyFactory.parse` trasforma la stringa nella `ParsedQuery` che il resto del flusso legge: ogni filtro riconosce il suo token con `extract` e lo toglie con `removeFrom`, in cascata, e quello che resta è il testo libero. Come si scrive un filtro è in [Anatomia di un filtro](./07-aggiungere-un-filtro.md#anatomia-di-un-filtro). `src/engine/search-filters/types.ts` righe 4-18
+
+L'ordine di estrazione conta: il Command mode si controlla per primo e, con `>` in testa, il parse finisce lì. Le [negazioni](./04-sintassi-query.md#negazione) vengono subito dopo, perché altrimenti `-image` lo catturerebbe il filtro dei tipi file e `-#draft` quello dei tag:
 
 ```typescript
-export interface ParsedQuery {
-  rawInput: string;
-  isCommandMode: boolean;
-  commandText?: string;
-  tags: string[];
-  dateFilter?: DateRange;
-  fileTypes: string[];
-  scope?: 'title' | 'content';
-  taskFilter?: 'all' | 'todo' | 'done';
-  pathFilter?: string;
-  highlightFilter?: string;
-  negations?: { extensions: string[]; tags: string[] };
-  metadataFilters?: Array<{ key: string; value: string }>;
-  freeText: string;
-}
+let remainingText = trimmedInput;
+
+// 1.5 Extract negations (-image, -#tag) PRIMA delle altre strategy:
+// "-image" verrebbe altrimenti catturato da FileTypeFilter, "-#tag" da TagsFilter
+const negationStrategy = this.getStrategy('not') as NegationFilter;
+
+result.negations = negationStrategy.extract(remainingText);
+remainingText = negationStrategy.removeFrom(remainingText);
+
+// 2. Extract tags (#react #css)
+const tagStrategy = this.getStrategy('tag') as TagsFilter;
+
+result.tags = tagStrategy.extract(remainingText);
+remainingText = tagStrategy.removeFrom(remainingText);
+
+// 3. Extract date filters (modified:VALUE or created:VALUE)
+const modifiedStrategy = this.getStrategy('modified') as ModifiedFilter;
+const createdStrategy = this.getStrategy('created') as CreatedFilter;
+
+result.dateFilter = modifiedStrategy.extract(remainingText) ?? createdStrategy.extract(remainingText);
+remainingText = modifiedStrategy.removeFrom(remainingText);
+remainingText = createdStrategy.removeFrom(remainingText);
 ```
 
-`src/engine/search-filters/types.ts` righe 4-18
+`src/engine/SearchStrategy.ts` righe 221-242
 
-Per la query `#spring -image created:this-week author:rossi architettura` il risultato è questo. I campi `scope`, `taskFilter`, `pathFilter` e `highlightFilter` restano `undefined`:
+Seguono tipi file, `title:`, `task:`, `path:` e `highlight:`; i [metadati del frontmatter](./04-sintassi-query.md#metadati-del-frontmatter) vanno per ultimi fra i `chiave:valore`, così le chiavi riservate sono già consumate e `task:` non diventa un metadato. `src/engine/SearchStrategy.ts` righe 285-290
+
+**Esempio tracciato.** La Query `#spring -image created:this-week author:rossi architettura` diventa questa `ParsedQuery`, con `-image` espanso nelle cinque estensioni delle immagini:
 
 ```json
 {
@@ -110,15 +125,11 @@ Per la query `#spring -image created:this-week author:rossi architettura` il ris
 }
 ```
 
-`-image` diventa le cinque estensioni delle immagini, secondo la tabella `KEYWORD_EXTENSIONS` del [filtro di negazione](./04-sintassi-query.md#negazione). `src/engine/search-filters/NegationFilter.ts` righe 11-21
+**⚠️ Trappola.** [`title:`](./04-sintassi-query.md#titolo) non toglie il termine dalla Query: `removeFrom` rimuove solo il prefisso, e con `title:docker` il `freeText` vale `docker`. Quella parola filtra i nomi al passo 3 e poi passa anche dall'Index, che cerca nel contenuto. `src/engine/search-filters/TitleFilter.ts` righe 25-28
 
-L'ordine di estrazione conta; il perché è nella guida, in [I due ordini](./07-aggiungere-un-filtro.md#i-due-ordini-estrazione-e-applicazione).
+### 3. I filtri restringono i file del vault
 
-**⚠️ Trappola.** `title:` non toglie il termine dalla query. `TitleFilter.removeFrom` rimuove solo il prefisso, e la parola resta nel testo libero: con `title:docker` il campo `freeText` vale `docker`. Il passo 4 la ricerca di nuovo, questa volta nel contenuto. `src/engine/search-filters/TitleFilter.ts` righe 25-28
-
-## 3. I filtri restringono i file del vault
-
-`SearchStrategyFactory.filter` parte da tutti i file del vault (non solo le note markdown) e applica i filtri presenti nella `ParsedQuery`. L'ordine di applicazione è diverso da quello di estrazione:
+`SearchStrategyFactory.filter` parte da tutti i file del vault, non solo dalle note, e applica i filtri presenti nella `ParsedQuery`. L'ordine di applicazione è diverso da quello di estrazione:
 
 ```typescript
 results = archiveStrategy.excludeArchived(results, parsed.tags, app);
@@ -140,102 +151,94 @@ results = this.applyFileTypes(results, parsed, app);
 // ...
 ```
 
-`src/engine/SearchStrategy.ts` righe 62-83
+`src/engine/SearchStrategy.ts` righe 68-92
 
-Dopo i tipi file vengono metadati, negazioni, task e infine lo scope titolo. `src/engine/SearchStrategy.ts` righe 85-101
+Dopo i tipi file vengono metadati, negazioni, task e infine lo scope titolo. Il primo passaggio gira sempre: le note con [`#archive`](./04-sintassi-query.md#archivio) spariscono, a meno che la Query non chieda `#archive`. L'ordine incide sulle prestazioni e sull'ordinamento, non su quali file restano: il [filtro data](./04-sintassi-query.md#date) ordina per data decrescente, lo scope titolo per punteggio sul nome. Un filtro nuovo si inserisce a mano qui e in `parse()`, vedi [Registrarlo nella factory](./07-aggiungere-un-filtro.md#registrarlo-nella-factory). `src/engine/SearchStrategy.ts` righe 91-107
 
-Il primo passaggio gira sempre, anche senza tag nella query: le note con [`#archive`](./04-sintassi-query.md#archivio) spariscono, a meno che la query non chieda `#archive`. Ogni filtro riceve la lista ridotta dal precedente, quindi l'ordine decide le prestazioni, non quali file restano. Alcuni filtri cambiano anche l'ordine della lista: il [filtro data](./04-sintassi-query.md#date) ordina per data decrescente, lo scope titolo per punteggio sul nome.
+**⚠️ Trappola.** Il commento "Skip del default markdown-only quando il path filter è attivo" descrive un default che non esiste. `FileTypeFilter.filter` con lista vuota restituisce già tutti i file, quindi la sostituzione con `['*']` non cambia niente: è un residuo, non costruirci sopra. `src/engine/SearchStrategy.ts` righe 133-139
 
-**⚠️ Trappola.** Il commento "Skip del default markdown-only quando il path filter è attivo" descrive un default che non esiste. `FileTypeFilter.filter` con lista vuota restituisce già tutti i file, quindi la sostituzione con `['*']` non cambia niente: è un residuo. Non costruirci sopra. `src/engine/SearchStrategy.ts` righe 127-133
+### 4. Il testo libero passa dall'Index
 
-## 4. Il testo libero passa dall'indice
-
-`filterFreeText` decide come cercare il testo libero fra i candidati rimasti. Le strade sono quattro:
+`filterFreeText` decide come cercare il testo libero fra i candidati rimasti e restituisce, oltre ai file, `matchedWords`: per ogni path, le parole che l'hanno fatto trovare. Le strade sono quattro:
 
 | Condizione | Cosa succede |
 |---|---|
-| `highlight:` nella query | filtro asincrono che legge le note e cerca dentro `==...==`; il testo libero viene **ignorato** |
-| niente testo libero | i candidati, ordinati per data di modifica decrescente, senza limite |
-| nessun tipo file esplicito e indice pronto | ricerca nell'[indice MiniSearch](./03-flusso-indicizzazione.md#2-lindice-minisearch-si-costruisce-a-blocchi-di-100-note), più ricerca per nome sui file non markdown che l'indice non ha trovato |
-| altrimenti | fallback che legge i file uno per uno |
+| `highlight:` nella Query | filtro asincrono che legge le note e cerca dentro `==...==`; il testo libero viene **ignorato** |
+| niente testo libero | i candidati ordinati per data di modifica decrescente, senza limite |
+| nessun tipo file esplicito e Index pronto | ricerca nell'[Index MiniSearch](./03-flusso-indicizzazione.md#2-lindex-minisearch-si-costruisce-a-blocchi-di-100-note), più ricerca per nome sui file non markdown che l'Index non ha trovato |
+| altrimenti | `searchFilesWithoutIndex`, che legge i file uno per uno |
 
-Il ramo con l'indice è questo:
+Il ramo con l'Index è questo:
 
 ```typescript
-const searchIndex = SearchIndex.getInstance(app);
-const hasExplicitFileTypes = parsed.fileTypes.length > 0;
-
-// No explicit file type filter: use MiniSearch (markdown + documenti esterni
-// tipo PDF/OCR) + basename search per i file non indicizzati
 if (!hasExplicitFileTypes && searchIndex.isIndexReady()) {
   const candidatePaths = new Set(files.map(f => f.path));
-  const indexResults = searchIndex.search(parsed.freeText).filter(f => candidatePaths.has(f.path));
-  const foundPaths = new Set(indexResults.map(f => f.path));
+  const indexResults = searchIndex.search(parsed.freeText).filter(r => candidatePaths.has(r.file.path));
+  const foundPaths = new Set(indexResults.map(r => r.file.path));
   const remainingNonMd = files.filter(f => f.extension !== 'md' && !foundPaths.has(f.path));
   const otherResults = searchIndex.searchInTitlesWithoutIndex(parsed.freeText, remainingNonMd);
+  const matchedWords = new Map<string, string[]>(indexResults.map(r => [r.file.path, r.terms]));
 
-  return [...indexResults, ...otherResults];
+  otherResults.forEach(f => matchedWords.set(f.path, freeTextWords));
+
+  return { files: [...indexResults.map(r => r.file), ...otherResults], matchedWords };
 }
-
-return searchIndex.searchFilesWithoutIndex(parsed.freeText, files);
 ```
 
-`src/engine/SearchStrategy.ts` righe 160-175
+`src/engine/SearchStrategy.ts` righe 172-183
 
-L'indice cerca su tutto il vault; i filtri del passo 3 entrano solo come intersezione sui path. MiniSearch:
+L'Index cerca su tutto il vault e i filtri del passo 3 entrano solo come intersezione sui path. MiniSearch richiede tutte le parole, pesa 5 volte il nome del file, usa il fuzzy solo per parole di almeno 6 caratteri e il prefisso solo sull'ultima, quella che stai ancora scrivendo. `src/engine/SearchIndex.ts` righe 30-43
 
-- richiede tutte le parole (AND);
-- dà peso 5 al nome del file;
-- usa il fuzzy solo per parole di almeno 6 caratteri;
-- usa il prefisso solo sull'ultima parola, quella che stai ancora scrivendo.
+`SearchOutcome` è quello che `getResults` restituisce: `ParsedQuery`, risultati e `matchedWords`. MiniSearch riporta le parole come stanno nel documento, quindi un errore di battitura o un prefisso danno la parola intera; la lettura diretta riporta le parole del testo libero. `src/Finder.ts` righe 9-17
 
-`src/engine/SearchIndex.ts` righe 23-36
+**Esempio tracciato.** In un vault con `layers.md` ("Notes on software architettura and layers"), la Query `architetura` con una t sola dà:
 
-Il fallback dà 10 punti se il testo è nel nome del file e un punto per ogni occorrenza nel contenuto. Lavora a blocchi di 50 file letti in parallelo. Si usa anche nei primi secondi dopo l'avvio, finché l'indice non è pronto.
-
-**⚠️ Trappola.** Un tipo file esplicito spegne l'indice. Con `pdf contratto` la query ha `fileTypes: ["pdf"]` e passa dal fallback. Il fallback però legge il contenuto **solo dei file `.md`**. Il testo dei PDF estratto da [Xberg](./03-flusso-indicizzazione.md#4-xberg-estrae-il-testo-di-pdf-immagini-e-office) vive solo nell'indice. Risultato: con `pdf contratto` un PDF si trova solo se "contratto" è nel nome del file. Con `contratto` da solo lo trovi anche per contenuto. Vale per ogni tipo file nella query (`pdf`, `image`, `canvas`, `docx`...): la condizione è solo `hasExplicitFileTypes`. `src/engine/SearchStrategy.ts` righe 173-177 e `src/engine/SearchIndex.ts` righe 299-310
-
-**⚠️ Trappola.** Con `title:` il testo libero passa da due filtri diversi. Lo scope titolo del passo 3 usa tutto il testo libero rimasto, non solo la parola dopo `title:`, e tiene i file il cui nome lo contiene come sottostringa. Con `title:docker compose` passano solo i file il cui nome contiene `docker compose`. `src/engine/SearchStrategy.ts` righe 136-141 e `src/engine/SearchIndex.ts` righe 331-338
-
-Poi lo stesso testo passa da MiniSearch, che cerca per prefisso di parola. `title:ook` tiene `Notebook` al passo 3 e probabilmente lo perde qui. Dedotto dal codice, non verificato a runtime.
-
-## 5. Ogni risultato diventa una riga con anteprima
-
-Obsidian chiama `renderSuggestion` per ogni riga, e `FinderModal.renderResult` decide cosa mostrare. La decisione sta nella modale; [`ModalUI`](./06-interfaccia.md#la-modale-di-ricerca) disegna e basta. La parte che costruisce i dati della riga:
-
-```typescript
-const file = result as TFile;
-const parsed = this.getParsed(this.inputEl.value);
-const fileCache = this.app.metadataCache.getFileCache(file);
-const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
-const tasks = fileCache?.listItems?.filter(i => i.task) || [];
-const doneCount = tasks.filter((t: any) => t.task === 'x' || t.task === 'X').length;
-const ext = file.extension.toLowerCase();
-const isExcalidraw = ext === 'md' && fileCache?.frontmatter?.['excalidraw-plugin'] === 'parsed';
-const renderPreview = PREVIEW_EXTENSIONS.includes(ext) || isExcalidraw;
-
-new ModalUI(el, this.app).render({
-  file,
-  tags: fileTags,
-  searchedTags: parsed.tags,
-  taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined,
-  renderPreview,
-  snippetTerm: ext === 'md' && parsed.freeText ? parsed.freeText : undefined,
-  taskSnippet: ext === 'md' ? parsed.taskFilter : undefined,
-});
+```json
+{
+  "parsed": { "freeText": "architetura", "tags": [], "fileTypes": [] },
+  "results": ["layers.md"],
+  "matchedWords": { "layers.md": ["architettura"] }
+}
 ```
 
-`src/FinderModal.ts` righe 84-102
+Con `pomo` la nota `recipe.md` ha `["pomodoro"]`; con `diagram` il file `architettura-diagram.png` si trova per nome e ha `["diagram"]`. `test/search-outcome.test.ts` righe 88-112
 
-La modale ricalcola la `ParsedQuery` dal testo dell'input, perché `getSuggestions` le restituisce solo i file. Il parse è memoizzato sulla query: senza cache girava una volta per riga a ogni tasto, con un freeze sui vault con molte note. `src/FinderModal.ts` righe 14-27
+**⚠️ Trappola.** `matchedWords` si calcola ma nessuna vista lo usa ancora: servirà alle Occurrences parola per parola di `CONTEXT.md`.
 
-Nella riga, l'estratto dei task ha la precedenza sullo snippet del testo libero. L'anteprima compare per immagini, PDF, canvas, docx, xlsx e disegni Excalidraw. Tag e badge dei task compaiono solo per le note markdown. `src/component/Modal/ModalUI.ts` righe 35-60
+**⚠️ Trappola.** Un tipo file esplicito spegne l'Index. Con `pdf contratto` la `ParsedQuery` ha `fileTypes: ["pdf"]` e passa dalla lettura diretta, che legge il contenuto **solo dei `.md`**. Il testo dei PDF estratto da [Xberg](./03-flusso-indicizzazione.md#4-xberg-estrae-il-testo-di-pdf-immagini-e-office) vive solo nell'Index, quindi un PDF si trova solo se "contratto" è nel nome. `src/engine/SearchIndex.ts` righe 349-359
 
-**⚠️ Trappola.** Lo snippet cerca il testo libero intero, letteralmente. Con `docker compose` cerca la stringa "docker compose"; MiniSearch invece trova la nota anche se le due parole sono lontane, o con un match fuzzy. In questi casi la nota è nei risultati ma senza snippet. `src/component/ui/SnippetPreview.ts` righe 18-36
+**⚠️ Trappola.** Finché l'Index non è pronto, nei primi secondi dopo l'avvio, ogni tasto legge tutti i candidati dal disco. Senza testo libero l'ordine finale è sempre per data di modifica, anche con `created:` che aveva ordinato per data di creazione. `src/engine/SearchStrategy.ts` righe 162-164
 
-## 6. La scelta apre il file o lancia il comando
+### 5. Ogni risultato diventa una Data e un Item
 
-Quando l'utente sceglie una riga, la modale salva la query nella [cronologia](./06-interfaccia.md#cronologia-delle-ricerche) e chiama `Finder.openResult`. `src/FinderModal.ts` righe 70-73
+Per ogni risultato Obsidian chiama `renderSuggestion`: un comando si disegna con nome, id e hotkey, un file passa da `buildResultData`, che decide la [Data](./06-interfaccia.md#la-data-di-un-risultato), e da `ModalUI`, che la disegna come Item. Si parte dall'outcome risolto e non dall'input, che può già contenere una Query più nuova. `src/FinderModal.ts` righe 67-79
+
+`buildResultData` decide la Data una volta per Modal e Moodboard, leggendo solo metadati in cache: le regole stanno nella [sua casa](./06-interfaccia.md#la-data-di-un-risultato). `src/engine/ResultData.ts` righe 27-44
+
+**Esempio tracciato.** `alpha.md` ha i tag `#project/alpha` e `#idea` e tre task, una fatta. Con la Query `#project task:` la Data è:
+
+```json
+{
+  "file": "alpha.md",
+  "tags": ["#project/alpha", "#idea"],
+  "searchedTags": ["#project/alpha"],
+  "taskInfo": { "done": 1, "total": 3 },
+  "renderPreview": false,
+  "taskSnippet": "all"
+}
+```
+
+`test/result-data.test.ts` righe 116-123
+
+Nel Body del Modal le righe dei task hanno la precedenza sulle Occurrences, e la [Preview](./06-interfaccia.md#body-preview-e-estratto) di una nota compare solo quando non c'è né l'una né l'altra cosa. `CONTEXT.md` dice che con testo libero e filtro task il Body le mostra insieme: il codice ne mostra una sola. `src/component/Modal/ModalUI.ts` righe 33-48
+
+**⚠️ Trappola.** Le Occurrences oggi sono un solo passaggio attorno alla prima posizione del testo libero **intero**, cercato con un `indexOf`. Con `ciao mondo` su una nota dove le due parole sono lontane, MiniSearch trova la nota ma `SnippetPreview` non trova la stringa; `renderPreview` è già `false` perché c'era un testo libero, quindi il Body resta vuoto. `src/component/ui/SnippetPreview.ts` righe 18-25
+
+**⚠️ Trappola.** `FinderModal` definisce sia `renderSuggestion` sia `renderModalItem`, con lo stesso corpo. Le typings installate di Obsidian dichiarano solo `renderSuggestion`, che è quello chiamato; `renderModalItem` non lo chiama nessuno. `src/FinderModal.ts` righe 54-60
+
+### 6. La scelta apre il file o lancia il comando
+
+Quando l'utente sceglie un Item, il Modal salva la Query nella [cronologia](./06-interfaccia.md#cronologia-delle-ricerche) e chiama `Finder.openResult`:
 
 ```typescript
 openResult(result: SearchResult): void {
@@ -245,13 +248,11 @@ openResult(result: SearchResult): void {
     return;
   }
 
-  const file = result as TFile;
-
   // 'tab' apre sempre in una nuova tab invece di sostituire quella corrente.
-  this.app.workspace.getLeaf('tab').openFile(file);
+  this.app.workspace.getLeaf('tab').openFile(result);
 }
 ```
 
-`src/Finder.ts` righe 188-199
+`src/Finder.ts` righe 178-187
 
-Un file si apre sempre in una nuova tab. Un comando passa da `app.commands`, un'API privata di Obsidian non presente nelle typings, da cui il cast `as any`. `isCommand` distingue i due tipi controllando che il risultato abbia sia `id` sia `name`, campi che un `TFile` non ha. `src/Finder.ts` righe 9-11
+Un comando passa da `app.commands`, un'API privata di Obsidian assente dalle typings, da cui il cast `as any`.
