@@ -116,7 +116,7 @@ export class CanvasTagCache implements CommonCache {
       for (const node of data?.nodes ?? []) {
         if (typeof node?.text === 'string') {
           for (const match of node.text.match(/#([a-zA-Z0-9][\w\-/]*)/g) ?? []) {
-            tags.add(match.toLowerCase());
+            tags.add(match);
           }
         }
       }

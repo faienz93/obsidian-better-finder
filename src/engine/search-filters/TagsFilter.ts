@@ -1,10 +1,15 @@
-import { App, getAllTags, TFile } from "obsidian";
-import { CanvasTagCache } from "../CanvasTagCache";
+import { App, TFile } from "obsidian";
+import { getFileTags } from "../fileTags";
 import { SearchFilter } from "./types";
 
-/** True if `fileTag` is `tag` itself or one of its nested tags (#tag/child). */
+/**
+ * True if `fileTag`, in any case, is `tag` itself or one of its nested tags (#tag/child). `tag` is
+ * lowercase, as `extract` returns it, so only the file side is folded on this hot path.
+ */
 export function matchesTag(fileTag: string, tag: string): boolean {
-  return fileTag === tag || fileTag.startsWith(`${tag}/`);
+  const lowerFileTag = fileTag.toLowerCase();
+
+  return lowerFileTag === tag || lowerFileTag.startsWith(`${tag}/`);
 }
 
 export class TagsFilter extends SearchFilter<string[]> {
@@ -25,7 +30,7 @@ export class TagsFilter extends SearchFilter<string[]> {
     return files.filter(file => {
       if (file.extension !== 'md') return true;
 
-      return !this.getFileTags(file, app).some(ft => matchesTag(ft, TagsFilter.ARCHIVE_TAG));
+      return !getFileTags(file, app).some(ft => matchesTag(ft, TagsFilter.ARCHIVE_TAG));
     });
   }
 
@@ -44,27 +49,11 @@ export class TagsFilter extends SearchFilter<string[]> {
     if (tags.length === 0) return files;
 
     return files.filter(file => {
-      const fileTags = this.getFileTags(file, app);
+      const fileTags = getFileTags(file, app);
 
       // Match esatto o gerarchico (#tag/figlio). Il vecchio startsWith(tag + '-')
       // faceva matchare tag "cugini" (#prompt pigliava #prompt-engineering): bug B2.
       return tags.every(tag => fileTags.some(ft => matchesTag(ft, tag)));
     });
-  }
-
-  /**
-   * Tag di un file, normalizzati in lowercase (la query è già lowercase:
-   * senza normalizzazione i tag maiuscoli tipo #WAF non matchano — bug B3).
-   * Md dal metadataCache, canvas dalla CanvasTagCache.
-   */
-  private getFileTags(file: TFile, app: App): string[] {
-    if (file.extension === 'canvas') {
-      return CanvasTagCache.getInstance(app).getTags(file);
-    }
-
-    const cache = app.metadataCache.getFileCache(file);
-    const fileTags = cache ? getAllTags(cache) || [] : [];
-
-    return fileTags.map(t => t.toLowerCase());
   }
 }
