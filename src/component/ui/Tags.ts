@@ -1,3 +1,5 @@
+import "./Tags.css";
+
 export class Tags {
   private container: HTMLElement;
 
@@ -13,25 +15,9 @@ export class Tags {
 
   public setContent(tags: string[], searchedTags: string[]) {
     tags.forEach(tag => {
-      const tagEl = this.container.createSpan({ text: tag });
-
-      tagEl.setCssStyles({
-        background: 'var(--tag-background)',
-        color: 'var(--tag-color)',
-        padding: '2px 6px',
-        borderRadius: '4px',
-        fontSize: '11px',
-      });
-
       const isMatched = searchedTags.includes(tag);
 
-      if (isMatched) {
-        tagEl.setCssStyles({
-          background: 'var(--interactive-accent)',
-          color: 'var(--text-on-accent)',
-          fontWeight: '600',
-        });
-      }
+      this.container.createSpan({ text: tag, cls: isMatched ? 'finder-tag finder-tag-searched' : 'finder-tag' });
     });
   }
 }

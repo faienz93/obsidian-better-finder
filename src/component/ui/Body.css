@@ -28,9 +28,10 @@
   color: var(--text-faint);
 }
 
+/* The accent colour, like searched tags: --text-highlight-bg is empty in some themes */
 .snippet-highlight {
-  background: var(--text-highlight-bg);
-  color: inherit;
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
   padding: 0 1px;
   border-radius: 2px;
 }
