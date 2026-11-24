@@ -12,26 +12,40 @@
   margin-bottom: 8px;
 }
 
+/* The wrapper draws the box, so the count and the x sit next to the text instead of over it */
 .finder-view-input-wrapper {
-  position: relative;
   flex: 1;
   display: flex;
   align-items: center;
-}
-
-.finder-view-input {
-  width: 100%;
-  padding: 8px 80px 8px 12px;
-  font-size: 14px;
+  gap: 4px;
+  padding-right: 4px;
   border: 1px solid var(--background-modifier-border);
   border-radius: 4px;
   background: var(--background-primary);
 }
 
+.finder-view-input-wrapper:focus-within {
+  border-color: var(--background-modifier-border-focus);
+}
+
+/* Beats Obsidian's input[type="text"] rules, focus states included: the wrapper draws them now */
+.finder-view-input-wrapper input.finder-view-input,
+.finder-view-input-wrapper input.finder-view-input:focus,
+.finder-view-input-wrapper input.finder-view-input:active {
+  flex: 1;
+  min-width: 0;
+  padding: 8px 12px;
+  font-size: 14px;
+  border: none;
+  background: transparent;
+  box-shadow: none;
+}
+
 .finder-view-count {
-  position: absolute;
-  right: 12px;
+  flex-shrink: 0;
+  padding: 0 4px;
   font-size: 12px;
   color: var(--text-muted);
+  white-space: nowrap;
   pointer-events: none;
 }
