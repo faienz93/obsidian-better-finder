@@ -3,9 +3,8 @@
 	"name": "Obsidian Better Finder",
 	"version": "1.0.0",
 	"minAppVersion": "0.15.0",
-	"description": "Demonstrates some of the capabilities of the Obsidian API.",
+	"description": "Search the vault by tags, dates, paths, file types and content, from a keyboard Modal or a Moodboard tab.",
 	"author": "Antonio Faienza",
-	"authorUrl": "https://obsidian.md",
-	"fundingUrl": "https://obsidian.md/pricing",
+	"authorUrl": "https://github.com/faienz93",
 	"isDesktopOnly": false
 }
