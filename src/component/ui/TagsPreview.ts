@@ -1,5 +1,8 @@
 import "./TagsPreview.css";
 
+// The tag being typed at the end of the query, after its "#".
+const PARTIAL_TAG = /#([a-zA-Z0-9\-/]*)$/;
+
 export class TagsPreview {
   private container: HTMLElement;
 
@@ -9,11 +12,10 @@ export class TagsPreview {
 
   public updateTagPreview(allTagsMap: Record<string, number>, inputEl: HTMLInputElement): void {
     const value = inputEl.value;
-    const partialTagMatch = value.match(/#([a-zA-Z0-9\-/]*)$/);
+    const partialTagMatch = value.match(PARTIAL_TAG);
 
     if (!partialTagMatch) {
-      this.container.empty();
-      this.container.removeClass('tag-preview-panel--visible');
+      this.hide();
 
       return;
     }
@@ -29,8 +31,7 @@ export class TagsPreview {
     tags = tags.slice(0, 20);
 
     if (tags.length === 0) {
-      this.container.empty();
-      this.container.removeClass('tag-preview-panel--visible');
+      this.hide();
 
       return;
     }
@@ -42,10 +43,15 @@ export class TagsPreview {
       const chip = this.container.createSpan({ cls: 'tag-preview-chip', text: tag });
 
       chip.addEventListener('click', () => {
-        inputEl.value = value.replace(/#([a-zA-Z0-9\-/]*)$/, `${tag} `);
+        inputEl.value = value.replace(PARTIAL_TAG, `${tag} `);
         inputEl.focus();
         inputEl.dispatchEvent(new Event('input'));
       });
     });
+  }
+
+  private hide(): void {
+    this.container.empty();
+    this.container.removeClass('tag-preview-panel--visible');
   }
 }

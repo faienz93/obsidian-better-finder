@@ -51,6 +51,18 @@ export class SearchBar {
   public createToggle(): ToggleButton {
     this.toggle = new ToggleButton(this.headerEl);
 
-    return this.toggle
+    return this.toggle;
+  }
+
+  public createActionButton(text: string, title: string, onClick: () => void): HTMLElement {
+    const button = this.headerEl.createEl('button', {
+      cls: 'finder-view-toggle',
+      text,
+      attr: { 'aria-label': title, title },
+    });
+
+    button.addEventListener('click', onClick);
+
+    return button;
   }
 }

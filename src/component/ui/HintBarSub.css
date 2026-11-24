@@ -13,3 +13,12 @@
 .hint-chip-sub {
   opacity: 0.85;
 }
+
+/* Etichetta non interattiva che indica il formato data supportato */
+.hint-chip-format-placeholder {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  cursor: default;
+}

@@ -1,15 +1,25 @@
 import { App, TFile, Notice } from "obsidian";
 import MiniSearch from 'minisearch';
+import { CommonCache } from "./CommonCache";
+
+// The first 10 000 characters are enough to find most notes, and keep indexing fast.
+const MAX_CONTENT_LENGTH = 10000;
 
 interface IndexedDocument {
   id: string;           // file.path
-  basename: string;     // file.basename (peso alto nel ranking)
-  content: string;      // contenuto del file (primi N caratteri)
-  mtime: number;        // per tracking modifiche
-  extension: string;    // per filtri futuri
+  basename: string;     // file.basename (weighted high in the ranking)
+  content: string;      // file content (first MAX_CONTENT_LENGTH characters)
+  mtime: number;        // to track changes
+  extension: string;    // for future filters
 }
 
-export class SearchIndex {
+/** A file the Index found, with the document terms MiniSearch matched in it. */
+export interface IndexResult {
+  file: TFile;
+  terms: string[];
+}
+
+export class SearchIndex implements CommonCache {
   private miniSearch: MiniSearch<IndexedDocument>;
   private app: App;
   private indexedPaths = new Set<string>();
@@ -19,15 +29,18 @@ export class SearchIndex {
   private constructor(app: App) {
     this.app = app;
 
-    // Configurazione MiniSearch
     this.miniSearch = new MiniSearch({
-      fields: ['basename', 'content'],  // Campi indicizzati per ricerca
-      storeFields: ['id', 'mtime', 'extension'],  // Campi salvati per retrieval
+      fields: ['basename', 'content'],
+      storeFields: ['id', 'mtime', 'extension'],
       searchOptions: {
-        boost: { basename: 5 },         // Titolo pesa 5x più del contenuto
-        fuzzy: 0.2,                     // Tolleranza errori di battitura
-        prefix: true,                   // "gat" trova "gatto"
-        combineWith: 'AND'              // Tutte le parole devono essere presenti
+        boost: { basename: 5 },         // The title weighs 5x the content
+        // Fuzzy only on long terms: on short words it gives false positives
+        // ("Bacca" → "becca"). See bug B1.
+        fuzzy: (term) => term.length >= 6 ? 0.2 : false,
+        // Prefix only on the last token: the user is still typing it; the
+        // previous ones are complete words.
+        prefix: (term, index, terms) => index === terms.length - 1,
+        combineWith: 'AND'              // Every word must be present
       }
     });
   }
@@ -40,18 +53,14 @@ export class SearchIndex {
     return SearchIndex._instance;
   }
 
-  /**
-   * Costruisce l'indice iniziale di tutti i file markdown
-   * Usa batching per non bloccare l'UI
-   */
+  /** Builds the initial index of every markdown file, in batches so the UI is not blocked. */
   async buildIndex(): Promise<void> {
     const files = this.app.vault.getMarkdownFiles();
-    const BATCH_SIZE = 100; // Processa 100 file alla volta
+    const BATCH_SIZE = 100;
 
     console.log(`[SearchIndex] Building index for ${files.length} markdown files...`);
     const startTime = Date.now();
 
-    // Mostra notice all'utente
     const notice = new Notice(`Indexing ${files.length} files...`, 0);
 
     try {
@@ -73,10 +82,9 @@ export class SearchIndex {
           this.miniSearch.addAll(docs);
         }
 
-        // Aggiorna progress
         notice.setMessage(`Indexing... ${Math.min(i + BATCH_SIZE, files.length)}/${files.length}`);
 
-        // Yield all'event loop per non bloccare UI
+        // Yield to the event loop so the UI stays responsive.
         await new Promise(resolve => setTimeout(resolve, 0));
       }
 
@@ -95,26 +103,15 @@ export class SearchIndex {
     }
   }
 
-  /**
-   * Indicizza un singolo file
-   */
   private async indexFile(file: TFile): Promise<IndexedDocument | null> {
     if (file.extension !== 'md') return null;
 
     try {
       const content = await this.app.vault.cachedRead(file);
-
-      // Limita contenuto per performance
-      // Primi 10.000 caratteri sono sufficienti per la maggior parte dei casi
-      const MAX_CONTENT_LENGTH = 10000;
-      const truncatedContent = content.length > MAX_CONTENT_LENGTH
-        ? content.slice(0, MAX_CONTENT_LENGTH)
-        : content;
-
       const doc: IndexedDocument = {
         id: file.path,
         basename: file.basename,
-        content: truncatedContent,
+        content: content.slice(0, MAX_CONTENT_LENGTH),
         mtime: file.stat.mtime,
         extension: file.extension
       };
@@ -129,10 +126,8 @@ export class SearchIndex {
     }
   }
 
-  /**
-   * Ricerca full-text veloce usando l'indice
-   */
-  search(query: string, maxResults?: number): TFile[] {
+  /** Fast full-text search through the index. */
+  search(query: string, maxResults?: number): IndexResult[] {
     if (!this.isReady) {
       console.warn('[SearchIndex] Index not ready yet');
 
@@ -146,19 +141,18 @@ export class SearchIndex {
     try {
       const results = this.miniSearch.search(query);
 
-      // Converti risultati in TFile oggetti
-      const files: TFile[] = [];
+      // MiniSearch reports terms as they appear in the document, so fuzzy and prefix matches give the full word.
+      const indexResults: IndexResult[] = [];
 
-      for (const result of (maxResults !== undefined ? results.slice(0, maxResults) : results)) {
+      for (const result of results.slice(0, maxResults)) {
         const file = this.app.vault.getAbstractFileByPath(result.id);
 
-        // files[0].stat.ctime
         if (file instanceof TFile) {
-          files.push(file);
+          indexResults.push({ file, terms: result.terms });
         }
       }
 
-      return files;
+      return indexResults;
     } catch (error) {
       console.error('[SearchIndex] Search error:', error);
 
@@ -166,19 +160,15 @@ export class SearchIndex {
     }
   }
 
-  /**
-   * Aggiorna un singolo file nell'indice (chiamato quando un file cambia)
-   */
+  /** Re-indexes one file when it changes. */
   async updateFile(file: TFile): Promise<void> {
     if (file.extension !== 'md') return;
 
     try {
-      // Rimuovi vecchia versione se esiste
       if (this.indexedPaths.has(file.path)) {
         this.miniSearch.discard(file.path);
       }
 
-      // Aggiungi nuova versione
       const doc = await this.indexFile(file);
 
       if (doc) {
@@ -189,40 +179,81 @@ export class SearchIndex {
     }
   }
 
-  /**
-   * Rimuove un file dall'indice (chiamato quando un file viene cancellato)
-   */
-  removeFile(file: TFile): void {
-    if (this.indexedPaths.has(file.path)) {
-      this.miniSearch.discard(file.path);
-      this.indexedPaths.delete(file.path);
-    }
+  /** Adds or replaces a document whose text was extracted elsewhere (PDF or image OCR via XbergExtractor). */
+  addExternalDocument(file: TFile, text: string): void {
+    this.discardPath(file.path);
+    this.miniSearch.add({
+      id: file.path,
+      basename: file.basename,
+      content: text,
+      mtime: file.stat.mtime,
+      extension: file.extension
+    });
+    this.indexedPaths.add(file.path);
   }
 
-  /**
-   * Gestisce il rename di un file
-   */
-  async renameFile(file: TFile, oldPath: string): Promise<void> {
-    // Rimuovi vecchio path
-    if (this.indexedPaths.has(oldPath)) {
-      this.miniSearch.discard(oldPath);
-      this.indexedPaths.delete(oldPath);
-    }
+  /** Removes a deleted file from the index. */
+  removeFile(file: TFile): void {
+    this.discardPath(file.path);
+  }
 
-    // Aggiungi con nuovo path
+  async renameFile(file: TFile, oldPath: string): Promise<void> {
+    this.discardPath(oldPath);
     await this.updateFile(file);
   }
 
+  // --- CommonCache ---
+
   /**
-   * Verifica se l'indice è pronto
+   * The index holds markdown plus the external documents other caches hand it
+   * (PDF, OCR), so on delete and rename it must also clean up the non-markdown
+   * paths it indexed.
    */
+  handles(file: TFile, oldPath?: string): boolean {
+    if (file.extension === 'md') return true;
+
+    // On rename the new path is not indexed yet: the old one is what tells us
+    // the file is ours.
+    return this.indexedPaths.has(oldPath ?? file.path);
+  }
+
+  async onCreate(file: TFile): Promise<void> {
+    await this.updateFile(file);
+  }
+
+  async onUpdate(file: TFile): Promise<void> {
+    await this.updateFile(file);
+  }
+
+  async onDelete(file: TFile): Promise<void> {
+    this.removeFile(file);
+  }
+
+  /**
+   * Markdown is re-read; external documents are only dropped from the old path,
+   * because their text lives in the cache that produced it, which re-adds them.
+   */
+  async onRename(file: TFile, oldPath: string): Promise<void> {
+    if (file.extension === 'md') {
+      await this.renameFile(file, oldPath);
+
+      return;
+    }
+
+    this.discardPath(oldPath);
+  }
+
+  private discardPath(path: string): void {
+    if (this.indexedPaths.has(path)) {
+      this.miniSearch.discard(path);
+      this.indexedPaths.delete(path);
+    }
+  }
+
   isIndexReady(): boolean {
     return this.isReady;
   }
 
-  /**
-   * Ottieni statistiche sull'indice
-   */
   getStats(): { total: number; ready: boolean } {
     return {
       total: this.indexedPaths.size,
@@ -230,9 +261,7 @@ export class SearchIndex {
     };
   }
 
-  /**
-   * Ricostruisce l'indice da zero (per debug o reset)
-   */
+  /** Rebuilds the index from scratch, for debugging or a reset. */
   async rebuild(): Promise<void> {
     this.miniSearch.removeAll();
     this.indexedPaths.clear();
@@ -251,34 +280,46 @@ export class SearchIndex {
     }
 
     const searchText = freeText.toLowerCase();
+    // Escaped, or terms with metacharacters (c++, report(2024), 3.5) either break the regex,
+    // losing the content match silently, or act as wildcards.
+    const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const contentRegex = new RegExp(escaped, 'g');
+
+    // Reads files in parallel batches: one at a time blocked the search on large vaults.
+    const BATCH_SIZE = 50;
     const scoredFiles: Array<{ file: TFile; score: number }> = [];
 
-    for (const file of files) {
-      let score = 0;
+    for (let i = 0; i < files.length; i += BATCH_SIZE) {
+      const batch = files.slice(i, i + BATCH_SIZE);
 
-      // Search in file name (basename) - higher weight
-      if (file.basename.toLowerCase().includes(searchText)) {
-        score += 10;
-      }
+      const scored = await Promise.all(batch.map(async (file) => {
+        let score = 0;
 
-      // For markdown files, search in content
-      if (file.extension === 'md') {
-        try {
-          const content = await this.app.vault.cachedRead(file);
-          const lowerContent = content.toLowerCase();
-
-          // Count occurrences in content
-          const occurrences = (lowerContent.match(new RegExp(searchText, 'g')) || []).length;
-
-          score += occurrences;
-        } catch (error) {
-          console.error(`Error reading file ${file.path}:`, error);
+        // Search in file name (basename) - higher weight
+        if (file.basename.toLowerCase().includes(searchText)) {
+          score += 10;
         }
-      }
 
-      // If there's any match, add to results
-      if (score > 0) {
-        scoredFiles.push({ file, score });
+        // For markdown files, search in content
+        if (file.extension === 'md') {
+          try {
+            const content = await this.app.vault.cachedRead(file);
+            const lowerContent = content.toLowerCase();
+            const occurrences = (lowerContent.match(contentRegex) || []).length;
+
+            score += occurrences;
+          } catch (error) {
+            console.error(`Error reading file ${file.path}:`, error);
+          }
+        }
+
+        return { file, score };
+      }));
+
+      for (const sf of scored) {
+        if (sf.score > 0) {
+          scoredFiles.push(sf);
+        }
       }
     }
 

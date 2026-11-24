@@ -1,32 +1,33 @@
-import { App, Component } from "obsidian";
-import { Card } from "../interface/Card";
-import { ImagePreview } from "../ui/ImagePreview";
+import { ResultData } from "../../engine/ResultData";
+import { Body } from "../ui/Body";
 import { Metadata } from "../ui/Metadata";
+import { Tags } from "../ui/Tags";
+import { TaskBadge } from "../ui/TaskBadge";
 import { Title } from "../ui/Title";
 
 export class GridCard {
   private card: HTMLElement;
-  private title!: Title;
+  private body: Body;
 
-  constructor(parentEl: HTMLElement) {
+  constructor(parentEl: HTMLElement, body: Body) {
     this.card = parentEl.createDiv({ cls: 'finder-view-result suggestion-item' });
+    this.body = body;
   }
 
   public getElement(): HTMLElement {
     return this.card;
   }
 
-  public render(data: Card, app: App, component: Component): void {
-    const { file, tags, searchedTags, taskInfo } = data;
+  public render(data: ResultData): void {
+    const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
-    this.title = new Title(this.card, file.basename);
+    const title = new Title(this.card, file.basename);
 
-    if (file.extension !== 'md') {
-      this.title.addBadge(` ${file.extension.toUpperCase()}`);
+    if (typeIcon) {
+      title.addTypeIcon(typeIcon);
     }
 
-    const previewEl = this.card.createDiv({ cls: 'finder-view-preview' });
-    new ImagePreview(app, component).load(file, previewEl);
+    this.body.drawInCard(data, this.card);
 
     const metadata = new Metadata(this.card);
 
@@ -35,14 +36,12 @@ export class GridCard {
       file.parent?.path || '/'
     );
 
-    if (file.extension !== 'md') return;
-
     if (tags.length > 0) {
-      this.renderTags(tags, searchedTags);
+      new Tags(this.card).setContent(tags, searchedTags);
     }
 
     if (taskInfo && taskInfo.total > 0) {
-      this.renderTaskBadge(taskInfo.done, taskInfo.total);
+      new TaskBadge(this.card).setContent(taskInfo.done, taskInfo.total);
     }
   }
 
@@ -52,31 +51,5 @@ export class GridCard {
 
   public onContextMenu(fn: (event: MouseEvent) => void): void {
     this.card.addEventListener('contextmenu', (event) => fn(event));
-  }
-
-  private renderTags(tags: string[], searchedTags: string[]): void {
-    const container = this.card.createDiv();
-
-    container.setCssStyles({ marginTop: '8px', display: 'flex', gap: '4px', flexWrap: 'wrap' });
-    tags.forEach(tag => {
-      const tagEl = container.createSpan({ text: tag });
-      const isMatched = searchedTags.some(st => tag.toLowerCase() === st.toLowerCase());
-
-      tagEl.setCssStyles({
-        background: isMatched ? 'var(--interactive-accent)' : 'var(--tag-background)',
-        color: isMatched ? 'var(--text-on-accent)' : 'var(--tag-color)',
-        padding: '2px 6px',
-        borderRadius: '4px',
-        fontSize: '11px',
-        fontWeight: isMatched ? '600' : 'normal',
-      });
-    });
-  }
-
-  private renderTaskBadge(done: number, total: number): void {
-    const badge = this.card.createDiv();
-
-    badge.setCssStyles({ marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' });
-    badge.setText(`✓ ${done}/${total} tasks completed`);
   }
 }

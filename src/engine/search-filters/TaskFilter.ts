@@ -1,26 +1,31 @@
 import { App, TFile } from "obsidian";
-import { SearchFilter, TaskStatus } from "./types";
+import { QueryToken, SearchFilter, TaskStatus } from "./types";
 
-export class TaskFilter extends SearchFilter<TaskStatus | undefined> {
+/** A checkbox counts as done when Obsidian reports its status char as `x` or `X`. */
+export function isDoneTask(task: string | undefined): boolean {
+  return task === 'x' || task === 'X';
+}
+
+const STATUS_BY_KEY: Record<string, TaskStatus> = { task: 'all', 'task-todo': 'todo', 'task-done': 'done' };
+
+// With several task keys in one query, todo wins over done and done over all.
+const STATUS_RANK: Record<TaskStatus, number> = { all: 0, done: 1, todo: 2 };
+
+/** `task:` takes no value: a word glued to it stays in the free text. */
+export class TaskFilter extends SearchFilter<'taskFilter'> {
   readonly label = 'task:';
   readonly desc = 'task';
+  readonly field = 'taskFilter';
+  readonly keys = Object.keys(STATUS_BY_KEY);
 
-  extract(query: string): TaskStatus | undefined {
-    const lowerQuery = query.toLowerCase();
+  read(token: QueryToken, current: TaskStatus | undefined): TaskStatus {
+    const status = STATUS_BY_KEY[token.key];
 
-    if (/\btask-todo:\b/.test(lowerQuery)) return 'todo';
-    if (/\btask-done:\b/.test(lowerQuery)) return 'done';
-    if (/\btask:\b/.test(lowerQuery)) return 'all';
-
-    return undefined;
+    return current && STATUS_RANK[current] > STATUS_RANK[status] ? current : status;
   }
 
-  removeFrom(query: string): string {
-    return query
-      .replace(/\btask-todo:\b/gi, '')
-      .replace(/\btask-done:\b/gi, '')
-      .replace(/\btask:\b/gi, '')
-      .trim();
+  freeTextOf(token: QueryToken): string {
+    return token.value;
   }
 
   filter(files: TFile[], taskFilter: TaskStatus | undefined, app: App): TFile[] {
@@ -37,8 +42,8 @@ export class TaskFilter extends SearchFilter<TaskStatus | undefined> {
 
       switch (taskFilter) {
         case 'all': return true;
-        case 'todo': return tasks.some(t => t.task !== 'x' && t.task !== 'X');
-        case 'done': return tasks.some(t => t.task === 'x' || t.task === 'X');
+        case 'todo': return tasks.some(t => !isDoneTask(t.task));
+        case 'done': return tasks.some(t => isDoneTask(t.task));
         default: return true;
       }
     });

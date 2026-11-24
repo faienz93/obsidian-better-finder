@@ -1,20 +1,21 @@
 import { App, Component } from "obsidian";
-import { Card, CardViewMode } from "../interface/Card";
+import { ResultData } from "../../engine/ResultData";
 import { GridCard } from "./GridCard";
 import { ListCard } from "./ListCard";
 import { ToggleButton } from "../ui/ToggleButton";
+import { Body } from "../ui/Body";
 import "./CardUI.css";
+
+export type CardViewMode = 'grid' | 'list';
 
 export class CardUI {
   private el: HTMLElement;
   private mode: CardViewMode = 'grid';
-  private app: App;
-  private component: Component;
+  private body: Body;
 
   constructor(parentEl: HTMLElement, toggle: ToggleButton, app: App, component: Component) {
     this.el = parentEl.createDiv({ cls: "finder-view-results grid-view" });
-    this.app = app;
-    this.component = component;
+    this.body = new Body(app, component);
 
     toggle.onClick((isGridView) => {
       this.mode = isGridView ? 'grid' : 'list';
@@ -24,30 +25,24 @@ export class CardUI {
   }
 
   public render(
-    data: Card,
+    data: ResultData,
     onOpen: () => void,
     onContextMenu: (event: MouseEvent) => void
   ): void {
-    if (this.mode === 'grid') {
-      const card = new GridCard(this.el);
+    const card = this.mode === 'grid' ? new GridCard(this.el, this.body) : new ListCard(this.el, this.body);
 
-      card.render(data, this.app, this.component);
-      card.onClick(onOpen);
-      card.onContextMenu(onContextMenu);
-    } else {
-      const card = new ListCard(this.el);
-
-      card.render(data, this.app, this.component);
-      card.onClick(onOpen);
-      card.onContextMenu(onContextMenu);
-    }
+    card.render(data);
+    card.onClick(onOpen);
+    card.onContextMenu(onContextMenu);
   }
 
   public getElement(): HTMLElement {
     return this.el;
   }
 
+  /** Removes every drawn result; also call it when the view closes. */
   public empty(): void {
+    this.body.reset();
     this.el.empty();
   }
 }

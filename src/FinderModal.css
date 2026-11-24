@@ -21,3 +21,12 @@
 .better-finder-modal .is-selected .suggestion-note {
   color: var(--text-on-accent);
 }
+
+/* On the accent background, searched tags and highlighted words drop theirs and stand out by weight */
+.better-finder-modal .is-selected .finder-tag-searched,
+.better-finder-modal .is-selected .snippet-highlight {
+  background: transparent;
+  color: var(--text-on-accent);
+  font-weight: 700;
+  text-decoration: underline;
+}

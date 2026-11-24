@@ -1,30 +1,29 @@
-import { App, Component } from "obsidian";
-import { Card } from "../interface/Card";
-import { ImagePreview } from "../ui/ImagePreview";
-import { SuggestionItem } from "../ui/SuggestionItem";
-import { Title } from "../ui/Title";
+import { ResultData } from "../../engine/ResultData";
+import { ModalItem } from "../Modal/ModalItem";
+import { Body } from "../ui/Body";
 
 export class ListCard {
-  private item: SuggestionItem;
+  private item: ModalItem;
   private card: HTMLElement;
-  private title!: Title;
+  private body: Body;
 
-  constructor(parentEl: HTMLElement) {
+  constructor(parentEl: HTMLElement, body: Body) {
     this.card = parentEl.createDiv({ cls: 'finder-view-result' });
-    this.item = new SuggestionItem(this.card);
+    this.item = new ModalItem(this.card);
+    this.body = body;
   }
 
   public getElement(): HTMLElement {
     return this.card;
   }
 
-  public render(data: Card, app: App, component: Component): void {
-    const { file, tags, searchedTags, taskInfo } = data;
+  public render(data: ResultData): void {
+    const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
-    this.title = this.item.setTitle(file.basename);
+    const title = this.item.setTitle(file.basename);
 
-    if (file.extension !== 'md') {
-      this.item.setBadge(this.title, ` ${file.extension.toUpperCase()}`);
+    if (typeIcon) {
+      title.addTypeIcon(typeIcon);
     }
 
     this.item.setMetadata(
@@ -32,15 +31,8 @@ export class ListCard {
       file.parent?.path || '/'
     );
 
-    this.item.setPreview((previewEl) => {
-      new ImagePreview(app, component).load(file, previewEl);
-    });
-
-    if (file.extension !== 'md') return;
-
-    if (tags.length > 0) {
-      this.item.setTags(tags, searchedTags);
-    }
+    this.body.drawInItem(data, this.item);
+    this.item.setTags(tags, searchedTags);
 
     if (taskInfo && taskInfo.total > 0) {
       this.item.setTaskBadge(taskInfo.done, taskInfo.total);

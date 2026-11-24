@@ -1,0 +1,114 @@
+/* Occurrences: the passages that fit in two lines, then the count of the others */
+.body-occurrences {
+  display: flex;
+  align-items: flex-end;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+
+.body-passages {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  max-height: 36px;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+}
+
+.body-passage:not(:last-child) {
+  margin-right: 12px;
+}
+
+.body-more {
+  flex-shrink: 0;
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* The accent colour, like searched tags: --text-highlight-bg is empty in some themes */
+.snippet-highlight {
+  background: var(--interactive-accent);
+  color: var(--text-on-accent);
+  padding: 0 1px;
+  border-radius: 2px;
+}
+
+/* Task lines, with a task filter */
+.task-snippet {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+
+.task-snippet-item {
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.task-snippet-check {
+  flex-shrink: 0;
+}
+
+.task-snippet-text {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+.task-snippet-more {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+/* In a Card: every passage and task line, scrolling inside the Card's fixed height */
+.body-card-text {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 8px 12px;
+  background: var(--background-primary);
+}
+
+.body-card-occurrences {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+  overflow-wrap: anywhere;
+}
+
+.body-card-occurrences + .task-snippet {
+  margin-top: 6px;
+}
+
+.body-card-text .task-snippet-text {
+  white-space: normal;
+}
+
+/* In a Card showing Occurrences: the button that switches the Body to the Preview and back */
+.finder-view-result.has-preview-toggle {
+  position: relative;
+}
+
+.body-preview-toggle {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+}
+
+.finder-view-results.grid-view .has-preview-toggle .suggestion-title {
+  padding-right: 36px;
+}
+
+.finder-view-results.list-view .body-preview-toggle {
+  display: none;
+}

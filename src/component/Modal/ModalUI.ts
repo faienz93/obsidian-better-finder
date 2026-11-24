@@ -1,28 +1,23 @@
-import { App, Component } from "obsidian";
-import { Card } from "../interface/Card";
-import { ImagePreview } from "../ui/ImagePreview";
-import { SuggestionItem } from "../ui/SuggestionItem";
-import { Title } from "../ui/Title";
-
-export type { Card as ModalData };
+import { ResultData } from "../../engine/ResultData";
+import { Body } from "../ui/Body";
+import { ModalItem } from "./ModalItem";
 
 export class ModalUI {
-  private item: SuggestionItem;
-  private title!: Title;
-  private app: App;
+  private item: ModalItem;
+  private body: Body;
 
-  constructor(el: HTMLElement, app: App) {
-    this.app = app;
-    this.item = new SuggestionItem(el);
+  constructor(el: HTMLElement, body: Body) {
+    this.body = body;
+    this.item = new ModalItem(el);
   }
 
-  public render(data: Card): void {
-    const { file, tags, searchedTags, taskInfo, renderPreview } = data;
+  public render(data: ResultData): void {
+    const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
-    this.title = this.item.setTitle(file.basename);
+    const title = this.item.setTitle(file.basename);
 
-    if (file.extension !== 'md') {
-      this.item.setBadge(this.title, ` ${file.extension.toUpperCase()}`);
+    if (typeIcon) {
+      title.addTypeIcon(typeIcon);
     }
 
     this.item.setMetadata(
@@ -30,17 +25,8 @@ export class ModalUI {
       file.parent?.path || '/'
     );
 
-    if (renderPreview) {
-      this.item.setPreview((previewEl) => {
-        new ImagePreview(this.app, new Component()).load(file, previewEl);
-      });
-    }
-
-    if (file.extension !== 'md') return;
-
-    if (tags.length > 0) {
-      this.item.setTags(tags, searchedTags);
-    }
+    this.body.drawInItem(data, this.item);
+    this.item.setTags(tags, searchedTags);
 
     if (taskInfo && taskInfo.total > 0) {
       this.item.setTaskBadge(taskInfo.done, taskInfo.total);

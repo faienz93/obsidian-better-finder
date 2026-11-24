@@ -1,0 +1,55 @@
+{
+  "env": {
+    "CLAUDE_CODE_HIDE_ACCOUNT_INFO": "1"
+  },
+  "model": "opus",
+  "alwaysThinkingEnabled": false,
+  "plansDirectory": ".claude/plans",
+  "permissions": {
+    "allow": [
+      "WebSearch",
+      "WebFetch",
+      "Read(//opt/**)",
+      "Bash(flatpak list *)",
+      "Bash(snap list *)",
+      "Bash(git branch *)",
+      "Bash(git add *)",
+      "Bash(git commit *)",
+      "Bash(git stash *)",
+      "Bash(npm run *)",
+      "Bash(npm test *)",
+      "Bash(npx jest *)",
+      "Bash(npx eslint *)",
+      "Bash(node *)"
+    ],
+    "deny": [
+      "Bash(**/*.env)",
+      "Read(**/*.env)",
+      "Write(**/*.env)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "jq -r '.tool_input.file_path // empty' | grep -qE '(^|/)(styles\\.css|main\\.js)$' && { echo 'styles.css and main.js are build artifacts: edit the sources instead' >&2; exit 2; } || exit 0"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "timeout": 180,
+            "command": "cd \"$CLAUDE_PROJECT_DIR\" && jq -e '.stop_hook_active' >/dev/null && exit 0; [ -z \"$(git status --porcelain -- '*.ts' '*.css')\" ] && exit 0; out=$(npm run build 2>&1 && npx jest 2>&1) || { echo \"$out\" | tail -40 >&2; exit 2; }"
+          }
+        ]
+      }
+    ]
+  }
+}

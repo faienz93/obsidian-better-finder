@@ -1,4 +1,4 @@
-/* Image preview (used by FinderModal and FinderCard list view) */
+/* Image preview (used by FinderModal and FinderMoodboard list view) */
 .suggestion-item:has(.modal-item-preview) {
   position: relative;
   padding-right: 72px;
