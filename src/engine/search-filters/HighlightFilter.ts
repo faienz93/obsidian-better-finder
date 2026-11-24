@@ -6,15 +6,25 @@ import { HighlightCriterion, QueryReader, QueryToken } from "./types";
 export interface Highlight {
   line: number;
   text: string;
+  /** Start offset in the line of the opening `==`. */
+  start: number;
+  /** End offset in the line of the closing `==`. */
+  end: number;
 }
 
 // Opens and closes on the same line, as Obsidian draws it: a stray `==` never spans paragraphs.
 const HIGHLIGHT = /==([^\n]+?)==/g;
 
-/** Every Highlight in a note's content, in reading order. */
+/** Every Highlight in a note's content, in reading order. `== ==` marks nothing, so it is none. */
 export function highlightsIn(content: string): Highlight[] {
   return content.split('\n').flatMap((lineText, line) =>
-    [...lineText.matchAll(HIGHLIGHT)].map(match => ({ line, text: match[1] })));
+    [...lineText.matchAll(HIGHLIGHT)]
+      .filter(match => match[1].trim().length > 0)
+      .map(match => {
+        const start = match.index ?? 0;
+
+        return { line, text: match[1], start, end: start + match[0].length };
+      }));
 }
 
 function escapeRegExp(text: string): string {

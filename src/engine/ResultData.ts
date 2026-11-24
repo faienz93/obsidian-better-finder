@@ -6,7 +6,7 @@ import { isExcalidraw } from "./excalidraw";
 import { fileTypeIcon, FileTypeIcon } from "./fileTypeIcon";
 import { isDoneTask } from "./search-filters/TaskFilter";
 import { matchesTag } from "./search-filters/TagsFilter";
-import { TaskStatus } from "./search-filters/types";
+import { HighlightCriterion, TaskStatus } from "./search-filters/types";
 
 /** What one result shows, decided once from the file and the whole query. */
 export interface ResultData {
@@ -25,7 +25,9 @@ export interface ResultData {
   snippetWords: string[];
   /** With a task filter: the lines of the tasks it asked for, which the Body shows. */
   taskLines: TaskLine[];
-  /** A Card showing Occurrences offers a button that switches its Body to the Preview and back. */
+  /** With the highlight filter, for a note: which of its Highlights the Body shows. */
+  highlightCriterion?: HighlightCriterion;
+  /** A Card showing Occurrences or Highlights offers a button that switches its Body to the Preview and back. */
   offersPreview: boolean;
 }
 
@@ -45,6 +47,8 @@ export function buildResultData(app: App, file: TFile, outcome: SearchOutcome): 
   const snippetWords = isNote ? outcome.matchedWords.get(file.path) ?? [] : [];
   const tasks = parsed.taskFilter ? tasksOf(app, file) : [];
   const taskLines = isNote && parsed.taskFilter ? pickTaskLines(tasks, parsed.taskFilter) : [];
+  const highlightCriterion = isNote ? parsed.highlightFilter : undefined;
+  const showsMarks = snippetWords.length > 0 || highlightCriterion !== undefined;
 
   return {
     file,
@@ -52,10 +56,11 @@ export function buildResultData(app: App, file: TFile, outcome: SearchOutcome): 
     searchedTags,
     typeIcon: fileTypeIcon(app, file),
     taskInfo: parsed.taskFilter ? countTasks(tasks) : undefined,
-    renderPreview: ImagePreview.hasPreview(app, file, { hasSnippet: snippetWords.length > 0 || taskLines.length > 0 }),
+    renderPreview: ImagePreview.hasPreview(app, file, { hasSnippet: showsMarks || taskLines.length > 0 }),
     snippetWords,
     taskLines,
-    offersPreview: snippetWords.length > 0 && ImagePreview.hasPreview(app, file, { hasSnippet: false }),
+    highlightCriterion,
+    offersPreview: showsMarks && ImagePreview.hasPreview(app, file, { hasSnippet: false }),
   };
 }
 

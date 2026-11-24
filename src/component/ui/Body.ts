@@ -1,7 +1,7 @@
 import { App, Component, setIcon } from "obsidian";
 import { i18n } from "../../const";
 import { ResultData } from "../../engine/ResultData";
-import { bodyText, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
+import { bodyText, HighlightPassage, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
 import { ModalItem } from "../Modal/ModalItem";
 import { ImagePreview } from "./ImagePreview";
 import { VisibilityWatcher } from "./VisibilityWatcher";
@@ -11,8 +11,8 @@ import "./Body.css";
 type BodyLayout = 'item' | 'card';
 
 /**
- * Draws what the Data chose for a result below its title: Occurrences, task lines, Preview or
- * nothing. The file is read only once the result becomes visible.
+ * Draws what the Data chose for a result below its title: Highlights, task lines, Occurrences,
+ * Preview or nothing. The file is read only once the result becomes visible.
  */
 export class Body {
   private visibility = new VisibilityWatcher();
@@ -24,7 +24,7 @@ export class Body {
     this.visibility.reset();
   }
 
-  /** Occurrences and task lines under the metadata, the Preview beside the text. */
+  /** Highlights, task lines and Occurrences under the metadata, the Preview beside the text. */
   public drawInItem(data: ResultData, item: ModalItem): void {
     const textEl = hasText(data) ? item.setSnippet() : null;
     const previewEl = data.renderPreview ? item.setPreview() : null;
@@ -37,8 +37,8 @@ export class Body {
   }
 
   /**
-   * Every passage and every task line, scrolling inside the Card's fixed height; or the Preview.
-   * Drawn Occurrences get the button that switches to the Preview when the Data offers it.
+   * Every Highlight, task line and passage, scrolling inside the Card's fixed height; or the Preview.
+   * Drawn Highlights or Occurrences get the button that switches to the Preview when the Data offers it.
    */
   public drawInCard(data: ResultData, cardEl: HTMLElement): void {
     const textEl = hasText(data) ? cardEl.createDiv({ cls: 'body-card-text' }) : null;
@@ -126,7 +126,10 @@ export class Body {
     return new ImagePreview(this.app, this.component).load(data.file, el);
   }
 
-  /** `drawn` is false when the note holds none of the Occurrences or task lines the Data asked for. */
+  /**
+   * `drawn` is false when the note holds none of the Highlights, task lines or Occurrences the Data
+   * asked for; `occurrences` is true when Highlights or Occurrences were drawn.
+   */
   private async drawText(
     data: ResultData,
     el: HTMLElement,
@@ -142,10 +145,23 @@ export class Body {
       return { drawn: true, occurrences: false };
     }
 
-    const { passages, tasks, hiddenTasks } = bodyText(content, data.snippetWords, data.taskLines, {
-      // A Card scrolls, so it leaves no task line out.
-      maxTasks: layout === 'card' ? Infinity : MAX_TASK_LINES,
-    });
+    // A Card scrolls, so it leaves no Highlight or task line out.
+    const cap = layout === 'card' ? Infinity : MAX_TASK_LINES;
+    const { highlights, hiddenHighlights, passages, tasks, hiddenTasks } = bodyText(
+      content,
+      data.snippetWords,
+      data.taskLines,
+      data.highlightCriterion,
+      { maxTasks: cap, maxHighlights: cap }
+    );
+
+    if (highlights.length > 0) {
+      this.drawHighlights(el, highlights, hiddenHighlights);
+    }
+
+    if (tasks.length > 0) {
+      this.drawTasks(el, tasks, hiddenTasks);
+    }
 
     if (passages.length > 0) {
       if (layout === 'card') {
@@ -155,11 +171,22 @@ export class Body {
       }
     }
 
-    if (tasks.length > 0) {
-      this.drawTasks(el, tasks, hiddenTasks);
+    const marked = highlights.length > 0 || passages.length > 0;
+
+    return { drawn: marked || tasks.length > 0, occurrences: marked };
+  }
+
+  /** One Highlight passage per line, then the count of those left out. */
+  private drawHighlights(el: HTMLElement, highlights: HighlightPassage[], hiddenHighlights: number): void {
+    const highlightsEl = el.createDiv({ cls: 'body-highlights' });
+
+    for (const passage of highlights) {
+      appendHighlightPassage(highlightsEl.createDiv({ cls: 'body-highlight' }), passage);
     }
 
-    return { drawn: passages.length > 0 || tasks.length > 0, occurrences: passages.length > 0 };
+    if (hiddenHighlights > 0) {
+      highlightsEl.createDiv({ cls: 'body-highlights-more', text: `+${hiddenHighlights}` });
+    }
   }
 
   /** The passages that fit in two lines, then the count of those left out. */
@@ -201,7 +228,7 @@ export class Body {
 }
 
 function hasText(data: ResultData): boolean {
-  return data.snippetWords.length > 0 || data.taskLines.length > 0;
+  return data.snippetWords.length > 0 || data.taskLines.length > 0 || data.highlightCriterion !== undefined;
 }
 
 function appendPassage(el: HTMLElement, passage: Passage): HTMLElement {
@@ -224,4 +251,21 @@ function appendHighlighted(el: HTMLElement, text: string, highlights: Array<[num
   }
 
   el.appendText(text.slice(pos));
+}
+
+/** Each Highlight is marked in the accent colour, like a searched word. */
+function appendHighlightPassage(el: HTMLElement, passage: HighlightPassage): void {
+  let pos = 0;
+
+  if (passage.cutStart) el.appendText('… ');
+
+  for (const mark of passage.marks) {
+    el.appendText(passage.text.slice(pos, mark.start));
+    el.createEl('mark', { cls: ['snippet-highlight', 'body-highlight-mark'], text: passage.text.slice(mark.start, mark.end) });
+    pos = mark.end;
+  }
+
+  el.appendText(passage.text.slice(pos));
+
+  if (passage.cutEnd) el.appendText(' …');
 }
