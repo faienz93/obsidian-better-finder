@@ -11,7 +11,7 @@ export interface ParsedQuery {
   scope?: 'title' | 'content';
   taskFilter?: TaskStatus;
   pathFilter?: string;
-  highlightFilter?: string;
+  highlightFilter?: HighlightCriterion;
   negations?: { extensions: string[]; tags: string[] };
   metadataFilters?: Array<{ key: string; value: string }>;
   freeText: string;
@@ -43,6 +43,8 @@ export abstract class QueryReader<K extends QueryField> implements HintsType {
   readonly keywords: readonly string[] = [];
   /** Whether a bare `key:` takes the next free word of the Query as its value. */
   readonly takesValue: boolean = false;
+  /** Whether a bare `key:` with no value to take still counts, as `highlight:` alone does. */
+  readonly valueOptional: boolean = false;
 
   /** Whether `value` is one this Filter can read; a claimed key with a value it refuses is dropped. */
   accepts(_value: string): boolean {
@@ -73,3 +75,14 @@ export type DateField = 'created' | 'modified';
 export type DateValue = 'today' | 'yesterday' | 'this-week' | 'last-week' | 'this-month' | string;
 export type DateRange = { field: DateField; value: DateValue };
 export type TaskStatus = 'all' | 'todo' | 'done';
+
+export type HighlightColour = 'red' | 'orange' | 'yellow' | 'green' | 'blue' | 'purple';
+
+/**
+ * What the highlight filter asks for: present means the note needs a Highlight; `colours` narrows
+ * it to those colours (empty: any colour); `word`, when set, must sit inside it.
+ */
+export interface HighlightCriterion {
+  colours: HighlightColour[];
+  word?: string;
+}

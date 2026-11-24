@@ -148,12 +148,12 @@ describe('parse: highlight', () => {
   it.each([
     ['highlight:word x', 'word'],
     ['highlight:"two words" x', 'two words'],
-  ])('%j', (query, highlightFilter) => {
-    expect(parse(query)).toEqual({ highlightFilter, freeText: 'x' });
+  ])('%j', (query, word) => {
+    expect(parse(query)).toEqual({ highlightFilter: { colours: [], word }, freeText: 'x' });
   });
 
-  it('drops a bare highlight key', () => {
-    expect(parse('highlight:')).toEqual({ freeText: '' });
+  it('keeps a bare highlight key, with no word', () => {
+    expect(parse('highlight:')).toEqual({ highlightFilter: { colours: [] }, freeText: '' });
   });
 });
 
@@ -203,7 +203,7 @@ describe('parse: every filter at once', () => {
       taskFilter: 'all',
       metadataFilters: [{ key: 'author', value: 'x' }],
       scope: 'title',
-      highlightFilter: 'z',
+      highlightFilter: { colours: [], word: 'z' },
       freeText: 'y free',
     });
   });
@@ -235,7 +235,7 @@ describe('parse: values', () => {
   });
 
   it('lets a bare highlight key take the next word', () => {
-    expect(parse('highlight: word x')).toEqual({ highlightFilter: 'word', freeText: 'x' });
+    expect(parse('highlight: word x')).toEqual({ highlightFilter: { colours: [], word: 'word' }, freeText: 'x' });
   });
 
   it('does not let a bare key take a word another Filter claims', () => {
@@ -243,7 +243,7 @@ describe('parse: values', () => {
   });
 
   it('reads a key in any case', () => {
-    expect(parse('PATH:Work Highlight:x')).toEqual({ pathFilter: 'work', highlightFilter: 'x', freeText: '' });
+    expect(parse('PATH:Work Highlight:x')).toEqual({ pathFilter: 'work', highlightFilter: { colours: [], word: 'x' }, freeText: '' });
   });
 });
 
