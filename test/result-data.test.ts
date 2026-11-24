@@ -238,6 +238,39 @@ describe('buildResultData: what a result shows for a query', () => {
       expect(data?.taskLines).toEqual([]);
     });
 
+    it('with highlight:kafka, a note looks for its Highlights containing kafka and offers its Preview', async () => {
+      const app = fakeApp({ 'streams.md': { content: 'read about ==Kafka streams== today' } });
+
+      const data = (await search(app, 'highlight:kafka')).get('streams.md');
+
+      expect(data?.highlightCriterion).toEqual({ colours: [], word: 'kafka' });
+      expect(data?.renderPreview).toBe(false);
+      expect(data?.offersPreview).toBe(true);
+    });
+
+    it('without the highlight filter, a note looks for no Highlights', async () => {
+      const app = fakeApp({ 'alpha.md': ALPHA });
+
+      const data = (await search(app, '#idea')).get('alpha.md');
+
+      expect(data?.highlightCriterion).toBeUndefined();
+    });
+
+    it('an Excalidraw drawing never looks for Highlights, even under the highlight filter', async () => {
+      const app = fakeApp({
+        'sketch.md': { content: '==kafka==', cache: { frontmatter: { 'excalidraw-plugin': 'parsed' } } },
+      });
+      const sketch = app.vault.getAbstractFileByPath('sketch.md') as TFile;
+      // The filter already leaves drawings out of the results: build the Data of one directly.
+      const outcome = await new Finder(app).getResults('highlight:');
+
+      const data = buildResultData(app, sketch, outcome);
+
+      expect(data.highlightCriterion).toBeUndefined();
+      expect(data.renderPreview).toBe(true);
+      expect(data.offersPreview).toBe(false);
+    });
+
     it('a non-markdown file found by free text shows its Preview, not Occurrences', async () => {
       const app = fakeApp({ 'ciao-diagram.png': {} });
 
