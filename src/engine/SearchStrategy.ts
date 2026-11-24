@@ -204,6 +204,42 @@ export class SearchStrategyFactory {
     return [...new Set(readers)].filter((reader): reader is Reader => reader !== undefined);
   }
 
+  /**
+   * The words of the Query without those the Filter labelled `label` claims, values included: the
+   * same words that light its chip, so the chip goes off.
+   */
+  withoutFilter(query: string, label: string): string[] {
+    const trimmed = query.trim();
+
+    if (label === this.command.label) {
+      const command = this.command.extract(trimmed);
+
+      return command.isCommandMode ? command.commandText?.match(TOKEN) ?? [] : trimmed.match(TOKEN) ?? [];
+    }
+
+    const target = this.hints.find(hint => hint.label === label);
+    const words = trimmed.match(TOKEN) ?? [];
+    const kept: string[] = [];
+
+    for (let i = 0; i < words.length; i++) {
+      const claim = this.claim(words[i]);
+
+      if (!claim || claim.reader !== target) {
+        kept.push(words[i]);
+        continue;
+      }
+
+      // A bare key owns the next word when tokenize() would read it as its value.
+      const next = words[i + 1];
+      const ownsNext = claim.token.value === '' && claim.reader.takesValue && next !== undefined
+        && !this.claim(next) && claim.reader.accepts(unquote(next));
+
+      if (ownsNext) i++;
+    }
+
+    return kept;
+  }
+
   /** Splits the Query into the tokens Filters claim and the words left for the free text. */
   private tokenize(query: string): { claims: Claim[]; freeWords: string[] } {
     const words = query.match(TOKEN) ?? [];

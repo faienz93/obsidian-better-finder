@@ -63,6 +63,23 @@ export class SearchUIHelper {
     return query.replace(match[0], newToken);
   }
 
+  /**
+   * What a click on the Filter chip `label` makes of the query: a lit chip removes every token of
+   * its Filter, values included; an unlit one appends the Filter.
+   */
+  static toggleFilter(query: string, label: string): string {
+    const factory = SearchStrategyFactory.getInstance();
+    const isLit = factory.activeHints(query).some(hint => hint.label === label);
+
+    if (isLit) {
+      const kept = factory.withoutFilter(query, label);
+
+      return kept.length ? `${kept.join(' ')} ` : '';
+    }
+
+    return SearchUIHelper.appendToken(query, label) ?? query;
+  }
+
   /** The query with `token` appended after its last word, or null when the query already holds it. */
   static appendToken(query: string, token: string): string | null {
     const current = query.split(' ').filter((w, i, arr) => w || i < arr.length - 1).join(' ');
