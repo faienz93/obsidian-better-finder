@@ -62,7 +62,7 @@ export interface HighlightPassage {
  */
 export interface BodyText {
   highlights: HighlightPassage[];
-  /** Highlight passages left out after the first `maxHighlights`. */
+  /** Highlights left out after the first `maxHighlights`, counted one by one, not by passage. */
   hiddenHighlights: number;
   passages: Passage[];
   tasks: TaskText[];
@@ -89,7 +89,7 @@ export function bodyText(
   const lines = content.split('\n');
   const pattern = wordsPattern(words);
   const allHighlights = highlight ? highlightPassagesIn(lines, highlight) : [];
-  const shownHighlights = allHighlights.slice(0, maxHighlights);
+  const shownHighlights = firstHighlights(allHighlights, maxHighlights);
   const highlightLineNumbers = new Set(shownHighlights.map(passage => passage.line));
   // A line shown as a Highlight is never repeated as a task line.
   const taskLinesLeft = taskLines.filter(task => !highlightLineNumbers.has(task.line));
@@ -107,12 +107,31 @@ export function bodyText(
 
   return {
     highlights: shownHighlights,
-    hiddenHighlights: allHighlights.length - shownHighlights.length,
+    hiddenHighlights: countHighlights(allHighlights) - countHighlights(shownHighlights),
     // A line shown above is never repeated as an Occurrence.
     passages: passagesIn(lines, pattern).filter(p => !shownLineNumbers.has(p.line)),
     tasks,
     hiddenTasks: taskLinesLeft.length - shown.length,
   };
+}
+
+/** The passages that start before `max` Highlights are shown: the last one may hold a few more. */
+function firstHighlights(passages: HighlightPassage[], max: number): HighlightPassage[] {
+  const shown: HighlightPassage[] = [];
+  let count = 0;
+
+  for (const passage of passages) {
+    if (count >= max) break;
+
+    shown.push(passage);
+    count += passage.highlights.length;
+  }
+
+  return shown;
+}
+
+function countHighlights(passages: HighlightPassage[]): number {
+  return passages.reduce((sum, passage) => sum + passage.highlights.length, 0);
 }
 
 /** The Highlights the criterion asks for, with context, in reading order. */

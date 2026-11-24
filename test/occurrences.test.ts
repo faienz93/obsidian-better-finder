@@ -155,6 +155,15 @@ describe('bodyText: Highlights under the highlight filter', () => {
     expect(body.hiddenHighlights).toBe(2);
   });
 
+  it('caps and counts Highlights, not passages, when a passage holds several', () => {
+    const note = ['==a== and ==b==', '==c==', '==d==', '==e==', 'two ==f== and ==g=='].join('\n');
+
+    const body = bodyText(note, [], [], ANY);
+
+    expect(body.highlights.map(showHighlights)).toEqual(['[a] and [b]', '[c]']);
+    expect(body.hiddenHighlights).toBe(4);
+  });
+
   it('shows every Highlight on a Card, which scrolls instead of counting', () => {
     const note = Array.from({ length: 5 }, (_, i) => `line ==mark ${i}==`).join('\n');
 
