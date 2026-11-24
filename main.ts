@@ -7,6 +7,7 @@ import { CanvasTagCache } from './src/engine/CanvasTagCache';
 import { XbergExtractor } from './src/engine/XbergExtractor';
 import { SearchHistory } from './src/engine/SearchHistory';
 import { CommonCache } from './src/engine/CommonCache';
+import { PdfPreview } from './src/component/ui/PdfPreview';
 
 interface ObsidianBetterFinderSettings {
   mySetting: string;
@@ -193,7 +194,7 @@ export default class ObsidianBetterFinder extends Plugin {
   }
 
   onunload() {
-
+    PdfPreview.dispose();
   }
 
   async loadSettings() {

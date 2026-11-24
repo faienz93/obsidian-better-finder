@@ -33,3 +33,32 @@
   -webkit-box-orient: vertical;
   text-align: left;
 }
+
+/* An Excalidraw drawing whose data would freeze Obsidian if embedded */
+.broken-drawing {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  height: 100%;
+  padding: 8px;
+  background: var(--background-secondary);
+  text-align: center;
+}
+
+.broken-drawing-icon svg {
+  width: 24px;
+  height: 24px;
+  color: var(--text-warning);
+}
+
+.broken-drawing-text {
+  font-size: 10px;
+  color: var(--text-muted);
+}
+
+/* The Modal's square is too small for the text: the icon and the tooltip say it */
+.modal-item-preview .broken-drawing-text {
+  display: none;
+}
