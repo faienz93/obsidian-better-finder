@@ -1,6 +1,6 @@
 import { TaskLine } from "./ResultData";
 import { Highlight, highlightsIn, matchesHighlight } from "./search-filters/HighlightFilter";
-import { HighlightCriterion } from "./search-filters/types";
+import { HighlightColour, HighlightCriterion } from "./search-filters/types";
 
 /** Words of context kept on each side of an occurrence. */
 export const OCCURRENCE_CONTEXT_WORDS = 5;
@@ -32,6 +32,8 @@ export interface TaskText {
 export interface HighlightMark {
   start: number;
   end: number;
+  /** None: the Highlight has no colour emoji and takes the theme's default. */
+  colour?: HighlightColour;
 }
 
 /**
@@ -88,7 +90,8 @@ export function bodyText(
   // A line shown as a Highlight carries its own mark: it is never repeated as a task line.
   const taskLinesLeft = taskLines.filter(task => !highlightLineNumbers.has(task.line));
   const shown = taskLinesLeft.slice(0, maxTasks);
-  const shownLineNumbers = new Set([...highlightLineNumbers, ...shown.map(task => task.line)]);
+  // Every matching Highlight line, shown or counted in "+N": an Occurrence there would show it raw, `==` and all.
+  const shownLineNumbers = new Set([...allHighlights.map(passage => passage.line), ...shown.map(task => task.line)]);
   const tasks = shown
     .map(task => {
       const text = taskText(lines[task.line] ?? '');
@@ -120,7 +123,7 @@ function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): Hi
     // The line as the note reads it: every Highlight on it loses its `==` marks, only the matching ones are marked.
     let text = '';
     let pos = 0;
-    const marks: Span[] = [];
+    const marks: HighlightMark[] = [];
 
     for (const found of onLine) {
       text += lines[line].slice(pos, found.start);
@@ -129,7 +132,7 @@ function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): Hi
 
       text += found.text;
 
-      if (matchesHighlight(found, criterion)) marks.push({ start, end: text.length });
+      if (matchesHighlight(found, criterion)) marks.push({ start, end: text.length, colour: found.colour });
 
       pos = found.end;
     }
@@ -159,10 +162,10 @@ function passagesIn(lines: string[], pattern: RegExp | null): Passage[] {
     })));
 }
 
-interface Window {
+interface Window<S extends Span> {
   text: string;
   /** The spans inside the window, with offsets in its `text`. */
-  spans: Span[];
+  spans: S[];
   cutStart: boolean;
   cutEnd: boolean;
 }
@@ -171,11 +174,11 @@ interface Window {
  * The parts of a line around its spans, `OCCURRENCE_CONTEXT_WORDS` words on each side: one per
  * group of spans whose contexts touch.
  */
-function windowsAround(lineText: string, spans: Span[]): Window[] {
+function windowsAround<S extends Span>(lineText: string, spans: S[]): Array<Window<S>> {
   if (spans.length === 0) return [];
 
   const tokens = matchSpans(lineText, /\S+/g);
-  const windows: Array<{ from: number; to: number; spans: Span[] }> = [];
+  const windows: Array<{ from: number; to: number; spans: S[] }> = [];
 
   for (const span of spans) {
     const first = tokens.findIndex(t => t.end > span.start);
@@ -200,7 +203,7 @@ function windowsAround(lineText: string, spans: Span[]): Window[] {
 
     return {
       text: lineText.slice(offset, tokens[to].end),
-      spans: inWindow.map(span => ({ start: span.start - offset, end: span.end - offset })),
+      spans: inWindow.map(span => ({ ...span, start: span.start - offset, end: span.end - offset })),
       cutStart: from > 0,
       cutEnd: to < tokens.length - 1,
     };

@@ -253,7 +253,7 @@ function appendHighlighted(el: HTMLElement, text: string, highlights: Array<[num
   el.appendText(text.slice(pos));
 }
 
-/** Each Highlight is marked in the accent colour, like a searched word. */
+/** Each Highlight is marked in its Obsidian colour; one without a colour in the accent colour, like a searched word. */
 function appendHighlightPassage(el: HTMLElement, passage: HighlightPassage): void {
   let pos = 0;
 
@@ -261,7 +261,11 @@ function appendHighlightPassage(el: HTMLElement, passage: HighlightPassage): voi
 
   for (const mark of passage.marks) {
     el.appendText(passage.text.slice(pos, mark.start));
-    el.createEl('mark', { cls: ['snippet-highlight', 'body-highlight-mark'], text: passage.text.slice(mark.start, mark.end) });
+    el.createEl('mark', {
+      cls: ['snippet-highlight', 'body-highlight-mark'],
+      text: passage.text.slice(mark.start, mark.end),
+      attr: mark.colour ? { 'data-highlight': mark.colour } : {},
+    });
     pos = mark.end;
   }
 
