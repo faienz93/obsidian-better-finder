@@ -1,6 +1,7 @@
 import { App, Component, TFile, MarkdownRenderer, setIcon } from "obsidian";
 import { XbergExtractor } from "../../engine/XbergExtractor";
-import { isExcalidraw } from "../../engine/excalidraw";
+import { isDrawingDataExposed, isExcalidraw } from "../../engine/excalidraw";
+import { i18n } from "../../const";
 import { CodePreview } from "./CodePreview";
 import { PdfPreview } from "./PdfPreview";
 import "./ImagePreview.css";
@@ -65,11 +66,25 @@ export class ImagePreview {
         return;
       }
 
+      if (ext === 'md' && isDrawingDataExposed(await this.app.vault.cachedRead(file))) {
+        this.drawBrokenDrawing(containerEl);
+
+        return;
+      }
+
       await MarkdownRenderer.render(this.app, `![[${file.path}]]`, containerEl, '', this.component);
     } catch (e) {
       console.error('Preview error:', e);
       containerEl.setText('Preview not available');
     }
+  }
+
+  /** Embedding this drawing would freeze Obsidian for seconds: say what is wrong instead. */
+  private drawBrokenDrawing(containerEl: HTMLElement): void {
+    containerEl.addClass('broken-drawing');
+    containerEl.setAttribute('title', i18n.brokenDrawing);
+    setIcon(containerEl.createDiv({ cls: 'broken-drawing-icon' }), 'alert-triangle');
+    containerEl.createDiv({ cls: 'broken-drawing-text', text: i18n.brokenDrawing });
   }
 
   /**
