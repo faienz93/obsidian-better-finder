@@ -23,5 +23,6 @@ export const i18n = {
   clearQueryTitle: 'Cancella la ricerca',
   showPreview: 'Mostra anteprima',
   showOccurrences: 'Mostra occorrenze',
+  brokenDrawing: 'Disegno non leggibile: aprilo in Excalidraw per ripararlo',
 };
 export const HISTORY_MAX_ENTRIES = 20;

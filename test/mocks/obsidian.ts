@@ -27,3 +27,4 @@ export const Platform = { isMobile: false };
 export const setIcon = (_el: unknown, _icon: string): void => { /* stub */ };
 
 export const getAllTags = (cache: any): string[] | null => cache?.tags ?? null;
+export const loadPdfJs = async (): Promise<any> => ({});
