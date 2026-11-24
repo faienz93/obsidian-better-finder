@@ -1,3 +1,4 @@
+import { escapeRegExp } from "./escapeRegExp";
 import { TaskLine } from "./ResultData";
 import { Highlight, highlightsIn, matchesHighlight } from "./search-filters/HighlightFilter";
 import { HighlightColour, HighlightCriterion } from "./search-filters/types";
@@ -224,7 +225,7 @@ function wordsPattern(words: string[]): RegExp | null {
   const alternatives = words
     .filter(word => word.length > 0)
     .sort((a, b) => b.length - a.length)
-    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    .map(escapeRegExp);
 
   return alternatives.length > 0 ? new RegExp(alternatives.join('|'), 'gi') : null;
 }

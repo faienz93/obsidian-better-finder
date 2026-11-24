@@ -1,4 +1,5 @@
 import { App, TFile } from "obsidian";
+import { escapeRegExp } from "../escapeRegExp";
 import { isExcalidraw } from "../excalidraw";
 import { HighlightColour, HighlightCriterion, QueryReader, QueryToken } from "./types";
 
@@ -51,10 +52,6 @@ export function highlightsIn(content: string): Highlight[] {
 
         return { line, ...colourOf(match[1]), start, end: start + match[0].length };
       }));
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
