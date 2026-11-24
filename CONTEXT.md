@@ -39,6 +39,22 @@ Whether free text is matched against titles only or against full content. Narrow
 `title:` filter.
 _Avoid_: search field, target
 
+**Filter bar**:
+The row of Filter chips above the results, one per Filter.
+_Avoid_: hint bar, toolbar
+
+**Filter chip**:
+A control in the Filter bar that stands for one Filter. It lights up while the query uses that
+Filter, in any form, even half typed. Clicking it when unlit adds the Filter to the query; clicking
+it when lit removes every token of that Filter, values included.
+_Avoid_: hint, button, tag
+
+**Value chip**:
+A control that offers one value for a Filter, such as `today` or `this-week` for a date Filter.
+Clicking it sets that value; clicking it when it is the current value clears the value but keeps
+the Filter.
+_Avoid_: sub-hint, filter value
+
 ### What comes back
 
 **Result**:

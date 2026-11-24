@@ -89,12 +89,7 @@ class FinderModal extends SuggestModal<SearchResult> {
   }
 
   private appendToQuery(token: string): void {
-    const appended = SearchUIHelper.appendToken(this.inputEl.value, token);
-
-    if (appended !== null) {
-      this.inputEl.value = appended;
-    }
-
+    this.inputEl.value = SearchUIHelper.toggleFilter(this.inputEl.value, token);
     this.inputEl.dispatchEvent(new Event('input'));
     this.inputEl.focus();
   }
