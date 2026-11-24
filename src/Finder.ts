@@ -64,11 +64,7 @@ export class Finder {
   }
 
   getActiveHints(query: string): string[] {
-    const q = query.toLowerCase();
-
-    return this.hints
-      .map(h => h.label.toLowerCase())
-      .filter(label => q.includes(label));
+    return this.factory.activeHints(query).map(h => h.label.toLowerCase());
   }
 
   getCommandSuggestions(searchText: string): Command[] {

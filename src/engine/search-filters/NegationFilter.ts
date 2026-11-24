@@ -1,7 +1,7 @@
 import { App, TFile, getAllTags } from "obsidian";
 import { i18n } from "src/const";
 import { matchesTag } from "./TagsFilter";
-import { SearchFilter } from "./types";
+import { QueryToken, SearchFilter } from "./types";
 
 export interface NegationResult {
   extensions: string[];
@@ -21,43 +21,40 @@ const KEYWORD_EXTENSIONS: Record<string, string[]> = {
   base: ['base'],
 };
 
-// Token preceduto da "-" a inizio parola: "-image", "-#tag", "-docx".
-// Il "-" deve essere preceduto da inizio stringa o spazio, così parole
-// composte come "this-week" o "e-mail" non vengono toccate.
-const NEGATION_PATTERN = /(?:^|\s)-(#?[\w/-]+)/g;
+// What may follow the "-": a file type keyword, a literal extension or a tag.
+const NEGATED = /^#?[\w/-]+$/;
 
 /**
  * Strategy di esclusione: "-x" rimuove dai risultati.
  * Prima iterazione: tipi file (keyword o estensione letterale) e tag.
  */
-export class NegationFilter extends SearchFilter<NegationResult> {
+export class NegationFilter extends SearchFilter<'negations'> {
   readonly label = '-';
   readonly desc = i18n.exclude;
+  readonly field = 'negations';
+  readonly prefix = '-';
 
-  extract(query: string): NegationResult {
-    const result: NegationResult = { extensions: [], tags: [] };
+  accepts(negated: string): boolean {
+    return NEGATED.test(negated);
+  }
 
-    for (const match of query.matchAll(NEGATION_PATTERN)) {
-      const token = match[1].toLowerCase();
+  read(token: QueryToken, current: NegationResult | undefined): NegationResult {
+    const negated = token.value.toLowerCase();
+    const result = { extensions: [...current?.extensions ?? []], tags: [...current?.tags ?? []] };
 
-      if (token.startsWith('#')) {
-        result.tags.push(token);
-      } else {
-        // Keyword nota → estensioni mappate; altrimenti il token è
-        // un'estensione letterale (es. "-docx")
-        result.extensions.push(...(KEYWORD_EXTENSIONS[token] ?? [token]));
-      }
+    if (negated.startsWith('#')) {
+      result.tags.push(negated);
+    } else {
+      // Keyword nota → estensioni mappate; altrimenti il token è
+      // un'estensione letterale (es. "-docx")
+      result.extensions.push(...(KEYWORD_EXTENSIONS[negated] ?? [negated]));
     }
 
     return result;
   }
 
-  removeFrom(query: string): string {
-    return query.replace(NEGATION_PATTERN, ' ').trim();
-  }
-
-  filter(files: TFile[], negations: NegationResult, app: App): TFile[] {
-    if (negations.extensions.length === 0 && negations.tags.length === 0) return files;
+  filter(files: TFile[], negations: NegationResult | undefined, app: App): TFile[] {
+    if (!negations || (negations.extensions.length === 0 && negations.tags.length === 0)) return files;
 
     return files.filter(file => {
       if (negations.extensions.includes(file.extension.toLowerCase())) return false;

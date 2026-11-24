@@ -208,3 +208,61 @@ describe('parse: every filter at once', () => {
     });
   });
 });
+
+describe('parse: a token is claimed whole', () => {
+  it.each([
+    ['c#sharp', 'c#sharp'],
+    ['issue#12', 'issue#12'],
+    ['#a,#b', '#a,#b'],
+    ['pdf, x', 'pdf, x'],
+    ['excalidraw-plugin', 'excalidraw-plugin'],
+  ])('%j is free text', (query, freeText) => {
+    expect(parse(query)).toEqual({ freeText });
+  });
+
+  it('leaves a negated key:value as free text until negation supports it', () => {
+    expect(parse('-path:Archive x')).toEqual({ freeText: '-path:Archive x' });
+  });
+});
+
+describe('parse: values', () => {
+  it('drops a bare path key like every other key that needs a value', () => {
+    expect(parse('path:')).toEqual({ freeText: '' });
+  });
+
+  it('reads a quoted folder with spaces', () => {
+    expect(parse('path:"My Folder" x')).toEqual({ pathFilter: 'my folder', freeText: 'x' });
+  });
+
+  it('lets a bare highlight key take the next word', () => {
+    expect(parse('highlight: word x')).toEqual({ highlightFilter: 'word', freeText: 'x' });
+  });
+
+  it('does not let a bare key take a word another Filter claims', () => {
+    expect(parse('path: pdf')).toEqual({ fileTypes: ['.pdf'], freeText: '' });
+  });
+
+  it('reads a key in any case', () => {
+    expect(parse('PATH:Work Highlight:x')).toEqual({ pathFilter: 'work', highlightFilter: 'x', freeText: '' });
+  });
+});
+
+describe('activeHints', () => {
+  const labels = (query: string) => SearchStrategyFactory.getInstance().activeHints(query).map(h => h.label);
+
+  it('switches on the chip of every Filter the query uses', () => {
+    expect(labels('#tag pdf author:rossi')).toEqual(['#', 'pdf', 'author:']);
+  });
+
+  it('switches on a key still waiting for its value', () => {
+    expect(labels('path:')).toEqual(['path:']);
+  });
+
+  it('leaves the negation chip off for a dash inside a word', () => {
+    expect(labels('created:this-week')).toEqual(['created:']);
+  });
+
+  it('switches on only the command chip in command mode', () => {
+    expect(labels('> pdf')).toEqual(['>']);
+  });
+});

@@ -1,33 +1,31 @@
 import { App, TFile } from "obsidian";
-import { SearchFilter, TaskStatus } from "./types";
+import { QueryToken, SearchFilter, TaskStatus } from "./types";
 
 /** A checkbox counts as done when Obsidian reports its status char as `x` or `X`. */
 export function isDoneTask(task: string | undefined): boolean {
   return task === 'x' || task === 'X';
 }
 
-export class TaskFilter extends SearchFilter<TaskStatus | undefined> {
+const STATUS_BY_KEY: Record<string, TaskStatus> = { task: 'all', 'task-todo': 'todo', 'task-done': 'done' };
+
+// With several task keys in one query, todo wins over done and done over all.
+const STATUS_RANK: Record<TaskStatus, number> = { all: 0, done: 1, todo: 2 };
+
+/** `task:` takes no value: a word glued to it stays in the free text. */
+export class TaskFilter extends SearchFilter<'taskFilter'> {
   readonly label = 'task:';
   readonly desc = 'task';
+  readonly field = 'taskFilter';
+  readonly keys = Object.keys(STATUS_BY_KEY);
 
-  extract(query: string): TaskStatus | undefined {
-    const lowerQuery = query.toLowerCase();
+  read(token: QueryToken, current: TaskStatus | undefined): TaskStatus {
+    const status = STATUS_BY_KEY[token.key];
 
-    // NB: niente \b finale — dopo ":" non c'è confine di parola se il token è
-    // seguito da spazio o fine stringa (il click sull'hint produce "task: "): bug B4.
-    if (/\btask-todo:/.test(lowerQuery)) return 'todo';
-    if (/\btask-done:/.test(lowerQuery)) return 'done';
-    if (/\btask:/.test(lowerQuery)) return 'all';
-
-    return undefined;
+    return current && STATUS_RANK[current] > STATUS_RANK[status] ? current : status;
   }
 
-  removeFrom(query: string): string {
-    return query
-      .replace(/\btask-todo:/gi, '')
-      .replace(/\btask-done:/gi, '')
-      .replace(/\btask:/gi, '')
-      .trim();
+  freeTextOf(token: QueryToken): string {
+    return token.value;
   }
 
   filter(files: TFile[], taskFilter: TaskStatus | undefined, app: App): TFile[] {

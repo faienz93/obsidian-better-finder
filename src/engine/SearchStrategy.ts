@@ -2,16 +2,16 @@ import { App, TFile } from "obsidian";
 import { HintsType } from "src/component/ui/HintBar";
 import { SearchIndex } from "./SearchIndex";
 import {
-  ParsedQuery, SearchFilter, isFilterable,
+  ParsedQuery, QueryField, QueryReader, QueryToken, Narrowing,
   TagsFilter, ModifiedFilter, CreatedFilter,
-  FileTypeFilter, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
+  FileTypeGroup, PdfFilter, ImageFilter, CanvasFilter, JsonFilter, BaseFilter,
   TitleFilter, CommandFilter, TaskFilter, PathFilter, ExcalidrawFilter, HighlightFilter,
   NegationFilter, MetadataFilter,
 } from "./search-filters";
 
 // Re-export per compatibilità con i file che importano da qui
 export type { ParsedQuery, DateRange, TaskStatus } from "./search-filters";
-export { SearchFilter, isFilterable } from "./search-filters";
+export { SearchFilter } from "./search-filters";
 
 /** Files the free text kept, with the words that made each one match, keyed by path. */
 export interface FreeTextResults {
@@ -19,32 +19,84 @@ export interface FreeTextResults {
   matchedWords: Map<string, string[]>;
 }
 
+// A word, or a quoted run that may hold spaces, with whatever is glued to it: highlight:"two words".
+const TOKEN = /(?:[^\s"]+|"[^"]*"?)+/g;
+const KEY_VALUE = /^([a-zA-Z][\w-]*):([\s\S]*)$/;
+
+type Reader = QueryReader<QueryField>;
+
+interface Claim {
+  reader: Reader;
+  token: QueryToken;
+}
+
+function unquote(value: string): string {
+  return value.replace(/^"|"$/g, '');
+}
+
+// Generic so that the field written and the value read keep one type.
+function readInto<K extends QueryField>(parsed: ParsedQuery, reader: QueryReader<K>, token: QueryToken): void {
+  parsed[reader.field] = reader.read(token, parsed[reader.field]);
+}
+
+function narrow<K extends QueryField>(files: TFile[], narrowing: Narrowing<K>, parsed: ParsedQuery, app: App): TFile[] {
+  return narrowing.filter(files, parsed[narrowing.field], app);
+}
+
 export class SearchStrategyFactory {
-  private readonly strategyMap: Map<string, SearchFilter<unknown>> = new Map();
+  private readonly command = new CommandFilter();
+  private readonly tags = new TagsFilter();
+  private readonly negation = new NegationFilter();
+  private readonly created = new CreatedFilter();
+  private readonly modified = new ModifiedFilter();
+  private readonly pdf = new PdfFilter();
+  private readonly image = new ImageFilter();
+  private readonly canvas = new CanvasFilter();
+  private readonly json = new JsonFilter();
+  private readonly base = new BaseFilter();
+  private readonly excalidraw = new ExcalidrawFilter();
+  private readonly title = new TitleFilter();
+  private readonly task = new TaskFilter();
+  private readonly path = new PathFilter();
   private readonly highlightFilter = new HighlightFilter();
+  private readonly metadata = new MetadataFilter();
+
+  /** Every Filter that reads tokens. A `key:value` whose key none of them claims is a property. */
+  private readonly readers: Reader[] = [
+    this.tags, this.negation, this.created, this.modified,
+    this.pdf, this.image, this.canvas, this.json, this.base, this.excalidraw,
+    this.title, this.task, this.path, this.highlightFilter,
+  ];
+
+  /**
+   * Applied in turn to the files. Highlight and the title Scope are not here: they replace or
+   * narrow the free text search instead.
+   */
+  private readonly narrowings: Array<Narrowing<QueryField>> = [
+    this.tags, this.created, this.modified, this.path, new FileTypeGroup(), this.metadata, this.negation, this.task,
+  ];
+
+  private readonly byPrefix = new Map<string, Reader>();
+  private readonly byKey = new Map<string, Reader>();
+  private readonly byKeyword = new Map<string, Reader>();
   private static _instance: SearchStrategyFactory;
 
   private constructor() {
-    // L'ordine definisce l'ordine degli hints nella UI
-    this.strategyMap.set('tag', new TagsFilter());
-    this.strategyMap.set('created', new CreatedFilter());
-    this.strategyMap.set('modified', new ModifiedFilter());
-    this.strategyMap.set('command', new CommandFilter());
-    this.strategyMap.set('title', new TitleFilter());
-    this.strategyMap.set('task', new TaskFilter());
-    this.strategyMap.set('pdf', new PdfFilter());
-    this.strategyMap.set('image', new ImageFilter());
-    this.strategyMap.set('canvas', new CanvasFilter());
-    this.strategyMap.set('json', new JsonFilter());
-    this.strategyMap.set('base', new BaseFilter());
-    this.strategyMap.set('path', new PathFilter());
-    this.strategyMap.set('excalidraw', new ExcalidrawFilter());
-    this.strategyMap.set('not', new NegationFilter());
-    this.strategyMap.set('meta', new MetadataFilter());
+    for (const reader of this.readers) {
+      if (reader.prefix) this.register(this.byPrefix, reader.prefix, reader);
+
+      reader.keys.forEach(key => this.register(this.byKey, key, reader));
+      reader.keywords.forEach(keyword => this.register(this.byKeyword, keyword, reader));
+    }
   }
 
+  /** The hint bar chips, in the order they are shown. */
   get hints(): HintsType[] {
-    return [...Array.from(this.strategyMap.values()), this.highlightFilter];
+    return [
+      this.tags, this.created, this.modified, this.command, this.title, this.task,
+      this.pdf, this.image, this.canvas, this.json, this.base, this.path, this.excalidraw,
+      this.negation, this.metadata, this.highlightFilter,
+    ];
   }
 
   public static getInstance(): SearchStrategyFactory {
@@ -55,91 +107,23 @@ export class SearchStrategyFactory {
     return SearchStrategyFactory._instance;
   }
 
-  public getStrategy(strategyType: string) {
-    const strategy = this.strategyMap.get(strategyType);
-
-    if (!strategy) {
-      throw new Error(`Strategy not found: ${strategyType}`);
+  /** Two Filters claiming one shape would make the result depend on registration order. */
+  private register(claims: Map<string, Reader>, shape: string, reader: Reader): void {
+    if (claims.has(shape)) {
+      throw new Error(`Query shape claimed twice: ${shape}`);
     }
 
-    return strategy;
+    claims.set(shape, reader);
   }
 
   filter(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
-    let results = files;
-
-    // Tag speciale #archive: gli archiviati sono fuori dai risultati di default
-    const archiveStrategy = this.strategyMap.get('tag') as TagsFilter;
-
-    results = archiveStrategy.excludeArchived(results, parsed.tags, app);
-
-    if (parsed.tags.length > 0) {
-      results = this.applyStrategy('tag', results, parsed.tags, app);
-    }
-
-    if (parsed.dateFilter) {
-      results = this.applyStrategy(parsed.dateFilter.field, results, parsed.dateFilter, app);
-    }
-
-    // Path filter prima del file type filter, così lavora su tutti i file
-    if (parsed.pathFilter) {
-      results = this.applyStrategy('path', results, parsed.pathFilter, app);
-    }
-
-    results = this.applyFileTypes(results, parsed, app);
-
-    if (parsed.metadataFilters && parsed.metadataFilters.length > 0) {
-      results = this.applyStrategy('meta', results, parsed.metadataFilters, app);
-    }
-
-    if (parsed.negations) {
-      results = this.applyStrategy('not', results, parsed.negations, app);
-    }
-
-    if (parsed.taskFilter) {
-      results = this.applyStrategy('task', results, parsed.taskFilter, app);
-    }
+    const results = this.narrowings.reduce((kept, narrowing) => narrow(kept, narrowing, parsed, app), files);
 
     if (parsed.scope === 'title') {
-      results = this.applyTitleScope(results, parsed, app);
+      return this.title.filter(results, parsed.freeText, app);
     }
 
     return results;
-  }
-
-  /** Applica una strategy filterable se registrata, altrimenti restituisce i file invariati */
-  private applyStrategy(key: string, files: TFile[], extracted: unknown, app: App): TFile[] {
-    const strategy = this.strategyMap.get(key);
-
-    if (strategy && isFilterable(strategy)) {
-      return strategy.filter(files, extracted, app);
-    }
-
-    return files;
-  }
-
-  /** Excalidraw (frontmatter-based) + filtro estensioni */
-  private applyFileTypes(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
-    let results = files;
-    const excalidrawTypes = parsed.fileTypes.filter(t => t === 'excalidraw');
-    const extensionTypes = parsed.fileTypes.filter(t => t !== 'excalidraw');
-
-    if (excalidrawTypes.length > 0) {
-      const strategy = this.strategyMap.get('excalidraw') as ExcalidrawFilter;
-
-      results = strategy.filter(results, excalidrawTypes, app);
-    }
-
-    const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
-
-    return fileTypeStrategy.filter(results, extensionTypes, app);
-  }
-
-  /** Scope title: filtra sul basename */
-  private applyTitleScope(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
-    const strategy = this.strategyMap.get('title') as TitleFilter;
-
-    return strategy.filter(files, { scope: parsed.scope, remainingText: parsed.freeText }, app);
   }
 
   async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<FreeTextResults> {
@@ -178,109 +162,110 @@ export class SearchStrategyFactory {
 
   parse(input: string): ParsedQuery {
     const trimmedInput = input.trim();
-
-    // TEST non cancellare
-    // console.log(trimmedInput)
-
-    // const strategyWithHash = Array.from(this.strategyMap.values())
-    //   .find(s => trimmedInput.includes(s.label));
-
-    // console.log(strategyWithHash)
-
-    // Initialize result
     const result: ParsedQuery = {
       rawInput: trimmedInput,
       isCommandMode: false,
       tags: [],
       fileTypes: [],
-      freeText: ''
+      negations: { extensions: [], tags: [] },
+      metadataFilters: [],
+      freeText: '',
     };
+    const command = this.command.extract(trimmedInput);
 
-    // 1. Check for command mode (starts with >)
-    const commandStrategy = this.getStrategy('command') as CommandFilter;
-    const commandResult = commandStrategy.extract(trimmedInput);
-
-    if (commandResult.isCommandMode) {
+    if (command.isCommandMode) {
       result.isCommandMode = true;
-      result.commandText = commandResult.commandText;
+      result.commandText = command.commandText;
 
       return result;
     }
 
-    let remainingText = trimmedInput;
+    const { claims, freeWords } = this.tokenize(trimmedInput);
 
-    // 1.5 Extract negations (-image, -#tag) PRIMA delle altre strategy:
-    // "-image" verrebbe altrimenti catturato da FileTypeFilter, "-#tag" da TagsFilter
-    const negationStrategy = this.getStrategy('not') as NegationFilter;
-
-    result.negations = negationStrategy.extract(remainingText);
-    remainingText = negationStrategy.removeFrom(remainingText);
-
-    // 2. Extract tags (#react #css)
-    const tagStrategy = this.getStrategy('tag') as TagsFilter;
-
-    result.tags = tagStrategy.extract(remainingText);
-    remainingText = tagStrategy.removeFrom(remainingText);
-
-    // 3. Extract date filters (modified:VALUE or created:VALUE)
-    const modifiedStrategy = this.getStrategy('modified') as ModifiedFilter;
-    const createdStrategy = this.getStrategy('created') as CreatedFilter;
-
-    result.dateFilter = modifiedStrategy.extract(remainingText) ?? createdStrategy.extract(remainingText);
-    remainingText = modifiedStrategy.removeFrom(remainingText);
-    remainingText = createdStrategy.removeFrom(remainingText);
-
-    // 4. Extract file type filters (pdf, image, canvas, json, base)
-    const fileTypeKeys = ['pdf', 'image', 'canvas', 'json', 'base'];
-
-    for (const key of fileTypeKeys) {
-      const strategy = this.getStrategy(key) as FileTypeFilter;
-
-      result.fileTypes.push(...strategy.extract(remainingText));
-      remainingText = strategy.removeFrom(remainingText);
+    for (const { reader, token } of claims) {
+      readInto(result, reader, token);
     }
 
-    // Extract excalidraw filter (frontmatter-based, not extension-based)
-    const excalidrawStrategy = this.getStrategy('excalidraw') as ExcalidrawFilter;
-
-    result.fileTypes.push(...excalidrawStrategy.extract(remainingText));
-    remainingText = excalidrawStrategy.removeFrom(remainingText);
-
-    result.fileTypes = [...new Set(result.fileTypes)];
-
-    // 5. Extract scope (title:something)
-    const titleStrategy = this.getStrategy('title') as TitleFilter;
-    const scopeResult = titleStrategy.extract(remainingText);
-
-    result.scope = scopeResult.scope;
-    remainingText = titleStrategy.removeFrom(remainingText);
-
-    // 6. Extract task filters (task:, task-todo:, task-done:)
-    const taskStrategy = this.getStrategy('task') as TaskFilter;
-
-    result.taskFilter = taskStrategy.extract(remainingText);
-    remainingText = taskStrategy.removeFrom(remainingText);
-
-    // 7. Extract path filter (in:cartella)
-    const pathStrategy = this.getStrategy('path') as PathFilter;
-
-    result.pathFilter = pathStrategy.extract(remainingText);
-    remainingText = pathStrategy.removeFrom(remainingText);
-
-    // 8. Extract highlight filter (highlight:parola)
-    result.highlightFilter = this.highlightFilter.extract(remainingText);
-    remainingText = this.highlightFilter.removeFrom(remainingText);
-
-    // 8.5 Extract metadata filters (author:rossi, status:draft, ...).
-    // Va per ultimo tra i key:value: le chiavi riservate sono già state consumate.
-    const metadataStrategy = this.getStrategy('meta') as MetadataFilter;
-
-    result.metadataFilters = metadataStrategy.extract(remainingText);
-    remainingText = metadataStrategy.removeFrom(remainingText);
-
-    // 9. What's left is free text
-    result.freeText = remainingText.trim();
+    result.freeText = freeWords.join(' ');
 
     return result;
+  }
+
+  /** The chips the Query switches on: every Filter that claims one of its words, even half typed. */
+  activeHints(query: string): HintsType[] {
+    const trimmed = query.trim();
+
+    if (this.command.extract(trimmed).isCommandMode) {
+      return [this.command];
+    }
+
+    const readers = (trimmed.match(TOKEN) ?? []).map(word => this.claim(word)?.reader);
+
+    return [...new Set(readers)].filter((reader): reader is Reader => reader !== undefined);
+  }
+
+  /** Splits the Query into the tokens Filters claim and the words left for the free text. */
+  private tokenize(query: string): { claims: Claim[]; freeWords: string[] } {
+    const words = query.match(TOKEN) ?? [];
+    const claims: Claim[] = [];
+    const freeWords: string[] = [];
+
+    for (let i = 0; i < words.length; i++) {
+      const claim = this.claim(words[i]);
+
+      if (!claim) {
+        freeWords.push(words[i]);
+        continue;
+      }
+
+      const { reader, token } = claim;
+
+      if (token.value === '' && reader.takesValue) {
+        // A bare key takes the next word, as long as no Filter claims it and it is a value it reads.
+        const next = words[i + 1];
+
+        if (next === undefined || this.claim(next) || !reader.accepts(unquote(next))) continue;
+
+        token.value = unquote(next);
+        i++;
+      } else if (!reader.accepts(token.value)) {
+        continue;
+      }
+
+      claims.push(claim);
+
+      const kept = reader.freeTextOf(token);
+
+      if (kept) freeWords.push(kept);
+    }
+
+    return { claims, freeWords };
+  }
+
+  /** The Filter a word belongs to by its shape, or nothing when it is free text. */
+  private claim(word: string): Claim | undefined {
+    const prefixed = this.byPrefix.get(word[0]);
+
+    if (prefixed) {
+      const value = word.slice(1);
+
+      return prefixed.accepts(value) ? { reader: prefixed, token: { key: word[0], value } } : undefined;
+    }
+
+    const keyValue = KEY_VALUE.exec(word);
+
+    if (keyValue) {
+      const key = keyValue[1].toLowerCase();
+      const value = unquote(keyValue[2]);
+      const keyed = this.byKey.get(key);
+
+      if (keyed) return { reader: keyed, token: { key, value } };
+
+      return this.metadata.accepts(value) ? { reader: this.metadata, token: { key, value } } : undefined;
+    }
+
+    const keyword = this.byKeyword.get(word.toLowerCase());
+
+    return keyword ? { reader: keyword, token: { key: '', value: word } } : undefined;
   }
 }

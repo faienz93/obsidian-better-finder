@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import { getFileTags } from "../fileTags";
-import { SearchFilter } from "./types";
+import { QueryToken, SearchFilter } from "./types";
 
 /**
  * True if `fileTag`, in any case, is `tag` itself or one of its nested tags (#tag/child). `tag` is
@@ -12,9 +12,13 @@ export function matchesTag(fileTag: string, tag: string): boolean {
   return lowerFileTag === tag || lowerFileTag.startsWith(`${tag}/`);
 }
 
-export class TagsFilter extends SearchFilter<string[]> {
+const TAG_NAME = /^[a-zA-Z0-9][\w\-/]*$/;
+
+export class TagsFilter extends SearchFilter<'tags'> {
   readonly label = '#';
   readonly desc = 'tag';
+  readonly field = 'tags';
+  readonly prefix = '#';
   // TODO set in settings
   static readonly ARCHIVE_TAG = '#archive';
 
@@ -34,21 +38,21 @@ export class TagsFilter extends SearchFilter<string[]> {
     });
   }
 
-  extract(query: string) {
-    const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
-    const matches = query.match(tagRegex);
-
-    return matches ? matches.map(tag => tag.toLowerCase()) : [];
+  accepts(name: string): boolean {
+    return TAG_NAME.test(name);
   }
 
-  removeFrom(query: string) {
-    return query.replace(/#([a-zA-Z0-9][\w\-/]*)/g, '').trim();
+  read(token: QueryToken, tags: string[]): string[] {
+    return [...tags, `#${token.value}`.toLowerCase()];
   }
 
+  /** Archived notes are left out even when the query has no tags, so this runs on every search. */
   filter(files: TFile[], tags: string[], app: App): TFile[] {
-    if (tags.length === 0) return files;
+    const kept = this.excludeArchived(files, tags, app);
 
-    return files.filter(file => {
+    if (tags.length === 0) return kept;
+
+    return kept.filter(file => {
       const fileTags = getFileTags(file, app);
 
       // Match esatto o gerarchico (#tag/figlio). Il vecchio startsWith(tag + '-')

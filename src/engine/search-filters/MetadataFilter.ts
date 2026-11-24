@@ -1,46 +1,32 @@
 import { App, TFile } from "obsidian";
 import { i18n } from "src/const";
-import { SearchFilter } from "./types";
+import { QueryToken, SearchFilter } from "./types";
 
 export interface MetadataPair {
   key: string;
   value: string;
 }
 
-// key:value generico. Il "-" nel key supporta chiavi tipo "reading-status".
-// Le chiavi riservate (created:, title:, task:, ...) sono già state consumate
-// dalle rispettive strategy prima che questa venga eseguita (vedi parse()).
-const METADATA_PATTERN = /(?:^|\s)([a-zA-Z][\w-]*):(\S+)/g;
-
 /**
  * Strategy sui metadati frontmatter: author:rossi, status:draft, ecc.
  * Match case-insensitive per substring; supporta valori array (es. lista autori).
  */
-export class MetadataFilter extends SearchFilter<MetadataPair[]> {
+export class MetadataFilter extends SearchFilter<'metadataFilters'> {
   readonly label = 'author:';
   readonly desc = i18n.metadata;
+  readonly field = 'metadataFilters';
 
-  extract(query: string): MetadataPair[] {
-    const pairs: MetadataPair[] = [];
-
-    for (const match of query.matchAll(METADATA_PATTERN)) {
-      // Ignora URL e simili ("https://..." darebbe key=https value=//...)
-      if (match[2].startsWith('/')) continue;
-
-      pairs.push({ key: match[1].toLowerCase(), value: match[2].toLowerCase() });
-    }
-
-    return pairs;
+  /** An empty value is free text, and so is a URL: "https://x" would read as key https. */
+  accepts(value: string): boolean {
+    return value !== '' && !value.startsWith('/');
   }
 
-  removeFrom(query: string): string {
-    return query.replace(METADATA_PATTERN, (full, _key, value) =>
-      value.startsWith('/') ? full : ' '
-    ).trim();
+  read(token: QueryToken, pairs: MetadataPair[] | undefined): MetadataPair[] {
+    return [...pairs ?? [], { key: token.key, value: token.value.toLowerCase() }];
   }
 
-  filter(files: TFile[], pairs: MetadataPair[], app: App): TFile[] {
-    if (pairs.length === 0) return files;
+  filter(files: TFile[], pairs: MetadataPair[] | undefined, app: App): TFile[] {
+    if (!pairs || pairs.length === 0) return files;
 
     return files.filter(file => {
       if (file.extension !== 'md') return false;

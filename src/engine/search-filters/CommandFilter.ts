@@ -1,14 +1,10 @@
-import { App, TFile } from "obsidian";
 import { i18n } from "src/const";
-import { SearchFilter } from "./types";
+import { HintsType } from "src/component/ui/HintBar";
 
-export class CommandFilter extends SearchFilter<{ isCommandMode: boolean; commandText?: string }> {
+/** Not a Filter: `>` at the start switches the whole Query to commands before it is tokenized. */
+export class CommandFilter implements HintsType {
   readonly label = '>';
   readonly desc = i18n.commands;
-
-  filter(_files: TFile[], _extracted: { isCommandMode: boolean; commandText?: string; }, _app: App): TFile[] {
-    throw new Error("Method not implemented.");
-  }
 
   extract(query: string): { isCommandMode: boolean; commandText?: string } {
     const trimmed = query.trim();
@@ -18,9 +14,5 @@ export class CommandFilter extends SearchFilter<{ isCommandMode: boolean; comman
     }
 
     return { isCommandMode: false };
-  }
-
-  removeFrom(query: string): string {
-    return query.replace(/^>\s*/, '').trim();
   }
 }

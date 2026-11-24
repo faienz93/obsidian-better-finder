@@ -3,7 +3,6 @@ import { TaskFilter } from "../src/engine/search-filters/TaskFilter";
 import { TagsFilter } from "../src/engine/search-filters/TagsFilter";
 import { NegationFilter } from "../src/engine/search-filters/NegationFilter";
 import { MetadataFilter } from "../src/engine/search-filters/MetadataFilter";
-import { CreatedFilter, ModifiedFilter } from "../src/engine/search-filters/DateFilter";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
@@ -29,20 +28,6 @@ function fakeApp(cacheByPath: Record<string, any>): App {
 describe('TaskFilter', () => {
   const filter = new TaskFilter();
 
-  it('estrae task: anche con spazio dopo i due punti (click su hint — B4)', () => {
-    expect(filter.extract('task: ')).toBe('all');
-    expect(filter.extract('task:')).toBe('all');
-  });
-
-  it('estrae task-todo: e task-done:', () => {
-    expect(filter.extract('task-todo: qualcosa')).toBe('todo');
-    expect(filter.extract('task-done:')).toBe('done');
-  });
-
-  it('rimuove il token lasciando il testo libero', () => {
-    expect(filter.removeFrom('task: spring')).toBe('spring');
-  });
-
   it('filtra i file con task nello stato richiesto', () => {
     const files = [fakeFile('con-todo.md'), fakeFile('senza-task.md'), fakeFile('done.md')];
     const app = fakeApp({
@@ -61,10 +46,6 @@ describe('TaskFilter', () => {
 
 describe('TagsFilter', () => {
   const filter = new TagsFilter();
-
-  it('estrae i tag in lowercase', () => {
-    expect(filter.extract('#React #CSS testo')).toEqual(['#react', '#css']);
-  });
 
   it('NON matcha tag cugini con trattino (B2: #prompt ≠ #prompt-engineering)', () => {
     const files = [fakeFile('a.md'), fakeFile('b.md')];
@@ -107,21 +88,6 @@ describe('TagsFilter', () => {
 describe('NegationFilter', () => {
   const filter = new NegationFilter();
 
-  it('estrae esclusioni di tipo file e tag', () => {
-    const result = filter.extract('spring -image -#draft');
-
-    expect(result.extensions).toEqual(expect.arrayContaining(['png', 'jpg']));
-    expect(result.tags).toEqual(['#draft']);
-  });
-
-  it('non tocca parole con trattino interno (this-week, e-mail)', () => {
-    const result = filter.extract('created:this-week e-mail');
-
-    expect(result.extensions).toHaveLength(0);
-    expect(result.tags).toHaveLength(0);
-    expect(filter.removeFrom('created:this-week e-mail')).toBe('created:this-week e-mail');
-  });
-
   it('esclude i file per estensione e per tag', () => {
     const files = [fakeFile('img.png', 'png'), fakeFile('nota.md'), fakeFile('draft.md')];
     const app = fakeApp({
@@ -140,18 +106,6 @@ describe('NegationFilter', () => {
 describe('MetadataFilter', () => {
   const filter = new MetadataFilter();
 
-  it('estrae coppie key:value', () => {
-    expect(filter.extract('author:Rossi status:draft')).toEqual([
-      { key: 'author', value: 'rossi' },
-      { key: 'status', value: 'draft' },
-    ]);
-  });
-
-  it('ignora gli URL', () => {
-    expect(filter.extract('vedi https://example.com')).toEqual([]);
-    expect(filter.removeFrom('vedi https://example.com')).toBe('vedi https://example.com');
-  });
-
   it('matcha frontmatter con valori stringa e array', () => {
     const files = [fakeFile('a.md'), fakeFile('b.md'), fakeFile('c.md')];
     const app = fakeApp({
@@ -163,33 +117,5 @@ describe('MetadataFilter', () => {
     const result = filter.filter(files, [{ key: 'author', value: 'rossi' }], app);
 
     expect(result.map(f => f.path)).toEqual(['a.md', 'b.md']);
-  });
-});
-
-// ---- DateFilter ---------------------------------------------------------------
-
-describe('DateFilter', () => {
-  const created = new CreatedFilter();
-  const modified = new ModifiedFilter();
-
-  it('estrae il valore con e senza spazio dopo i due punti', () => {
-    expect(created.extract('created:today')).toEqual({ field: 'created', value: 'today' });
-    expect(created.extract('created: today')).toEqual({ field: 'created', value: 'today' });
-  });
-
-  it('estrae anno secco e date assolute', () => {
-    expect(created.extract('created:2026')).toEqual({ field: 'created', value: '2026' });
-    expect(modified.extract('modified:2026-01-15')).toEqual({ field: 'modified', value: '2026-01-15' });
-  });
-
-  it('non ruba il testo libero dopo i due punti', () => {
-    // "banana" non è un valore data: non viene estratto né rimosso dal free text
-    expect(created.extract('created: banana')).toBeUndefined();
-    expect(created.removeFrom('created: banana')).toBe('banana');
-  });
-
-  it('rimuove il token data lasciando il resto', () => {
-    expect(created.removeFrom('created:today spring')).toBe('spring');
-    expect(created.removeFrom('created: today spring')).toBe('spring');
   });
 });
