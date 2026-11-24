@@ -95,6 +95,16 @@ describe('SearchUIHelper.toggleFilter', () => {
     expect(SearchUIHelper.toggleFilter('task:done budget', 'task:')).toBe('budget ');
   });
 
+  it('removes every highlight token from the lit highlight: chip, colour keys and words included', () => {
+    expect(SearchUIHelper.toggleFilter('docker highlight-red:kafka highlight-blue:', 'highlight:')).toBe('docker ');
+    expect(SearchUIHelper.toggleFilter('highlight-green: kafka docker highlight:', 'highlight:')).toBe('docker ');
+  });
+
+  it('lights the highlight: chip for a colour key alone', () => {
+    expect(SearchStrategyFactory.getInstance().activeHints('highlight-purple: x').map(h => h.label))
+      .toEqual(['highlight:']);
+  });
+
   it('removes every tag, and only tags', () => {
     expect(SearchUIHelper.toggleFilter('#project #work note -#draft', '#')).toBe('note -#draft ');
   });

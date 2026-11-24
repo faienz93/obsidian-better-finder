@@ -189,4 +189,23 @@ describe('bodyText: Highlights under the highlight filter', () => {
   it('shows no Highlights without the highlight filter', () => {
     expect(bodyText('some ==important== text', [], []).highlights).toEqual([]);
   });
+
+  it('gives each Highlight its colour and leaves the colour emoji out of the text', () => {
+    const body = bodyText('a ==🔴red one== and ==🔵blue one== and ==plain one==', [], [], ANY);
+
+    expect(body.highlights.map(showMarked)).toEqual(['a [red one] and [blue one] and [plain one]']);
+    expect(body.highlights[0].marks.map(mark => mark.colour)).toEqual(['red', 'blue', undefined]);
+  });
+
+  it('marks only the Highlights of the colours asked for, the others without == or emoji', () => {
+    const note = ['a ==🔴kafka== and ==🔵kafka== here', '==🟢kafka== alone', '==🔵other== too'].join('\n');
+    const body = bodyText(note, [], [], { colours: ['red', 'green'], word: 'kafka' });
+
+    expect(body.highlights.map(showMarked)).toEqual(['a [kafka] and kafka here', '[kafka] alone']);
+    expect(body.highlights.flatMap(h => h.marks.map(mark => mark.colour))).toEqual(['red', 'green']);
+  });
+
+  it('shows no Highlight without an emoji under a colour key', () => {
+    expect(bodyText('a ==kafka== note', [], [], { colours: ['red'] }).highlights).toEqual([]);
+  });
 });
