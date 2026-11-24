@@ -73,3 +73,52 @@ describe('SearchUIHelper.toggleDateValue', () => {
     expect(SearchUIHelper.toggleDateValue('solo testo', 'today')).toBe('solo testo');
   });
 });
+
+describe('SearchUIHelper.toggleFilter', () => {
+  it('adds an unlit Filter to the query', () => {
+    expect(SearchUIHelper.toggleFilter('note', 'canvas')).toBe('note canvas ');
+    expect(SearchUIHelper.toggleFilter('', 'title:')).toBe('title: ');
+  });
+
+  it('removes a lit keyword Filter, every time it appears', () => {
+    expect(SearchUIHelper.toggleFilter('canvas note canvas', 'canvas')).toBe('note ');
+    expect(SearchUIHelper.toggleFilter('canvas ', 'canvas')).toBe('');
+  });
+
+  it('removes title: with its value, glued or after a space', () => {
+    expect(SearchUIHelper.toggleFilter('title:meeting budget', 'title:')).toBe('budget ');
+    expect(SearchUIHelper.toggleFilter('title: meeting budget', 'title:')).toBe('budget ');
+    expect(SearchUIHelper.toggleFilter('title: ', 'title:')).toBe('');
+  });
+
+  it('removes task: with its value', () => {
+    expect(SearchUIHelper.toggleFilter('task:done budget', 'task:')).toBe('budget ');
+  });
+
+  it('removes every tag, and only tags', () => {
+    expect(SearchUIHelper.toggleFilter('#project #work note -#draft', '#')).toBe('note -#draft ');
+  });
+
+  it('removes a quoted path value whole', () => {
+    expect(SearchUIHelper.toggleFilter('path:"Engineering Wiki" docker', 'path:')).toBe('docker ');
+  });
+
+  it('removes a date Filter with its value, and leaves the other date field', () => {
+    expect(SearchUIHelper.toggleFilter('created:today modified:yesterday note', 'created:'))
+      .toBe('modified:yesterday note ');
+    expect(SearchUIHelper.toggleFilter('created: note', 'created:')).toBe('note ');
+  });
+
+  it('removes every negation', () => {
+    expect(SearchUIHelper.toggleFilter('spring -pdf -#draft', '-')).toBe('spring ');
+  });
+
+  it('removes every frontmatter filter from the author: chip', () => {
+    expect(SearchUIHelper.toggleFilter('author:rossi status:done note', 'author:')).toBe('note ');
+  });
+
+  it('leaves command mode, keeping the text as free text', () => {
+    expect(SearchUIHelper.toggleFilter('> toggle theme', '>')).toBe('toggle theme ');
+    expect(SearchUIHelper.toggleFilter('>', '>')).toBe('');
+  });
+});

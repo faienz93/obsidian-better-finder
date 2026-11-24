@@ -187,11 +187,7 @@ export class FinderMoodboard extends ItemView {
   }
 
   private appendToQuery(token: string): void {
-    const appended = SearchUIHelper.appendToken(this.searchBar.getValue(), token);
-
-    if (appended !== null) {
-      this.searchBar.setValue(appended);
-    }
+    this.searchBar.setValue(SearchUIHelper.toggleFilter(this.searchBar.getValue(), token));
   }
 
   private applyDateValue(value: string): void {
