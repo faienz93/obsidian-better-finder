@@ -1,31 +1,63 @@
-import { App, getAllTags, TFile } from "obsidian";
-import { SearchFilter } from "./types";
+import { App, TFile } from "obsidian";
+import { getFileTags } from "../fileTags";
+import { QueryToken, SearchFilter } from "./types";
 
-export class TagsFilter extends SearchFilter<string[]> {
+/**
+ * True if `fileTag`, in any case, is `tag` itself or one of its nested tags (#tag/child). `tag` is
+ * lowercase, as `extract` returns it, so only the file side is folded on this hot path.
+ */
+export function matchesTag(fileTag: string, tag: string): boolean {
+  const lowerFileTag = fileTag.toLowerCase();
+
+  return lowerFileTag === tag || lowerFileTag.startsWith(`${tag}/`);
+}
+
+const TAG_NAME = /^[a-zA-Z0-9][\w\-/]*$/;
+
+export class TagsFilter extends SearchFilter<'tags'> {
   readonly label = '#';
   readonly desc = 'tag';
+  readonly field = 'tags';
+  readonly prefix = '#';
+  // TODO set in settings
+  static readonly ARCHIVE_TAG = '#archive';
 
-  extract(query: string) {
-    const tagRegex = /#([a-zA-Z0-9][\w\-/]*)/g;
-    const matches = query.match(tagRegex);
+  /**
+   * Archived files (#archive) are left out of the results by default; they come back only when
+   * the query asks for #archive explicitly.
+   */
+  excludeArchived(files: TFile[], searchedTags: string[], app: App): TFile[] {
+    const archiveRequested = searchedTags.some(t => matchesTag(t, TagsFilter.ARCHIVE_TAG));
 
-    return matches ? matches.map(tag => tag.toLowerCase()) : [];
-  }
-
-  removeFrom(query: string) {
-    return query.replace(/#([a-zA-Z0-9][\w\-/]*)/g, '').trim();
-  }
-
-  filter(files: TFile[], tags: string[], app: App): TFile[] {
-    if (tags.length === 0) return files;
+    if (archiveRequested) return files;
 
     return files.filter(file => {
-      const cache = app.metadataCache.getFileCache(file);
+      if (file.extension !== 'md') return true;
 
-      if (!cache) return false;
-      const fileTags = getAllTags(cache) || [];
+      return !getFileTags(file, app).some(ft => matchesTag(ft, TagsFilter.ARCHIVE_TAG));
+    });
+  }
 
-      return tags.every(tag => fileTags.includes(tag));
+  accepts(name: string): boolean {
+    return TAG_NAME.test(name);
+  }
+
+  read(token: QueryToken, tags: string[]): string[] {
+    return [...tags, `#${token.value}`.toLowerCase()];
+  }
+
+  /** Archived notes are left out even when the query has no tags, so this runs on every search. */
+  filter(files: TFile[], tags: string[], app: App): TFile[] {
+    const kept = this.excludeArchived(files, tags, app);
+
+    if (tags.length === 0) return kept;
+
+    return kept.filter(file => {
+      const fileTags = getFileTags(file, app);
+
+      // Exact or nested (#tag/child) match: a prefix match also caught sibling tags such as
+      // #prompt-engineering for #prompt (bug B2).
+      return tags.every(tag => fileTags.some(ft => matchesTag(ft, tag)));
     });
   }
 }

@@ -1,27 +1,24 @@
 import { App, TFile } from "obsidian";
-import { SearchFilterAsync } from "./types";
+import { QueryReader, QueryToken } from "./types";
 
-export class HighlightFilter extends SearchFilterAsync<string | undefined> {
+/** Reads file content, so it narrows asynchronously, in place of the free text search. */
+export class HighlightFilter extends QueryReader<'highlightFilter'> {
   readonly label = 'highlight:';
   readonly desc = 'highlight';
+  readonly field = 'highlightFilter';
+  readonly keys = ['highlight'];
+  readonly takesValue = true;
 
-  extract(query: string): string | undefined {
-    // Supporta highlight:"frase con spazi" e highlight:parola
-    const match = /\bhighlight:(?:"([^"]+)"|(\S+))/.exec(query);
-
-    if (!match) return undefined;
-
-    return match[1] ?? match[2];
-  }
-
-  removeFrom(query: string): string {
-    return query.replace(/\bhighlight:(?:"[^"]*"|\S*)/gi, '').trim();
+  read(token: QueryToken, current: string | undefined): string {
+    return current ?? token.value;
   }
 
   async filterAsync(files: TFile[], term: string | undefined, app: App): Promise<TFile[]> {
     if (!term) return files;
 
-    const lowerTerm = term.toLowerCase();
+    // Word-boundary match: a plain substring match caught too many highlights (bug B5).
+    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const wordPattern = new RegExp(`\\b${escaped}\\b`, 'i');
     const pattern = /==([^=]+)==/g;
     const results: TFile[] = [];
 
@@ -36,13 +33,13 @@ export class HighlightFilter extends SearchFilterAsync<string | undefined> {
             pattern.lastIndex = 0;
 
             while ((match = pattern.exec(content)) !== null) {
-              if (match[1].toLowerCase().includes(lowerTerm)) {
+              if (wordPattern.test(match[1])) {
                 results.push(file);
                 break;
               }
             }
           } catch {
-            // file non leggibile, skip
+            // Unreadable file: skip it.
           }
         })
     );

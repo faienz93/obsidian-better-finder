@@ -1,4 +1,5 @@
 import { emojis } from "src/const";
+import "./ToggleButton.css";
 
 export class ToggleButton {
   private toggleBtn: HTMLElement;

@@ -1,3 +1,5 @@
+import "./HintBar.css";
+
 export type HintsType = { label: string, desc: string }
 
 export class HintChip {

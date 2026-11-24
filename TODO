@@ -1,27 +1,19 @@
-# TODO - Obsidian Better Finder
+la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti permette di filtrare in base alla property che ci metti ad esempio `#tag` `#tag2` `@related`
 
-Obiettivo: ricerca snella nei file del vault, inclusi PDF e altri tipi.
+- [ ] Ottimizzazione mobile
+- [ ] in finder card deve mostrami tutte le card?
+- [ ] Aggiungere ricerca per cercare i backlink?? Aggiungere il linked file dalla ricerca
+- [ ] Cronologia ricerche nel modal (in sidebar c'è con ↑/↓; nel modal le frecce sono occupate)
+- [ ] JSDoc, i18n completa
+- [ ] Modal layout: Previews overflow the Items (a big heading over the first Item, excerpt text spilling left and right)
 
 ## 🚧 In Progress
 
-- [ ] Filtro date avanzato: `created:2024-01-01 2024-12-31`, `modified:yesterday`, `this-month`
-- [ ] Preview: supporto Bases, Word, Excel
-- [ ] Preview: evidenziazione highlights `==testo==`
-- [ ] Snippet di contenuto nelle card con termine evidenziato
-- [ ] Fuzzy search (es. "mtg" → "meeting")
-- [ ] Cronologia ricerche
-- [ ] Modalità comandi (`>`): filtrare, eseguire, evidenziare token come `#`
-- [ ] Query parser: operatori `AND`, `OR`, `NOT`
-- [ ] Query parser: `folder:Projects`, ricerca per autore/metadati
-- [ ] Sidebar comandi: lista, categorie, preferiti, esecuzione
-- [ ] UI: tema dark/light, animazioni, shortcut personalizzabili, stato vuoto, loading
-- [ ] Impostazioni: tipi file default, contenuto on/off, max risultati, ordinamento
-- [ ] Ricerche salvate, preferiti, statistiche uso
-- [ ] Esportazione risultati in MD
-- [ ] Ricerca nel contenuto PDF
-- [ ] OCR immagini (complesso) — https://github.com/kreuzberg-dev/kreuzberg
-- [ ] Ottimizzazione mobile
-- [ ] Test unitari, refactoring UI/logica, JSDoc, i18n
+- [ ] Verifica manuale roadmap (branch `feature/roadmap-better-finder`) — vedi `.claude/plans/roadmap-better-finder.md`
+  - [ ] installare binario `xberg` e verificare i flag CLI (`extract --format json`)
+  - [ ] provare backend OCR Candle vs Tesseract
+  - lanciare simpplify e code-simplifier. togliere tutte le issue presenti con il mio agente anche perchè ci sono le trappole nella wiki
+  - highlights pure non funziona bene. pulire i md dei plan che sono vecchi
 
 ## ✅ Completato
 
@@ -37,11 +29,42 @@ Obiettivo: ricerca snella nei file del vault, inclusi PDF e altri tipi.
 - [x] Vista sidebar con card
 - [x] Preview PNG / PDF / Excalidraw
 - [x] Bug: selezione risultato con click su Card
+- [x] Filtro date avanzato: `created:2024-01-01 2024-12-31`, `modified:yesterday`, `this-month`
+- [x] Preview: supporto Bases,
+- [x] Preview: evidenziazione highlights
+- [x] aggiungere il poter filtrare sulla base del path
+- [x] sistemare quando aggiungo o elimino un file
+- [x] Aggiungere supporto per excalidraw
+- [x] Modalità comandi (`>`): filtrare, eseguire, evidenziare token come `#`
+- [x] poter visualizzare l'highliths
+- [x] mi deve dare la preview dei tag e di quello che cerco.. se inizio a cercare `#not` mi deve mostrare `#notion, note`
+- [x] Query parser: `folder:Projects`
+- [x] Migliorare la visualizzazioen della lista. Apporro un immagine sulla destra
+- [x] Poter tornare indietro quando necessario (navigation history)
+- [x] Escludere risultati con `-` (`-image`, `-#tag`, `-docx`)
+- [x] Snippet di contenuto nelle card con termine evidenziato
+- [x] Rimozione duplicati dai risultati
+- [x] Esportazione risultati in MD
+- [x] Cronologia ricerche (sidebar, ↑/↓)
+- [x] Tag speciale `archive`
+- [x] Tag dentro i canvas (`#spring` trova il canvas di Spring)
+- [x] Ricerca contenuto PDF + OCR immagini via Xberg (codice fatto, serve il binario)
+- [x] Preview Word/Excel (icona + estratto Xberg)
+- [x] Ricerca per autore/metadati (`author:x`, `key:value`)
+- [x] Sub-hint bar senza logica + anno corrente + placeholder YYYY/MM/DD
+- [x] Chip: selezione mutuamente esclusiva, deselezione al re-click, `created:today` senza spazio
+- [x] Test unitari (Jest, 30 test su strategy e parse)
+- [x] **BUG** `#prompt`/`#pattern` conteggio risultati (tag cugini con trattino)
+- [x] **BUG** `#WAF` non funzionava (case sensitivity)
+- [x] **BUG** "Bacca"/"printenv" falsi positivi (fuzzy/prefix MiniSearch)
+- [x] **BUG** hint `task:` non funzionava + ora mostra il testo dei task
+- [x] **BUG** Highlights evidenziavano troppe cose (match a confine di parola)
 
-## 📝 Note
+## Non previste
 
-- `SuggestModal` per navigazione keyboard nativa
-- `cachedRead()` per performance
-- `prepareQuery` non è pubblica nell'API Obsidian → matching semplice
-- Ricerca contenuto lenta su vault grandi (> 1000 file)
-- Confronto tag case-sensitive
+- [ ] ~~Fuzzy search (es. "mtg" → "meeting")~~
+- [ ] ~~UI: tema dark/light, animazioni, shortcut personalizzabili, stato vuoto, loading~~
+- [ ] ~~Sidebar comandi: lista, categorie, preferiti, esecuzione~~
+- [ ] ~~Query parser: operatori `AND`, `OR`, `NOT`~~
+- [ ] ~~Ricerche salvate, preferiti, statistiche uso~~
+- [ ] ~~Impostazioni: tipi file default, contenuto on/off, max risultati, ordinamento~~

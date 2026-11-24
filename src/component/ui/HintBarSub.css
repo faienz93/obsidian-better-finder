@@ -1,0 +1,24 @@
+/* Sub hint bar (valori data: today, yesterday, ecc.) */
+.sub-hint-bar {
+  display: flex;
+  gap: 6px;
+  padding: 4px 12px 8px;
+  flex-wrap: wrap;
+}
+
+.sub-hint-bar.is-hidden {
+  display: none;
+}
+
+.hint-chip-sub {
+  opacity: 0.85;
+}
+
+/* Etichetta non interattiva che indica il formato data supportato */
+.hint-chip-format-placeholder {
+  padding: 4px 8px;
+  font-size: 12px;
+  color: var(--text-faint);
+  font-style: italic;
+  cursor: default;
+}

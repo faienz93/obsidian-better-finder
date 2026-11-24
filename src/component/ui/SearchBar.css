@@ -1,0 +1,37 @@
+/* Finder View styles */
+.finder-view-container {
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+}
+
+.finder-view-header {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 8px;
+}
+
+.finder-view-input-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.finder-view-input {
+  width: 100%;
+  padding: 8px 80px 8px 12px;
+  font-size: 14px;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 4px;
+  background: var(--background-primary);
+}
+
+.finder-view-count {
+  position: absolute;
+  right: 12px;
+  font-size: 12px;
+  color: var(--text-muted);
+  pointer-events: none;
+}

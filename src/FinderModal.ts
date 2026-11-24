@@ -1,88 +1,80 @@
-import { App, SuggestModal, getAllTags, TFile } from "obsidian";
-import { SearchStrategyFactory } from "./engine/SearchStrategy";
-import { Finder, SearchResult, isCommand } from "./Finder";
-import { ModalItem } from "./component/ModalItem";
-import { HintBar } from "./component/ui/HintBar";
-import { HintBarSub } from "./component/ui/HintBarSub";
-import { TagsPreview } from "./component/ui/TagsPreview";
+import { App, Component, SuggestModal } from "obsidian";
+import { Finder, SearchOutcome, SearchResult, isCommand } from "./Finder";
+import { ModalUI } from "./component/Modal/ModalUI";
+import { SearchUIHelper } from "./SearchUIHelper";
+import { SearchHistory } from "./engine/SearchHistory";
+import { LatestSearch } from "./engine/LatestSearch";
+import { buildResultData } from "./engine/ResultData";
+import { Body } from "./component/ui/Body";
+import "./FinderModal.css";
 
 class FinderModal extends SuggestModal<SearchResult> {
   private core: Finder;
-  private hintBar: HintBar;
-  private subHintBar: HintBarSub;
-  private tagsPreview: TagsPreview | null = null;
+  private latestSearch: LatestSearch;
+  private uiHelper!: SearchUIHelper;
+  // Rows are drawn from the search that settled, not from the input, which may already hold a newer query.
+  private outcome: SearchOutcome | null = null;
+  // Owns the markdown rendered by Previews, so it is released when the Modal closes.
+  private previewComponent = new Component();
+  private body: Body;
 
   constructor(app: App) {
     super(app);
     this.core = new Finder(app);
+    this.latestSearch = new LatestSearch(this.core);
+    this.body = new Body(app, this.previewComponent);
   }
 
   onOpen(): void {
+    this.previewComponent.load();
+    this.modalEl.addClass('better-finder-modal');
     const promptEl = this.modalEl.querySelector('.prompt-input-container');
 
     if (promptEl) {
       const hintWrapper = createDiv();
 
       promptEl.insertAdjacentElement('afterend', hintWrapper);
-      this.hintBar = new HintBar(hintWrapper);
-      this.core.hints.forEach(hint => {
-        this.hintBar.addHint(hint, (label) => {
-          // eslint-disable-next-line prefer-template
-          this.inputEl.value = label + ' ';
-          this.inputEl.focus();
-          this.inputEl.dispatchEvent(new Event('input'));
-        });
-      });
-
-      this.tagsPreview = new TagsPreview(hintWrapper);
-
-      this.subHintBar = new HintBarSub(hintWrapper, (value) => {
-        const current = this.inputEl.value;
-        const match = /\b(modified|created):(\S*)/.exec(current);
-
-        if (match) {
-          this.inputEl.value = `${current.slice(0, match.index) + match[1]}:${value}${current.slice(match.index + match[0].length)}`;
-        } else {
-          this.inputEl.value = `${current.trimEnd()} modified:${value} `;
-        }
-
-        this.inputEl.focus();
-        this.inputEl.dispatchEvent(new Event('input'));
+      this.uiHelper = new SearchUIHelper(this.app, this.core, hintWrapper, {
+        onHintClick: (label) => this.appendToQuery(label),
+        onDateFilterClick: (value) => this.applyDateValue(value),
       });
     }
 
     this.inputEl.addEventListener('input', () => {
-      const query = this.inputEl.value;
-      const factory = SearchStrategyFactory.getInstance();
-
-      this.hintBar?.highlightChips(this.core.getActiveHints(query));
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      this.tagsPreview?.updateTagPreview((this.app.metadataCache as any).getTags() || {}, this.inputEl);
-
-      const parsed = factory.parse(query);
-
-      if (parsed.dateFilter) {
-        this.subHintBar?.show(parsed.dateFilter.value);
-      } else if (/\b(modified|created):/.test(query)) {
-        this.subHintBar?.show();
-      } else {
-        this.subHintBar?.hide();
-      }
+      this.uiHelper?.onInput(this.inputEl.value, this.inputEl);
     });
   }
 
+  onClose(): void {
+    super.onClose();
+    this.latestSearch.cancel();
+    this.body.reset();
+    this.previewComponent.unload();
+    this.core.dispose();
+  }
+
   async getSuggestions(query: string): Promise<SearchResult[]> {
-    return this.core.search(query);
+    this.outcome = await this.latestSearch.run(query);
+    // Obsidian redraws every Item for the new results: the old ones no longer need reading.
+    this.body.reset();
+
+    return this.outcome.results;
   }
 
-  // Renders each suggestion item (called by older Obsidian versions)
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   renderSuggestion(result: SearchResult, el: HTMLElement) {
-    this.renderModalItem(result, el);
+    this.renderResult(result, el);
   }
 
-  // Renders each suggestion item
   renderModalItem(result: SearchResult, el: HTMLElement) {
+    this.renderResult(result, el);
+  }
+
+  onChooseSuggestion(result: SearchResult) {
+    SearchHistory.getInstance().add(this.inputEl.value);
+    this.core.openResult(result);
+  }
+
+  private renderResult(result: SearchResult, el: HTMLElement): void {
     el.empty();
 
     if (isCommand(result)) {
@@ -91,25 +83,26 @@ class FinderModal extends SuggestModal<SearchResult> {
       return;
     }
 
-    const file = result as TFile;
-    const parsed = SearchStrategyFactory.getInstance().parse(this.inputEl.value);
-    const fileCache = this.app.metadataCache.getFileCache(file);
-    const fileTags = fileCache ? getAllTags(fileCache) || [] : [];
-    const tasks = fileCache?.listItems?.filter(i => i.task) || [];
-    const doneCount = tasks.filter(t => t.task === 'x' || t.task === 'X').length;
+    if (!this.outcome) return;
 
-    const modal = new ModalItem(el);
-
-    modal.render({
-      file,
-      tags: fileTags,
-      searchedTags: parsed.tags,
-      taskInfo: parsed.taskFilter ? { done: doneCount, total: tasks.length } : undefined
-    });
+    new ModalUI(el, this.body).render(buildResultData(this.app, result, this.outcome));
   }
 
-  onChooseSuggestion(result: SearchResult) {
-    this.core.openResult(result);
+  private appendToQuery(token: string): void {
+    const appended = SearchUIHelper.appendToken(this.inputEl.value, token);
+
+    if (appended !== null) {
+      this.inputEl.value = appended;
+    }
+
+    this.inputEl.dispatchEvent(new Event('input'));
+    this.inputEl.focus();
+  }
+
+  private applyDateValue(value: string): void {
+    this.inputEl.value = SearchUIHelper.toggleDateValue(this.inputEl.value, value);
+    this.inputEl.dispatchEvent(new Event('input'));
+    this.inputEl.focus();
   }
 }
 
