@@ -22,12 +22,6 @@ How to work in this repo. Git-specific rules live in [commit.md](./commit.md).
   ⚠️ Some files carry Italian comments from earlier work. They are **not** a precedent; don't
   imitate them. The conversation itself stays in Italian.
 
-- **One or two sentences, not an essay.** A comment says *why* a line is the way it is, not how it
-  was found. No reproduction history, no multi-line sample payloads, no dates.
-
-  Long context — how a bug surfaced, what was tried, the numbers measured — belongs in a plan under
-  `.claude/plans/` or in memory. In the source it rots and nobody updates it.
-
   ```ts
   // NO
   // QA test for the ownership of a bizz row on the UPDATE path.
