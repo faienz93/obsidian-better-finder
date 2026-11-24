@@ -47,7 +47,7 @@ export class SearchUIHelper {
     );
     this.colourBar = new HintBarSub(containerEl, (value) => {
       if (isHighlightColour(value)) callbacks.onHighlightColourClick?.(value);
-    }, 'sub-hint-bar-highlight');
+    }, 'highlight-value-chips');
     this.colourBar.setContent(COLOURS);
   }
 

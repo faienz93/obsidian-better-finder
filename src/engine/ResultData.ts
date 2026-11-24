@@ -47,7 +47,7 @@ export function buildResultData(app: App, file: TFile, outcome: SearchOutcome): 
   const tasks = parsed.taskFilter ? tasksOf(app, file) : [];
   const taskLines = isNote(app, file) && parsed.taskFilter ? pickTaskLines(tasks, parsed.taskFilter) : [];
   const highlightCriterion = isNote(app, file) ? parsed.highlightFilter : undefined;
-  const showsMarks = snippetWords.length > 0 || highlightCriterion !== undefined;
+  const showsOccurrencesOrHighlights = snippetWords.length > 0 || highlightCriterion !== undefined;
 
   return {
     file,
@@ -55,11 +55,11 @@ export function buildResultData(app: App, file: TFile, outcome: SearchOutcome): 
     searchedTags,
     typeIcon: fileTypeIcon(app, file),
     taskInfo: parsed.taskFilter ? countTasks(tasks) : undefined,
-    renderPreview: ImagePreview.hasPreview(app, file, { hasSnippet: showsMarks || taskLines.length > 0 }),
+    renderPreview: ImagePreview.hasPreview(app, file, { hasSnippet: showsOccurrencesOrHighlights || taskLines.length > 0 }),
     snippetWords,
     taskLines,
     highlightCriterion,
-    offersPreview: showsMarks && ImagePreview.hasPreview(app, file, { hasSnippet: false }),
+    offersPreview: showsOccurrencesOrHighlights && ImagePreview.hasPreview(app, file, { hasSnippet: false }),
   };
 }
 

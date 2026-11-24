@@ -30,7 +30,7 @@ export interface TaskText {
 }
 
 /** A Highlight the Body marks, by its offsets in the passage text. */
-export interface HighlightMark {
+export interface HighlightSpan {
   start: number;
   end: number;
   /** None: the Highlight has no colour emoji and takes the theme's default. */
@@ -46,7 +46,7 @@ export interface HighlightPassage {
   line: number;
   text: string;
   /** The Highlights in `text`, in order. */
-  marks: HighlightMark[];
+  highlights: HighlightSpan[];
   /** The line goes on before the passage. */
   cutStart: boolean;
   /** The line goes on after the passage. */
@@ -88,7 +88,7 @@ export function bodyText(
   const allHighlights = highlight ? highlightPassagesIn(lines, highlight) : [];
   const shownHighlights = allHighlights.slice(0, maxHighlights);
   const highlightLineNumbers = new Set(shownHighlights.map(passage => passage.line));
-  // A line shown as a Highlight carries its own mark: it is never repeated as a task line.
+  // A line shown as a Highlight is never repeated as a task line.
   const taskLinesLeft = taskLines.filter(task => !highlightLineNumbers.has(task.line));
   const shown = taskLinesLeft.slice(0, maxTasks);
   // Every matching Highlight line, shown or counted in "+N": an Occurrence there would show it raw, `==` and all.
@@ -105,7 +105,7 @@ export function bodyText(
   return {
     highlights: shownHighlights,
     hiddenHighlights: allHighlights.length - shownHighlights.length,
-    // A line shown above carries its own mark: it is never repeated as an Occurrence.
+    // A line shown above is never repeated as an Occurrence.
     passages: passagesIn(lines, pattern).filter(p => !shownLineNumbers.has(p.line)),
     tasks,
     hiddenTasks: taskLinesLeft.length - shown.length,
@@ -124,7 +124,7 @@ function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): Hi
     // The line as the note reads it: every Highlight on it loses its `==` marks, only the matching ones are marked.
     let text = '';
     let pos = 0;
-    const marks: HighlightMark[] = [];
+    const spans: HighlightSpan[] = [];
 
     for (const found of onLine) {
       text += lines[line].slice(pos, found.start);
@@ -133,17 +133,17 @@ function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): Hi
 
       text += found.text;
 
-      if (matchesHighlight(found, criterion)) marks.push({ start, end: text.length, colour: found.colour });
+      if (matchesHighlight(found, criterion)) spans.push({ start, end: text.length, colour: found.colour });
 
       pos = found.end;
     }
 
     text += lines[line].slice(pos);
 
-    return windowsAround(text, marks).map(window => ({
+    return windowsAround(text, spans).map(window => ({
       line,
       text: window.text,
-      marks: window.spans,
+      highlights: window.spans,
       cutStart: window.cutStart,
       cutEnd: window.cutEnd,
     }));

@@ -171,9 +171,9 @@ export class Body {
       }
     }
 
-    const marked = highlights.length > 0 || passages.length > 0;
+    const occurrencesOrHighlights = highlights.length > 0 || passages.length > 0;
 
-    return { drawn: marked || tasks.length > 0, occurrences: marked };
+    return { drawn: occurrencesOrHighlights || tasks.length > 0, occurrences: occurrencesOrHighlights };
   }
 
   /** One Highlight passage per line, then the count of those left out. */
@@ -259,14 +259,14 @@ function appendHighlightPassage(el: HTMLElement, passage: HighlightPassage): voi
 
   if (passage.cutStart) el.appendText('… ');
 
-  for (const mark of passage.marks) {
-    el.appendText(passage.text.slice(pos, mark.start));
+  for (const highlight of passage.highlights) {
+    el.appendText(passage.text.slice(pos, highlight.start));
     el.createEl('mark', {
-      cls: ['snippet-highlight', 'body-highlight-mark'],
-      text: passage.text.slice(mark.start, mark.end),
-      attr: mark.colour ? { 'data-highlight': mark.colour } : {},
+      cls: ['snippet-highlight', 'body-highlight-text'],
+      text: passage.text.slice(highlight.start, highlight.end),
+      attr: highlight.colour ? { 'data-highlight': highlight.colour } : {},
     });
-    pos = mark.end;
+    pos = highlight.end;
   }
 
   el.appendText(passage.text.slice(pos));
