@@ -7,6 +7,7 @@ import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
 import { buildResultData } from "./engine/ResultData";
+import { HighlightColour } from "./engine/SearchStrategy";
 
 export const FINDER_VIEW_TYPE = "better-finder-view";
 
@@ -61,6 +62,7 @@ export class FinderMoodboard extends ItemView {
     this.uiHelper = new SearchUIHelper(this.app, this.core, this.searchBar.containerEl, {
       onHintClick: (label) => this.appendToQuery(label),
       onDateFilterClick: (value) => this.applyDateValue(value),
+      onHighlightColourClick: (colour) => this.toggleHighlightColour(colour),
     });
 
     const toggle = this.searchBar.createToggle();
@@ -192,6 +194,10 @@ export class FinderMoodboard extends ItemView {
 
   private applyDateValue(value: string): void {
     this.searchBar.setValue(SearchUIHelper.toggleDateValue(this.searchBar.getValue(), value));
+  }
+
+  private toggleHighlightColour(colour: HighlightColour): void {
+    this.searchBar.setValue(SearchUIHelper.toggleHighlightColour(this.searchBar.getValue(), colour));
   }
 
   private destroyObserver(): void {

@@ -5,6 +5,7 @@ import { SearchUIHelper } from "./SearchUIHelper";
 import { SearchHistory } from "./engine/SearchHistory";
 import { LatestSearch } from "./engine/LatestSearch";
 import { buildResultData } from "./engine/ResultData";
+import { HighlightColour } from "./engine/SearchStrategy";
 import { Body } from "./component/ui/Body";
 import "./FinderModal.css";
 
@@ -37,6 +38,7 @@ class FinderModal extends SuggestModal<SearchResult> {
       this.uiHelper = new SearchUIHelper(this.app, this.core, hintWrapper, {
         onHintClick: (label) => this.appendToQuery(label),
         onDateFilterClick: (value) => this.applyDateValue(value),
+        onHighlightColourClick: (colour) => this.toggleHighlightColour(colour),
       });
     }
 
@@ -96,6 +98,12 @@ class FinderModal extends SuggestModal<SearchResult> {
 
   private applyDateValue(value: string): void {
     this.inputEl.value = SearchUIHelper.toggleDateValue(this.inputEl.value, value);
+    this.inputEl.dispatchEvent(new Event('input'));
+    this.inputEl.focus();
+  }
+
+  private toggleHighlightColour(colour: HighlightColour): void {
+    this.inputEl.value = SearchUIHelper.toggleHighlightColour(this.inputEl.value, colour);
     this.inputEl.dispatchEvent(new Event('input'));
     this.inputEl.focus();
   }

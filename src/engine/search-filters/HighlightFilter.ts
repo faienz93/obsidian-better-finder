@@ -21,7 +21,8 @@ const COLOUR_BY_EMOJI: Record<string, HighlightColour> = {
   '🟥': 'red', '🟧': 'orange', '🟨': 'yellow', '🟩': 'green', '🟦': 'blue', '🟪': 'purple',
 };
 
-const COLOURS: HighlightColour[] = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
+/** The highlight colours, in the order Obsidian offers them. */
+export const COLOURS: HighlightColour[] = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
 
 // `highlight:` asks for any colour; each `highlight-<colour>:` adds its colour.
 const COLOUR_BY_KEY: Record<string, HighlightColour | undefined> = {
