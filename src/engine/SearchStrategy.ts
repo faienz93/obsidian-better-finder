@@ -130,27 +130,16 @@ export class SearchStrategyFactory {
       results = strategy.filter(results, excalidrawTypes, app);
     }
 
-    // Skip del default markdown-only quando il path filter è attivo
     const fileTypeStrategy = this.strategyMap.get('pdf') as FileTypeFilter;
-    const effectiveFileTypes = parsed.pathFilter && extensionTypes.length === 0
-      ? ['*']
-      : extensionTypes;
 
-    return fileTypeStrategy.filter(results, effectiveFileTypes, app);
+    return fileTypeStrategy.filter(results, extensionTypes, app);
   }
 
   /** Scope title: filtra sul basename */
   private applyTitleScope(files: TFile[], parsed: ParsedQuery, app: App): TFile[] {
-    const strategy = this.strategyMap.get('title');
+    const strategy = this.strategyMap.get('title') as TitleFilter;
 
-    if (strategy && isFilterable(strategy)) {
-      return strategy.filter(files, { scope: parsed.scope, remainingText: parsed.freeText }, app);
-    }
-
-    // Fallback: simple basename search
-    const searchTerm = parsed.freeText.toLowerCase();
-
-    return files.filter(f => f.basename.toLowerCase().includes(searchTerm));
+    return strategy.filter(files, { scope: parsed.scope, remainingText: parsed.freeText }, app);
   }
 
   async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<FreeTextResults> {
