@@ -10,7 +10,7 @@ import {
 } from "./search-filters";
 
 // Re-exported for the files that import them from here.
-export type { ParsedQuery, DateRange, TaskStatus } from "./search-filters";
+export type { ParsedQuery, DateRange, TaskStatus, HighlightCriterion, HighlightColour } from "./search-filters";
 export { SearchFilter } from "./search-filters";
 
 /** Files the free text kept, with the words that made each one match, keyed by path. */
@@ -69,8 +69,8 @@ export class SearchStrategyFactory {
   ];
 
   /**
-   * Applied in turn to the files. Highlight and the title Scope are not here: they replace or
-   * narrow the free text search instead.
+   * Applied in turn to the files. Highlight and the title Scope are not here: highlight reads file
+   * contents, so it narrows asynchronously before the free text; the title Scope narrows it.
    */
   private readonly narrowings: Array<Narrowing<QueryField>> = [
     this.tags, this.created, this.modified, this.path, new FileTypeGroup(), this.metadata, this.negation, this.task,
@@ -127,9 +127,9 @@ export class SearchStrategyFactory {
   }
 
   async filterFreeText(files: TFile[], parsed: ParsedQuery, app: App): Promise<FreeTextResults> {
-    // Apply highlight filter (async, reads file content)
+    // Reads file contents, so it narrows here, asynchronously, before the free text runs.
     if (parsed.highlightFilter) {
-      return { files: await this.highlightFilter.filterAsync(files, parsed.highlightFilter, app), matchedWords: new Map() };
+      files = await this.highlightFilter.filterAsync(files, parsed.highlightFilter, app);
     }
 
     if (!parsed.freeText) {
@@ -260,10 +260,12 @@ export class SearchStrategyFactory {
         // A bare key takes the next word, as long as no Filter claims it and it is a value it reads.
         const next = words[i + 1];
 
-        if (next === undefined || this.claim(next) || !reader.accepts(unquote(next))) continue;
-
-        token.value = unquote(next);
-        i++;
+        if (next !== undefined && !this.claim(next) && reader.accepts(unquote(next))) {
+          token.value = unquote(next);
+          i++;
+        } else if (!reader.valueOptional) {
+          continue;
+        }
       } else if (!reader.accepts(token.value)) {
         continue;
       }

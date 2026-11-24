@@ -1,49 +1,68 @@
 import { App, TFile } from "obsidian";
-import { QueryReader, QueryToken } from "./types";
+import { isExcalidraw } from "../excalidraw";
+import { HighlightCriterion, QueryReader, QueryToken } from "./types";
 
-/** Reads file content, so it narrows asynchronously, in place of the free text search. */
+/** One Highlight of a note: the line it sits on and the text between its `==` marks. */
+export interface Highlight {
+  line: number;
+  text: string;
+}
+
+// Opens and closes on the same line, as Obsidian draws it: a stray `==` never spans paragraphs.
+const HIGHLIGHT = /==([^\n]+?)==/g;
+
+/** Every Highlight in a note's content, in reading order. */
+export function highlightsIn(content: string): Highlight[] {
+  return content.split('\n').flatMap((lineText, line) =>
+    [...lineText.matchAll(HIGHLIGHT)].map(match => ({ line, text: match[1] })));
+}
+
+function escapeRegExp(text: string): string {
+  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+/** Whether a Highlight is one the criterion asks for: its word as a whole word, in any case. */
+export function matchesHighlight(highlight: Highlight, criterion: HighlightCriterion): boolean {
+  if (!criterion.word) return true;
+
+  // Word-boundary match: a plain substring match caught too many highlights (bug B5).
+  return new RegExp(`\\b${escapeRegExp(criterion.word)}\\b`, 'i').test(highlight.text);
+}
+
+/**
+ * `highlight:` alone keeps the notes with a Highlight; with a word, those with the word inside
+ * one. Reads file content, so it narrows asynchronously, before the free text search.
+ */
 export class HighlightFilter extends QueryReader<'highlightFilter'> {
   readonly label = 'highlight:';
   readonly desc = 'highlight';
   readonly field = 'highlightFilter';
   readonly keys = ['highlight'];
   readonly takesValue = true;
+  readonly valueOptional = true;
 
-  read(token: QueryToken, current: string | undefined): string {
-    return current ?? token.value;
+  read(token: QueryToken, current: HighlightCriterion | undefined): HighlightCriterion {
+    return {
+      colours: current?.colours ?? [],
+      word: current?.word ?? (token.value || undefined),
+    };
   }
 
-  async filterAsync(files: TFile[], term: string | undefined, app: App): Promise<TFile[]> {
-    if (!term) return files;
+  async filterAsync(files: TFile[], criterion: HighlightCriterion | undefined, app: App): Promise<TFile[]> {
+    if (!criterion) return files;
 
-    // Word-boundary match: a plain substring match caught too many highlights (bug B5).
-    const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-    const wordPattern = new RegExp(`\\b${escaped}\\b`, 'i');
-    const pattern = /==([^=]+)==/g;
-    const results: TFile[] = [];
+    const notes = files.filter(file => file.extension === 'md' && !isExcalidraw(app, file));
+    const kept = await Promise.all(notes.map(async (file) => {
+      try {
+        const content = await app.vault.cachedRead(file);
 
-    await Promise.all(
-      files
-        .filter(f => f.extension === 'md')
-        .map(async (file) => {
-          try {
-            const content = await app.vault.cachedRead(file);
-            let match: RegExpExecArray | null;
+        return highlightsIn(content).some(highlight => matchesHighlight(highlight, criterion));
+      } catch {
+        // Unreadable file: skip it.
+        return false;
+      }
+    }));
 
-            pattern.lastIndex = 0;
-
-            while ((match = pattern.exec(content)) !== null) {
-              if (wordPattern.test(match[1])) {
-                results.push(file);
-                break;
-              }
-            }
-          } catch {
-            // Unreadable file: skip it.
-          }
-        })
-    );
-
-    return results;
+    return notes.filter((_, i) => kept[i]);
   }
 }
