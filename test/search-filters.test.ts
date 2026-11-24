@@ -1,26 +1,17 @@
-import { App, TFile } from "obsidian";
+import { App } from "obsidian";
 import { TaskFilter } from "../src/engine/search-filters/TaskFilter";
 import { TagsFilter } from "../src/engine/search-filters/TagsFilter";
 import { NegationFilter } from "../src/engine/search-filters/NegationFilter";
 import { MetadataFilter } from "../src/engine/search-filters/MetadataFilter";
+import { fakeApp, fakeFile } from "./helpers/fakeVault";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 // ---- helpers -------------------------------------------------------------
 
-function fakeFile(path: string, extension = 'md'): TFile {
-  const basename = path.split('/').pop()?.replace(/\.\w+$/, '') ?? path;
-
-  return { path, basename, extension, stat: { mtime: 0, ctime: 0 } } as unknown as TFile;
-}
-
-/** App finta: la cache per path è dichiarata nel test */
-function fakeApp(cacheByPath: Record<string, any>): App {
-  return {
-    metadataCache: {
-      getFileCache: (file: TFile) => cacheByPath[(file as any).path] ?? null,
-    },
-  } as unknown as App;
+/** An App whose metadata cache is the one given per path. */
+function appWithCaches(cacheByPath: Record<string, any>): App {
+  return fakeApp(Object.fromEntries(Object.entries(cacheByPath).map(([path, cache]) => [path, { cache }])));
 }
 
 // ---- TaskFilter (bug B4) --------------------------------------------------
@@ -30,7 +21,7 @@ describe('TaskFilter', () => {
 
   it('filtra i file con task nello stato richiesto', () => {
     const files = [fakeFile('con-todo.md'), fakeFile('senza-task.md'), fakeFile('done.md')];
-    const app = fakeApp({
+    const app = appWithCaches({
       'con-todo.md': { listItems: [{ task: ' ' }] },
       'senza-task.md': { listItems: [] },
       'done.md': { listItems: [{ task: 'x' }] },
@@ -49,7 +40,7 @@ describe('TagsFilter', () => {
 
   it('NON matcha tag cugini con trattino (B2: #prompt ≠ #prompt-engineering)', () => {
     const files = [fakeFile('a.md'), fakeFile('b.md')];
-    const app = fakeApp({
+    const app = appWithCaches({
       'a.md': { tags: ['#prompt'] },
       'b.md': { tags: ['#prompt-engineering'] },
     });
@@ -59,21 +50,21 @@ describe('TagsFilter', () => {
 
   it('matcha la gerarchia con lo slash (#tag/figlio)', () => {
     const files = [fakeFile('a.md')];
-    const app = fakeApp({ 'a.md': { tags: ['#prompt/tecniche'] } });
+    const app = appWithCaches({ 'a.md': { tags: ['#prompt/tecniche'] } });
 
     expect(filter.filter(files, ['#prompt'], app)).toHaveLength(1);
   });
 
   it('matcha tag maiuscoli nei file (B3: #WAF)', () => {
     const files = [fakeFile('waf.md')];
-    const app = fakeApp({ 'waf.md': { tags: ['#WAF'] } });
+    const app = appWithCaches({ 'waf.md': { tags: ['#WAF'] } });
 
     expect(filter.filter(files, ['#waf'], app)).toHaveLength(1);
   });
 
   it('esclude gli archiviati salvo richiesta esplicita (#archive)', () => {
     const files = [fakeFile('vivo.md'), fakeFile('archiviato.md')];
-    const app = fakeApp({
+    const app = appWithCaches({
       'vivo.md': { tags: ['#x'] },
       'archiviato.md': { tags: ['#archive'] },
     });
@@ -89,8 +80,8 @@ describe('NegationFilter', () => {
   const filter = new NegationFilter();
 
   it('esclude i file per estensione e per tag', () => {
-    const files = [fakeFile('img.png', 'png'), fakeFile('nota.md'), fakeFile('draft.md')];
-    const app = fakeApp({
+    const files = [fakeFile('img.png'), fakeFile('nota.md'), fakeFile('draft.md')];
+    const app = appWithCaches({
       'nota.md': { tags: ['#x'] },
       'draft.md': { tags: ['#draft'] },
     });
@@ -108,7 +99,7 @@ describe('MetadataFilter', () => {
 
   it('matcha frontmatter con valori stringa e array', () => {
     const files = [fakeFile('a.md'), fakeFile('b.md'), fakeFile('c.md')];
-    const app = fakeApp({
+    const app = appWithCaches({
       'a.md': { frontmatter: { author: 'Mario Rossi' } },
       'b.md': { frontmatter: { author: ['Verdi', 'Rossi'] } },
       'c.md': { frontmatter: { author: 'Bianchi' } },

@@ -3,44 +3,13 @@ import { Finder } from "../src/Finder";
 import { buildResultData, ResultData } from "../src/engine/ResultData";
 import { CanvasTagCache } from "../src/engine/CanvasTagCache";
 import { SearchIndex } from "../src/engine/SearchIndex";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { fakeApp, resetCommonCaches } from "./helpers/fakeVault";
 
 // Which words a free text search matched is decided by MiniSearch itself, so this file uses the real one.
 jest.mock('minisearch', () => ({
   __esModule: true,
   default: jest.requireActual('../node_modules/minisearch/dist/cjs/index.cjs'),
 }));
-
-function fakeFile(path: string): TFile {
-  const name = path.split('/').pop() ?? path;
-  const extension = name.includes('.') ? name.split('.').pop() as string : '';
-  const basename = name.replace(/\.\w+$/, '');
-
-  return Object.assign(new TFile(), { path, basename, extension, stat: { mtime: 0, ctime: 0 } });
-}
-
-interface FakeVaultFile {
-  content?: string;
-  cache?: any;
-}
-
-/** A vault whose files are the keys of vault, each with its content and metadata cache. */
-function fakeApp(vault: Record<string, FakeVaultFile>): App {
-  const files = Object.keys(vault).map(fakeFile);
-
-  return {
-    vault: {
-      getFiles: () => files,
-      getMarkdownFiles: () => files.filter(f => f.extension === 'md'),
-      getAbstractFileByPath: (path: string) => files.find(f => f.path === path) ?? null,
-      cachedRead: (file: TFile) => Promise.resolve(vault[file.path]?.content ?? ''),
-      on: () => ({}),
-      offref: () => undefined,
-    },
-    metadataCache: { getFileCache: (file: TFile) => vault[file.path]?.cache ?? null },
-  } as unknown as App;
-}
 
 /** Runs the real search and builds the Data of every file it returns, keyed by path. */
 async function search(app: App, query: string, { withIndex = false } = {}): Promise<Map<string, ResultData>> {
@@ -81,8 +50,7 @@ describe('buildResultData: what a result shows for a query', () => {
   });
 
   beforeEach(() => {
-    (CanvasTagCache as any)._instance = null;
-    (SearchIndex as any)._instance = null;
+    resetCommonCaches();
   });
 
   it('with #project, #project/alpha is searched and #idea is not', async () => {

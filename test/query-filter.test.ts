@@ -1,8 +1,5 @@
-import { App, TFile } from "obsidian";
 import { SearchStrategyFactory } from "../src/engine/SearchStrategy";
-import { SearchIndex } from "../src/engine/SearchIndex";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { fakeApp, resetCommonCaches } from "./helpers/fakeVault";
 
 // Pins how the Filters of a parsed Query narrow the Vault together, so the loop that applies them
 // can be rewritten without changing a search.
@@ -17,19 +14,6 @@ interface FakeNote {
   mtime?: number;
 }
 
-function fakeFile(path: string, note: FakeNote): TFile {
-  const name = path.split('/').pop() as string;
-  const mtime = note.mtime ?? LONG_AGO;
-
-  return Object.assign(new TFile(), {
-    path,
-    basename: name.replace(/\.\w+$/, ''),
-    extension: name.split('.').pop(),
-    parent: { path: path.split('/').slice(0, -1).join('/') },
-    stat: { mtime, ctime: mtime },
-  });
-}
-
 const VAULT: Record<string, FakeNote> = {
   'Work/plan.md': { tags: ['#project/alpha'], frontmatter: { status: 'draft' }, tasks: [' '], mtime: NOW },
   'Work/report.pdf': {},
@@ -40,21 +24,11 @@ const VAULT: Record<string, FakeNote> = {
   'Home/sketch.md': { frontmatter: { 'excalidraw-plugin': 'parsed' } },
 };
 
-const FILES = Object.entries(VAULT).map(([path, note]) => fakeFile(path, note));
-
-const APP = {
-  metadataCache: {
-    getFileCache: (file: TFile) => {
-      const note = VAULT[file.path];
-
-      return {
-        tags: note.tags,
-        frontmatter: note.frontmatter,
-        listItems: note.tasks?.map(task => ({ task })),
-      };
-    },
-  },
-} as unknown as App;
+const APP = fakeApp(Object.fromEntries(Object.entries(VAULT).map(([path, note]) => [path, {
+  mtime: note.mtime ?? LONG_AGO,
+  cache: { tags: note.tags, frontmatter: note.frontmatter, listItems: note.tasks?.map(task => ({ task })) },
+}])));
+const FILES = APP.vault.getFiles();
 
 function search(query: string): string[] {
   const factory = SearchStrategyFactory.getInstance();
@@ -62,9 +36,7 @@ function search(query: string): string[] {
   return factory.filter(FILES, factory.parse(query), APP).map(f => f.path);
 }
 
-beforeEach(() => {
-  (SearchIndex as any)._instance = null;
-});
+beforeEach(resetCommonCaches);
 
 describe('filter: archive', () => {
   it('leaves archived notes out of a query without tags', () => {

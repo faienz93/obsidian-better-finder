@@ -1,40 +1,13 @@
-import { App, Command, TFile } from "obsidian";
+import { Command, TFile } from "obsidian";
 import { Finder, SearchResult } from "../src/Finder";
 import { SearchIndex } from "../src/engine/SearchIndex";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
+import { fakeApp, resetCommonCaches } from "./helpers/fakeVault";
 
 // The fuzzy and prefix matching under test belong to MiniSearch itself, so this file uses the real one.
 jest.mock('minisearch', () => ({
   __esModule: true,
   default: jest.requireActual('../node_modules/minisearch/dist/cjs/index.cjs'),
 }));
-
-function fakeFile(path: string): TFile {
-  const name = path.split('/').pop() ?? path;
-  const extension = name.includes('.') ? name.split('.').pop() as string : '';
-  const basename = name.replace(/\.\w+$/, '');
-
-  return Object.assign(new TFile(), { path, basename, extension, stat: { mtime: 0, ctime: 0 } });
-}
-
-/** A vault whose files are the keys of contentByPath, read through cachedRead. */
-function fakeApp(contentByPath: Record<string, string>, commands: Command[] = []): App {
-  const files = Object.keys(contentByPath).map(fakeFile);
-
-  return {
-    vault: {
-      getFiles: () => files,
-      getMarkdownFiles: () => files.filter(f => f.extension === 'md'),
-      getAbstractFileByPath: (path: string) => files.find(f => f.path === path) ?? null,
-      cachedRead: (file: TFile) => Promise.resolve(contentByPath[file.path] ?? ''),
-      on: () => ({}),
-      offref: () => undefined,
-    },
-    metadataCache: { getFileCache: () => null },
-    commands: { listCommands: () => commands },
-  } as unknown as App;
-}
 
 const paths = (results: SearchResult[]) => results.map(r => (r as TFile).path);
 
@@ -55,7 +28,7 @@ describe('Finder.getResults: search outcome', () => {
   });
 
   beforeEach(() => {
-    (SearchIndex as any)._instance = null;
+    resetCommonCaches();
   });
 
   describe('through the Index', () => {

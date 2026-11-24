@@ -16,4 +16,8 @@ Git only. Everything else is in [behaviour.md](./behaviour.md).
 - **One commit, one concern.** Don't mix a refactor with the feature that motivated it, or
   documentation with code, unless they genuinely cannot stand apart.
 
+- **Commit part of a file in one call.** Stage the hunks and commit in the same Bash command, and
+  check `git diff --cached --stat` against the proposal first: the maintainer's IDE can change the
+  index in between.
+
 - **Never push unless asked**, and never rewrite history that has already been pushed.

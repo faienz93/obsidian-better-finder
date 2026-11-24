@@ -35,7 +35,9 @@ Always run `npm run build` after a change and fix TypeScript errors before commi
 
 `npm run dev` usually runs in watch while the maintainer has Obsidian open, so any change to the working tree reloads the plugin. Inspect another commit with `git worktree`, never by checking it out here.
 
-Tests run in Node without Obsidian: `jest.config.js` maps `obsidian` and `minisearch` to the mocks in `test/mocks/`, and CSS imports to a stub. Tests build a fake `App` (metadata cache keyed by path, `cachedRead` over an in-memory map) and reset singletons through their private static field. Anything that touches the DOM is checked by hand: `npm run dev`, enable the plugin in Obsidian (the Hot Reload plugin reloads it on rebuild), exercise both the Modal and the Moodboard. When Obsidian runs with `--remote-debugging-port=9222`, `node scripts/obsidian-eval.mjs "<expression>"` reads its DOM, computed styles or state directly.
+Tests run in Node without Obsidian: `jest.config.js` maps `obsidian` and `minisearch` to the mocks in `test/mocks/`, and CSS imports to a stub. Build the fake Vault with `test/helpers/fakeVault.ts` (`fakeApp`, `fakeFile`, `resetCommonCaches`); its JSDoc gives the cache shape the mocks expect.
+
+Check anything that touches the DOM in Obsidian yourself, in both the Modal and the Moodboard. Start it in the background with `/snap/bin/obsidian --remote-debugging-port=9222`; with `npm run dev` running, the Hot Reload plugin reloads the plugin on rebuild. Then `node scripts/obsidian-query.mjs "<query>" …` types each Query into both views and prints the lit chips and the results, and `node scripts/obsidian-eval.mjs "<expression>"` reads any DOM, computed style or state.
 
 ## Architecture
 
@@ -63,9 +65,7 @@ A superseded search never resolves: `SuggestModal` applies whatever promise reso
 
 ### Filters
 
-`parse()` splits the Query into tokens once (a quoted run is one token) and hands each token to the Filter that claims its shape: a `prefix` (`#` Tags, `-` Negation), one of its `keys` in `key:value`, or one of its bare `keywords` (`pdf`, `image`…). A `key:value` no Filter claims goes to `MetadataFilter`; anything else is free text. Shapes never overlap (the factory throws if two Filters claim the same one), so registration order does not matter. Tokens are claimed whole: `c#sharp` is free text.
-
-Each Filter is a class in `src/engine/search-filters/` extending `QueryReader<K>` (reads its tokens into the `ParsedQuery` field `K`: `read`, `accepts`, `takesValue`, `freeTextOf`) or `SearchFilter<K>`, which adds `filter(files, value, app)`. `label`/`desc` feed the hint bar, and a chip lights when its Filter claims a token. Adding a Filter means: the class, its field in `ParsedQuery`, its export in `index.ts`, and one entry in `readers` (and in `narrowings` if it narrows) in `SearchStrategyFactory`. The file type Filters only read; `FileTypeGroup` narrows by all of them at once. `>` at the start of the Query switches to command mode before tokenizing. Tag matching is hierarchical: `#project` matches `#project/alpha` (`matchesTag`).
+Each Filter in `src/engine/search-filters/` declares the shape of the tokens it claims (a `#`/`-` prefix, a `key:`, a bare keyword); `parse()` splits the Query once and hands each token to its Filter, so there is no order to keep. An unclaimed `key:value` becomes a frontmatter filter, silently. Before adding a Filter, read `docs/07-aggiungere-un-filtro.md`. `>` at the start of the Query switches to command mode. Tag matching is hierarchical: `#project` matches `#project/alpha` (`matchesTag`).
 
 ### Common caches
 
