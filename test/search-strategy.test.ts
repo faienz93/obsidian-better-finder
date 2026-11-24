@@ -95,6 +95,16 @@ describe('SearchUIHelper.toggleFilter', () => {
     expect(SearchUIHelper.toggleFilter('task:done budget', 'task:')).toBe('budget ');
   });
 
+  it('removes every highlight token from the lit highlight: chip, colour keys and words included', () => {
+    expect(SearchUIHelper.toggleFilter('docker highlight-red:kafka highlight-blue:', 'highlight:')).toBe('docker ');
+    expect(SearchUIHelper.toggleFilter('highlight-green: kafka docker highlight:', 'highlight:')).toBe('docker ');
+  });
+
+  it('lights the highlight: chip for a colour key alone', () => {
+    expect(SearchStrategyFactory.getInstance().activeHints('highlight-purple: x').map(h => h.label))
+      .toEqual(['highlight:']);
+  });
+
   it('removes every tag, and only tags', () => {
     expect(SearchUIHelper.toggleFilter('#project #work note -#draft', '#')).toBe('note -#draft ');
   });
@@ -120,5 +130,48 @@ describe('SearchUIHelper.toggleFilter', () => {
   it('leaves command mode, keeping the text as free text', () => {
     expect(SearchUIHelper.toggleFilter('> toggle theme', '>')).toBe('toggle theme ');
     expect(SearchUIHelper.toggleFilter('>', '>')).toBe('');
+  });
+});
+
+describe('SearchUIHelper.toggleHighlightColour', () => {
+  it('turns highlight: into the colour key, keeping the word', () => {
+    expect(SearchUIHelper.toggleHighlightColour('highlight:kafka', 'red')).toBe('highlight-red:kafka ');
+    expect(SearchUIHelper.toggleHighlightColour('highlight:', 'blue')).toBe('highlight-blue: ');
+  });
+
+  it('adds a second colour alongside the first, keeping the word', () => {
+    const twoColours = SearchUIHelper.toggleHighlightColour('highlight-red:kafka', 'blue');
+
+    expect(SearchStrategyFactory.getInstance().parse(twoColours).highlightFilter)
+      .toEqual({ colours: ['red', 'blue'], word: 'kafka' });
+  });
+
+  it('removes a lit colour and keeps the others', () => {
+    expect(SearchUIHelper.toggleHighlightColour('highlight-red: highlight-blue:kafka', 'red'))
+      .toBe('highlight-blue:kafka ');
+  });
+
+  it('falls back to highlight: with the word when the last colour goes', () => {
+    expect(SearchUIHelper.toggleHighlightColour('highlight-red:kafka', 'red')).toBe('highlight:kafka ');
+    expect(SearchUIHelper.toggleHighlightColour('highlight-red: ', 'red')).toBe('highlight: ');
+  });
+
+  it('keeps the free text and the other Filters as they are', () => {
+    const query = SearchUIHelper.toggleHighlightColour('docker highlight:kafka #work spring', 'green');
+    const parsed = SearchStrategyFactory.getInstance().parse(query);
+
+    expect(parsed.freeText).toBe('docker spring');
+    expect(parsed.tags).toEqual(['#work']);
+    expect(parsed.highlightFilter).toEqual({ colours: ['green'], word: 'kafka' });
+  });
+
+  it('keeps a phrase whole, and a word a bare key took with a space', () => {
+    expect(SearchUIHelper.toggleHighlightColour('highlight:"event sourcing"', 'red'))
+      .toBe('highlight-red:"event sourcing" ');
+    expect(SearchUIHelper.toggleHighlightColour('Highlight: kafka', 'purple')).toBe('highlight-purple:kafka ');
+  });
+
+  it('leaves a query without the highlight filter as it is', () => {
+    expect(SearchUIHelper.toggleHighlightColour('kafka docker', 'red')).toBe('kafka docker');
   });
 });

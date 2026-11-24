@@ -5,6 +5,11 @@ export function isExcalidraw(app: App, file: TFile): boolean {
   return app.metadataCache.getFileCache(file)?.frontmatter?.['excalidraw-plugin'] === 'parsed';
 }
 
+/** A note is a markdown file, `.md` in any case, that is not an Excalidraw drawing. */
+export function isNote(app: App, file: TFile): boolean {
+  return file.extension.toLowerCase() === 'md' && !isExcalidraw(app, file);
+}
+
 // Blank lines may sit between the heading and the fence; the Excalidraw plugin writes one.
 const DRAWING_BLOCK = /^## Drawing[ \t]*(?:\r?\n[ \t]*)*\r?\n```(?:json|compressed-json)[ \t]*$/m;
 

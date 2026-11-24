@@ -86,7 +86,7 @@
   overflow-wrap: anywhere;
 }
 
-.body-card-occurrences + .task-snippet {
+.task-snippet + .body-card-occurrences {
   margin-top: 6px;
 }
 
@@ -111,4 +111,77 @@
 
 .finder-view-results.list-view .body-preview-toggle {
   display: none;
+}
+
+/* Highlights, with the highlight filter: one line each in an Item, whole in a Card */
+.body-highlights {
+  margin-top: 2px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  font-size: 12px;
+  line-height: 18px;
+  color: var(--text-muted);
+}
+
+.body-highlight {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+}
+
+/* A coloured Highlight looks as in the note: Obsidian's own highlight colours (1.14+), the base colour before */
+.body-highlight-text[data-highlight] {
+  color: var(--text-normal);
+}
+
+.body-highlight-text[data-highlight="red"] {
+  background: var(--highlight-background-red, rgba(var(--color-red-rgb), 0.3));
+}
+
+.body-highlight-text[data-highlight="orange"] {
+  background: var(--highlight-background-orange, rgba(var(--color-orange-rgb), 0.3));
+}
+
+.body-highlight-text[data-highlight="yellow"] {
+  background: var(--highlight-background-yellow, rgba(var(--color-yellow-rgb), 0.3));
+}
+
+.body-highlight-text[data-highlight="green"] {
+  background: var(--highlight-background-green, rgba(var(--color-green-rgb), 0.3));
+}
+
+.body-highlight-text[data-highlight="blue"] {
+  background: var(--highlight-background-blue, rgba(var(--color-blue-rgb), 0.3));
+}
+
+.body-highlight-text[data-highlight="purple"] {
+  background: var(--highlight-background-purple, rgba(var(--color-purple-rgb), 0.3));
+}
+
+/* A searched word inside a Highlight: underlined too, or it vanishes in a Highlight drawn in the accent colour */
+.body-highlight-text .snippet-highlight {
+  padding: 0;
+  text-decoration: underline;
+}
+
+.body-highlights-more {
+  font-size: 11px;
+  color: var(--text-faint);
+}
+
+.body-card-text .body-highlights {
+  gap: 6px;
+  margin-top: 0;
+}
+
+.body-card-text .body-highlight {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.body-highlights + .task-snippet,
+.body-highlights + .body-occurrences,
+.body-highlights + .body-card-occurrences {
+  margin-top: 6px;
 }
