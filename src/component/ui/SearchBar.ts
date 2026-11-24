@@ -1,9 +1,11 @@
 import { ToggleButton } from "./ToggleButton";
+import { ClearButton } from "./ClearButton";
 import "./SearchBar.css";
 
 export class SearchBar {
   private inputEl: HTMLInputElement;
   private resultCountEl: HTMLElement;
+  private clearButton: ClearButton;
   private toggle: ToggleButton;
   private headerEl: HTMLElement;
   readonly containerEl: HTMLElement;
@@ -21,6 +23,19 @@ export class SearchBar {
     });
 
     this.resultCountEl = inputWrapper.createSpan({ cls: "finder-view-count" });
+    this.clearButton = new ClearButton(inputWrapper, this.inputEl);
+  }
+
+  /**
+   * Clicking the x empties the Query and returns focus to the input. `func` runs first because the
+   * input event dispatched here is not trusted, so handlers that react only to typing ignore it.
+   */
+  public onClear(func: () => void) {
+    this.clearButton.onClick(() => {
+      func();
+      this.setValue('');
+      this.inputEl.focus();
+    });
   }
 
   public setValue(value: string): void {

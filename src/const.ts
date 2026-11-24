@@ -20,6 +20,7 @@ export const i18n = {
   exportEmpty: 'Nessun risultato da esportare',
   exportFailed: 'Esportazione fallita',
   exportButtonTitle: 'Esporta risultati in una nota',
+  clearQueryTitle: 'Cancella la ricerca',
   showPreview: 'Mostra anteprima',
   showOccurrences: 'Mostra occorrenze',
 };

@@ -78,6 +78,10 @@ export class FinderMoodboard extends ItemView {
 
       this.onSearch();
     });
+    // The x starts over: ↑ goes back to the latest search again.
+    this.searchBar.onClear(() => {
+      this.historyIndex = -1;
+    });
     this.attachHistoryNavigation();
   }
 
