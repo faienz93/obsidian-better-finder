@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import { escapeRegExp } from "../escapeRegExp";
-import { isExcalidraw } from "../excalidraw";
+import { isNote } from "../excalidraw";
 import { HighlightColour, HighlightCriterion, QueryReader, QueryToken } from "./types";
 
 /** One Highlight of a note: the line it sits on and the text between its `==` marks. */
@@ -93,7 +93,7 @@ export class HighlightFilter extends QueryReader<'highlightFilter'> {
   async filterAsync(files: TFile[], criterion: HighlightCriterion | undefined, app: App): Promise<TFile[]> {
     if (!criterion) return files;
 
-    const notes = files.filter(file => file.extension === 'md' && !isExcalidraw(app, file));
+    const notes = files.filter(file => isNote(app, file));
     const kept = await Promise.all(notes.map(async (file) => {
       try {
         const content = await app.vault.cachedRead(file);

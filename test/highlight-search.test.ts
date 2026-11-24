@@ -103,6 +103,10 @@ describe('Finder.getResults: highlight filter', () => {
     expect(await search(vault, 'highlight:kafka')).toEqual(['note.md']);
   });
 
+  it('matches a note whose extension is in capitals, as the Body shows it', async () => {
+    expect(await search({ 'NOTE.MD': '==kafka== notes' }, 'highlight:kafka')).toEqual(['NOTE.MD']);
+  });
+
   const COLOURED = {
     'red.md': 'a ==🔴kafka streams== note',
     'orange.md': 'a ==🟠kafka== note',

@@ -2,7 +2,7 @@ import { App, ListItemCache, TFile } from "obsidian";
 import { SearchOutcome } from "../Finder";
 import { ImagePreview } from "../component/ui/ImagePreview";
 import { getFileTags } from "./fileTags";
-import { isExcalidraw } from "./excalidraw";
+import { isNote } from "./excalidraw";
 import { fileTypeIcon, FileTypeIcon } from "./fileTypeIcon";
 import { isDoneTask } from "./search-filters/TaskFilter";
 import { matchesTag } from "./search-filters/TagsFilter";
@@ -43,11 +43,10 @@ export function buildResultData(app: App, file: TFile, outcome: SearchOutcome): 
   const tags = getFileTags(file, app);
   const searchedTags = tags.filter(tag => parsed.tags.some(queryTag => matchesTag(tag, queryTag)));
   // A drawing's text is its encoded scene: it shows its Preview, never Occurrences.
-  const isNote = file.extension.toLowerCase() === 'md' && !isExcalidraw(app, file);
-  const snippetWords = isNote ? outcome.matchedWords.get(file.path) ?? [] : [];
+  const snippetWords = isNote(app, file) ? outcome.matchedWords.get(file.path) ?? [] : [];
   const tasks = parsed.taskFilter ? tasksOf(app, file) : [];
-  const taskLines = isNote && parsed.taskFilter ? pickTaskLines(tasks, parsed.taskFilter) : [];
-  const highlightCriterion = isNote ? parsed.highlightFilter : undefined;
+  const taskLines = isNote(app, file) && parsed.taskFilter ? pickTaskLines(tasks, parsed.taskFilter) : [];
+  const highlightCriterion = isNote(app, file) ? parsed.highlightFilter : undefined;
   const showsMarks = snippetWords.length > 0 || highlightCriterion !== undefined;
 
   return {
