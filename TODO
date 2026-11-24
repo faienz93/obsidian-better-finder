@@ -5,6 +5,7 @@ la mia idea di plugin di obsidian è quella di creare una tab di ricerca che ti 
 - [ ] Aggiungere ricerca per cercare i backlink?? Aggiungere il linked file dalla ricerca
 - [ ] Cronologia ricerche nel modal (in sidebar c'è con ↑/↓; nel modal le frecce sono occupate)
 - [ ] JSDoc, i18n completa
+- [ ] Modal layout: Previews overflow the Items (a big heading over the first Item, excerpt text spilling left and right)
 
 ## 🚧 In Progress
 
