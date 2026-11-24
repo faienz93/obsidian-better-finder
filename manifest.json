@@ -1,7 +1,7 @@
 {
 	"id": "obsidian-better-finder",
 	"name": "Obsidian Better Finder",
-	"version": "1.0.0",
+	"version": "1.0.1",
 	"minAppVersion": "1.5.7",
 	"description": "Search the vault by tags, dates, paths, file types and content, from a keyboard Modal or a Moodboard tab.",
 	"author": "Antonio Faienza",
