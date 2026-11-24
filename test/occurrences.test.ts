@@ -180,6 +180,15 @@ describe('bodyText: Highlights under the highlight filter', () => {
     expect(body.passages.map(p => p.line)).toEqual([3]);
   });
 
+  it('never repeats a Highlight line left out by the cap as an Occurrence', () => {
+    const note = Array.from({ length: 4 }, (_, i) => `line ==kafka ${i}== end`).join('\n');
+    const body = bodyText(note, ['kafka'], [], { colours: [], word: 'kafka' });
+
+    expect(body.highlights.map(h => h.line)).toEqual([0, 1, 2]);
+    expect(body.hiddenHighlights).toBe(1);
+    expect(body.passages).toEqual([]);
+  });
+
   it('skips a Highlight with nothing but spaces in it', () => {
     expect(bodyText('==   ==\nsome ==important== text', [], [], ANY).highlights.map(showMarked)).toEqual([
       'some [important] text',

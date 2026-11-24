@@ -90,7 +90,8 @@ export function bodyText(
   // A line shown as a Highlight carries its own mark: it is never repeated as a task line.
   const taskLinesLeft = taskLines.filter(task => !highlightLineNumbers.has(task.line));
   const shown = taskLinesLeft.slice(0, maxTasks);
-  const shownLineNumbers = new Set([...highlightLineNumbers, ...shown.map(task => task.line)]);
+  // Every matching Highlight line, shown or counted in "+N": an Occurrence there would show it raw, `==` and all.
+  const shownLineNumbers = new Set([...allHighlights.map(passage => passage.line), ...shown.map(task => task.line)]);
   const tasks = shown
     .map(task => {
       const text = taskText(lines[task.line] ?? '');
