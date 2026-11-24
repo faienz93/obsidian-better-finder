@@ -50,9 +50,10 @@ it when lit removes every token of that Filter, values included.
 _Avoid_: hint, button, tag
 
 **Value chip**:
-A control that offers one value for a Filter, such as `today` or `this-week` for a date Filter.
-Clicking it sets that value; clicking it when it is the current value clears the value but keeps
-the Filter.
+A control that offers one value for a Filter, such as `today` or `this-week` for a date Filter, or a
+colour for the highlight filter. Clicking it when unlit applies that value; clicking it when lit
+removes it but keeps the Filter. A Filter takes one value at a time (a date replaces the previous
+one) or several (colours add up).
 _Avoid_: sub-hint, filter value
 
 ### What comes back
@@ -105,8 +106,8 @@ _Avoid_: thumbnail
 
 **Body**:
 The part of a Card or an Item below the title. It shows what the Data chose for that result: its
-Occurrences, its task lines, its Preview, or nothing. With both free text and a task filter it shows
-the Occurrences and the task lines together.
+Occurrences, its task lines, its Highlights, its Preview, or nothing. With free text and a task or
+highlight filter it shows them together, Highlights and task lines first, never the same line twice.
 _Avoid_: content, preview area
 
 **Occurrences**:
@@ -115,6 +116,14 @@ the word highlighted, like `grep` with context. Each word of the free text is lo
 including the near spellings and prefixes the search accepted. Nearby occurrences merge into one
 passage. It explains why the result matched; a Preview only shows what the file is.
 _Avoid_: snippet, excerpt, highlight, match
+
+**Highlight**:
+Text the user marked in a note with `==…==`, Obsidian's own word for it. A Highlight lies within one
+line and has a colour: one of six the user picks (red, orange, yellow, green, blue, purple) or the
+theme's default. With the highlight filter the Body shows a note's Highlights the way it shows
+Occurrences: the marked text in its colour, with a few words of context. Not to be confused with an
+Occurrence, which is a searched word the Body marks.
+_Avoid_: mark, evidenziazione
 
 ### What is searched
 
