@@ -13,14 +13,16 @@ separate "advanced search" form.
 _Avoid_: search string, input, term
 
 **Filter**:
-A prefixed token inside a query that narrows results by a property rather than by words, such as
-`#tag`, `path:`, `task:`, `modified:` or `-pdf`. Every filter owns both the parsing of its own token
-and the narrowing it performs.
+A token inside a query that narrows results by a property rather than by words: a `#tag`, a
+`key:value` such as `path:`, `task:` or `modified:`, a bare keyword such as `pdf` or `image`, or one
+of these negated with `-`. Every filter recognises its own tokens, by their shape rather than by
+their position in the query, and owns the narrowing it performs. A `key:value` whose key no filter
+claims is read as a frontmatter property.
 _Avoid_: strategy, modifier, operator, facet
 
 **Free text**:
-Whatever is left of the query once every filter token has been removed. This is the part matched
-against titles and content.
+The words of the query that no filter recognises. This is the part matched against titles and
+content.
 _Avoid_: query rest, remainder, keywords
 
 **Command mode**:

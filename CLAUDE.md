@@ -52,8 +52,8 @@ Both go through the same pipeline:
 Query typed in Modal or Moodboard
   → LatestSearch.run()        one per view: 150 ms debounce, only the latest search settles
     → Finder.getResults()
-      → SearchStrategyFactory.parse()        Query → ParsedQuery
-      → SearchStrategyFactory.filter()       each Filter narrows TFile[]
+      → SearchStrategyFactory.parse()        Query → tokens → ParsedQuery
+      → SearchStrategyFactory.filter()       each narrowing narrows TFile[] in turn
       → filterFreeText()                     Index (MiniSearch) or direct file scan
     → SearchResult[]  (TFile | Command; isCommand()/isFile() tell them apart)
   → view builds the Data per result and draws it
@@ -63,7 +63,9 @@ A superseded search never resolves: `SuggestModal` applies whatever promise reso
 
 ### Filters
 
-Each Filter is a class in `src/engine/search-filters/` extending `SearchFilter<T>`: `extract(query)` parses its token, `removeFrom(query)` strips it, `filter(files, extracted, app)` narrows, and `label`/`desc` feed the hint bar. Adding a Filter still means registering it by hand in `search-filters/index.ts`, `types.ts` (`ParsedQuery`) and in both `parse()` and `filter()` of `SearchStrategyFactory`, whose order is written out in the method bodies; collapsing that into one ordered registry is candidate 1 of `docs/architecture-review-2026-10-09.html`. `>` at the start of the Query switches to command mode. Tag matching is hierarchical: `#project` matches `#project/alpha` (`matchesTag`).
+`parse()` splits the Query into tokens once (a quoted run is one token) and hands each token to the Filter that claims its shape: a `prefix` (`#` Tags, `-` Negation), one of its `keys` in `key:value`, or one of its bare `keywords` (`pdf`, `image`…). A `key:value` no Filter claims goes to `MetadataFilter`; anything else is free text. Shapes never overlap (the factory throws if two Filters claim the same one), so registration order does not matter. Tokens are claimed whole: `c#sharp` is free text.
+
+Each Filter is a class in `src/engine/search-filters/` extending `QueryReader<K>` (reads its tokens into the `ParsedQuery` field `K`: `read`, `accepts`, `takesValue`, `freeTextOf`) or `SearchFilter<K>`, which adds `filter(files, value, app)`. `label`/`desc` feed the hint bar, and a chip lights when its Filter claims a token. Adding a Filter means: the class, its field in `ParsedQuery`, its export in `index.ts`, and one entry in `readers` (and in `narrowings` if it narrows) in `SearchStrategyFactory`. The file type Filters only read; `FileTypeGroup` narrows by all of them at once. `>` at the start of the Query switches to command mode before tokenizing. Tag matching is hierarchical: `#project` matches `#project/alpha` (`matchesTag`).
 
 ### Common caches
 

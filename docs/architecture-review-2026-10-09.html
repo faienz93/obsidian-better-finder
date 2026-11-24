@@ -22,7 +22,7 @@
 
       <header class="border-b border-slate-300 pb-6">
         <h1 class="font-serif text-4xl tracking-tight">Revisione architetturale</h1>
-        <p class="mt-1 font-mono text-sm text-slate-500">obsidian-better-finder · feature/roadmap-better-finder @ 6fd649f · 9 ottobre 2026 · stato aggiornato il 24 ottobre @ 00a9e42</p>
+        <p class="mt-1 font-mono text-sm text-slate-500">obsidian-better-finder · feature/roadmap-better-finder @ 6fd649f · 9 ottobre 2026 · stato aggiornato il 24 novembre @ de1eea4</p>
         <div class="mt-5 flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-600">
           <span class="flex items-center gap-2"><span class="inline-block w-5 h-3 border-2 border-slate-700"></span> modulo</span>
           <span class="flex items-center gap-2"><svg width="22" height="8"><line x1="0" y1="4" x2="22" y2="4" stroke="#475569" stroke-width="2" class="seam"/></svg> giunzione</span>
@@ -57,6 +57,7 @@
           <div class="flex items-baseline justify-between gap-4 flex-wrap">
             <h2 class="font-serif text-2xl">1 · Comprimere la pipeline di parsing della Query</h2>
             <div class="flex gap-2">
+              <span class="px-2 py-0.5 rounded text-xs font-semibold bg-emerald-600 text-white ring-1 ring-emerald-700">✓ Fatto · de1eea4</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-emerald-100 text-emerald-900 ring-1 ring-emerald-200">Consigliato</span>
               <span class="px-2 py-0.5 rounded text-xs font-medium bg-slate-100 text-slate-700 ring-1 ring-slate-200">in-process</span>
             </div>
@@ -131,6 +132,26 @@ flowchart TB
               <tr class="text-slate-500"><td class="py-0.5">src/const.ts</td><td class="text-right text-red-700">+1 — registrazione</td></tr>
             </table>
             <p class="mt-2 text-xs text-slate-600">4 file su 5 erano solo cablaggio. <span class="italic">Prova di cancellazione</span>: togliendo il registro la complessità ricompare in ogni punto che ha bisogno dei filtri nell'ordine giusto — quindi serve davvero, ma dovrebbe essere un dato, non due corpi di metodo da tenere allineati a mano.</p>
+          </div>
+
+          <div class="mt-4 rounded bg-amber-50 border border-amber-200 p-3 text-xs text-amber-900">
+            <p class="font-semibold mb-1">Correzione — sessione di grilling del 24 novembre</p>
+            <p class="leading-relaxed">
+              Il registro ordinato avrebbe scritto l'ordine in un posto solo, ma l'ordine resta. Esiste perché ogni Filtro scorre l'intera Query con la sua regex, due volte (<span class="font-mono">extract</span> e <span class="font-mono">removeFrom</span>), e si prende i token degli altri: <span class="font-mono">-image</span> va tolto prima che lo veda <span class="font-mono">ImageFilter</span>, <span class="font-mono">created:today</span> prima che lo veda <span class="font-mono">MetadataFilter</span>.
+              Omnisearch, liqe e fff-query-parser tengono anche loro due fasi (parse, poi filter), ma dividono la Query in token una volta sola. Le due fasi non costano: su 10 000 file <span class="font-mono">parse()</span> stava sotto i 45 µs, <span class="font-mono">filter()</span> sotto i 7 ms.
+            </p>
+          </div>
+
+          <div class="mt-4 rounded bg-emerald-50 border border-emerald-200 p-3 text-xs text-emerald-900">
+            <p class="font-semibold mb-1">Fatto — 75ae3cc, 8a8420c, de1eea4</p>
+            <p class="leading-relaxed">
+              <span class="font-mono">parse()</span> divide la Query in token una volta (un pezzo fra virgolette conta come uno) e dà ogni token al Filtro che ne riconosce la forma: un <span class="font-mono">prefix</span> (<span class="font-mono">#</span>, <span class="font-mono">-</span>), una delle sue <span class="font-mono">keys</span> in <span class="font-mono">key:value</span>, una delle sue <span class="font-mono">keywords</span>. Una <span class="font-mono">key:value</span> che nessuno rivendica va a Metadata, il resto è Testo libero. Le forme non si sovrappongono, quindi l'ordine non c'è più; se due Filtri rivendicano la stessa forma, la factory lancia un errore.
+              <span class="font-mono">filter()</span> è un ciclo sui restringimenti; i 6 Filtri di tipo file leggono soltanto, e restringe <span class="font-mono">FileTypeGroup</span>. Zero cast (erano 14), <span class="font-mono">parse()</span> 4–15 volte più veloce.
+            </p>
+            <p class="mt-2 leading-relaxed">
+              Un Filtro nuovo: la classe, il suo campo in <span class="font-mono">ParsedQuery</span>, l'export e una voce nella lista <span class="font-mono">readers</span> (più <span class="font-mono">narrowings</span> se restringe). Cambiamenti voluti, coperti da test: i token si prendono interi (<span class="font-mono">c#sharp</span>, <span class="font-mono">pdf,</span> sono Testo libero), <span class="font-mono">-path:x</span> non esclude più l'estensione <span class="font-mono">.path</span>, <span class="font-mono">path:"My Folder"</span> funziona.
+              Rimandati: negare <span class="font-mono">path:</span> e i metadata (#12) e le keyword nude che catturano parole normali, come <span class="font-mono">architettura di base</span> (#13).
+            </p>
           </div>
         </article>
 
@@ -654,9 +675,9 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
         <article class="rounded-lg border border-slate-200 bg-white p-5">
           <h3 class="font-serif text-lg">Trovato anche questo — minore, ma da sapere</h3>
           <ul class="mt-3 space-y-2 text-sm text-slate-700">
-            <li><span class="font-semibold">Il motore dipende da un tipo della UI.</span> <span class="font-mono text-xs">SearchFilter</span> implementa <span class="font-mono text-xs">HintsType</span> (types.ts:2,39), quindi <span class="font-mono text-xs">label</span> è insieme il prefisso di parsing, il testo del chip e la sonda di attivazione. <span class="font-mono text-xs">Finder.getActiveHints</span> fa <span class="font-mono text-xs">q.includes(label)</span>, così il chip di NegationFilter (<span class="font-mono text-xs">'-'</span>) si accende su <span class="font-mono text-xs">this-week</span> — che il parser invece, deliberatamente, <em>non</em> tratta come negazione. Parser ed evidenziatore sono in disaccordo per costruzione. <span class="text-xs text-amber-800 font-semibold">Ancora aperto.</span></li>
-            <li><span class="font-semibold">Undici downcast dall'unica astrazione che doveva evitarli.</span> Il registro è <span class="font-mono text-xs">Map&lt;string, SearchFilter&lt;unknown&gt;&gt;</span>, e ogni smistamento riafferma a mano il tipo concreto (<span class="font-mono text-xs">as TagsFilter</span>, <span class="font-mono text-xs">as PdfFilter</span>, …). Confluisce nel candidato 1. <span class="text-xs text-amber-800 font-semibold">Ancora aperto: oggi sono 14.</span></li>
-            <li><span class="font-semibold"><span class="font-mono text-xs">applyFileTypes</span> prende il filtro PDF per usarlo come matcher generico di estensioni</span> (SearchStrategy.ts:128) e gli passa un sentinella <span class="font-mono text-xs">'*'</span> non tipizzato. Se un domani <span class="font-mono text-xs">PdfFilter.filter</span> cominciasse a usare le proprie <span class="font-mono text-xs">extensions</span>, salterebbe tutto il filtraggio per tipo. <span class="text-xs text-amber-800 font-semibold">Ancora aperto (SearchStrategy.ts:134–136).</span></li>
+            <li><span class="font-semibold">Il motore dipende da un tipo della UI.</span> <span class="font-mono text-xs">SearchFilter</span> implementa <span class="font-mono text-xs">HintsType</span> (types.ts:2,39), quindi <span class="font-mono text-xs">label</span> è insieme il prefisso di parsing, il testo del chip e la sonda di attivazione. <span class="font-mono text-xs">Finder.getActiveHints</span> fa <span class="font-mono text-xs">q.includes(label)</span>, così il chip di NegationFilter (<span class="font-mono text-xs">'-'</span>) si accende su <span class="font-mono text-xs">this-week</span> — che il parser invece, deliberatamente, <em>non</em> tratta come negazione. Parser ed evidenziatore sono in disaccordo per costruzione. <span class="text-xs text-emerald-800 font-semibold">Disaccordo risolto in de1eea4: una chip si accende quando il suo Filtro rivendica un token. Il motore dipende ancora da <span class="font-mono">HintsType</span>.</span></li>
+            <li><span class="font-semibold">Undici downcast dall'unica astrazione che doveva evitarli.</span> Il registro è <span class="font-mono text-xs">Map&lt;string, SearchFilter&lt;unknown&gt;&gt;</span>, e ogni smistamento riafferma a mano il tipo concreto (<span class="font-mono text-xs">as TagsFilter</span>, <span class="font-mono text-xs">as PdfFilter</span>, …). Confluisce nel candidato 1. <span class="text-xs text-emerald-800 font-semibold">✓ Risolto in de1eea4: zero cast.</span></li>
+            <li><span class="font-semibold"><span class="font-mono text-xs">applyFileTypes</span> prende il filtro PDF per usarlo come matcher generico di estensioni</span> (SearchStrategy.ts:128) e gli passa un sentinella <span class="font-mono text-xs">'*'</span> non tipizzato. Se un domani <span class="font-mono text-xs">PdfFilter.filter</span> cominciasse a usare le proprie <span class="font-mono text-xs">extensions</span>, salterebbe tutto il filtraggio per tipo. <span class="text-xs text-emerald-800 font-semibold">✓ Risolto: il sentinella era morto (8a8420c), il restringimento per tipo è in <span class="font-mono">FileTypeGroup</span> (de1eea4).</span></li>
             <li><span class="font-semibold"><span class="font-mono text-xs">src/main.ts</span> e <span class="font-mono text-xs">src/settings.ts</span> sono il template di esempio intatto</span> — un secondo <span class="font-mono text-xs">main.ts</span>, un secondo <span class="font-mono text-xs">DEFAULT_SETTINGS</span>, una seconda scheda impostazioni, niente di tutto ciò compilato. CLAUDE.md già dice di ignorarli; cancellarli non costa nulla ed evita che una ricerca per nome restituisca prima il file sbagliato. <span class="text-xs text-amber-800 font-semibold">Ancora aperto.</span></li>
             <li><span class="font-semibold">I test bucano un campo static privato con <span class="font-mono text-xs">as any</span> per azzerare i singleton</span> (search-index.test.ts:25). La superficie di test è il campo, non l'interfaccia: è il segnale più chiaro che i singleton sono ciò che blocca la testabilità. <span class="text-xs text-slate-500 font-semibold">Ancora così in 4 file di test; CLAUDE.md lo documenta come prassi.</span></li>
           </ul>
@@ -703,7 +724,8 @@ return new Promise&lt;SearchResult[]&gt;((resolve) =&gt; {
               <li><span class="text-slate-500 font-mono mr-2">2</span><span class="line-through text-slate-500"><a href="#c7" class="underline">Debounce</a> — sistema le promise abbandonate; la diff più piccola dei tre bug</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (LatestSearch)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">3</span><span class="line-through text-slate-500"><a href="#c6" class="underline">Decisione sulla Preview</a> — mette d'accordo griglia, lista e modal</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (hasPreview)</span></li>
               <li><span class="text-slate-500 font-mono mr-2">4</span><span class="line-through text-slate-500"><a href="#c2" class="underline">Costruttore di Card</a> — sistema i tag divergenti nella sidebar</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (db7a8ab)</span></li>
-              <li><span class="text-slate-500 font-mono mr-2">5</span><a href="#c1" class="underline">Pipeline di parsing</a> — il grosso; rende sensati anche il <a href="#c5" class="underline">5</a> e il <a href="#c4" class="underline">4</a> <span class="ml-1 text-amber-300 font-semibold">← prossimo</span></li>
+              <li><span class="text-slate-500 font-mono mr-2">5</span><span class="line-through text-slate-500"><a href="#c1" class="underline">Pipeline di parsing</a> — il grosso; rende sensati anche il 5 e il 4</span> <span class="ml-1 text-emerald-400 font-semibold">✓ fatto (de1eea4)</span></li>
+              <li><span class="text-slate-500 font-mono mr-2">6</span><a href="#c5" class="underline">Finder</a> e <a href="#c4" class="underline">SearchIndex</a> — restano da valutare <span class="ml-1 text-amber-300 font-semibold">← prossimi</span></li>
             </ol>
             <p class="mt-3 text-slate-400 text-xs">Prima i bug, poi la struttura: i primi quattro sono piccoli e rilasciabili uno alla volta, e ciascuno elimina una decisione duplicata.</p>
           </div>
