@@ -3,7 +3,7 @@ import { HintBar } from "./component/ui/HintBar";
 import { HintBarSub } from "./component/ui/HintBarSub";
 import { TagsPreview } from "./component/ui/TagsPreview";
 import { DATE_VALUES, DATE_VALUE_PATTERN } from "./engine/search-filters/DateFilter";
-import { COLOURS } from "./engine/search-filters/HighlightFilter";
+import { COLOURS, isHighlightColour } from "./engine/search-filters/HighlightFilter";
 import { HighlightColour, SearchStrategyFactory } from "./engine/SearchStrategy";
 import { Finder } from "./Finder";
 import { i18n } from "./const";
@@ -46,7 +46,7 @@ export class SearchUIHelper {
       i18n.dateFormatPlaceholder
     );
     this.colourBar = new HintBarSub(containerEl, (value) => {
-      callbacks.onHighlightColourClick?.(value as HighlightColour);
+      if (isHighlightColour(value)) callbacks.onHighlightColourClick?.(value);
     }, 'sub-hint-bar-highlight');
     this.colourBar.setContent(COLOURS);
   }
