@@ -2,6 +2,7 @@ import { App, Component, TFile, MarkdownRenderer, setIcon } from "obsidian";
 import { XbergExtractor } from "../../engine/XbergExtractor";
 import { isExcalidraw } from "../../engine/excalidraw";
 import { CodePreview } from "./CodePreview";
+import { PdfPreview } from "./PdfPreview";
 import "./ImagePreview.css";
 
 const OFFICE_ICONS: Record<string, string> = {
@@ -54,6 +55,12 @@ export class ImagePreview {
 
       if (ext in OFFICE_ICONS) {
         await this.loadOfficePreview(file, ext, containerEl);
+
+        return;
+      }
+
+      if (ext === 'pdf') {
+        await PdfPreview.getInstance(this.app).draw(file, containerEl);
 
         return;
       }
