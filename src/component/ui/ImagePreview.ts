@@ -66,8 +66,8 @@ export class ImagePreview {
   }
 
   /**
-   * Preview per docx/xlsx: icona + badge estensione; se Xberg è disponibile,
-   * mostra anche un estratto testuale del contenuto.
+   * Preview for docx/xlsx: an icon and the extension badge, plus a text excerpt when Xberg is
+   * available.
    */
   private async loadOfficePreview(file: TFile, ext: string, containerEl: HTMLElement): Promise<void> {
     containerEl.addClass('office-thumbnail');

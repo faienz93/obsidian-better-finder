@@ -1,14 +1,13 @@
 import { HISTORY_MAX_ENTRIES } from "src/const";
 
 /**
- * Cronologia delle ricerche (ultime N query che hanno portato all'apertura
- * di un risultato). Persistita nei dati del plugin: main.ts inietta le voci
- * salvate e la callback di persistenza via init().
+ * Search history: the last N queries that led to opening a result. Persisted in the plugin data:
+ * main.ts injects the saved entries and the persistence callback through init().
  */
 export class SearchHistory {
   private static _instance: SearchHistory | null;
   private entries: string[] = [];
-  private persist: (entries: string[]) => void = () => { /* no-op finché non inizializzata */ };
+  private persist: (entries: string[]) => void = () => { /* no-op until initialised */ };
 
   public static getInstance(): SearchHistory {
     if (!SearchHistory._instance) {
@@ -28,7 +27,7 @@ export class SearchHistory {
 
     if (!trimmed) return;
 
-    // Dedup: la query risale in cima
+    // Dedup: the query moves back to the top.
     this.entries = [trimmed, ...this.entries.filter(e => e !== trimmed)].slice(0, HISTORY_MAX_ENTRIES);
     this.persist(this.entries);
   }

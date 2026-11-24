@@ -1,11 +1,9 @@
 import { ResultData } from "../../engine/ResultData";
 import { Body } from "../ui/Body";
 import { ModalItem } from "./ModalItem";
-import { Title } from "../ui/Title";
 
 export class ModalUI {
   private item: ModalItem;
-  private title!: Title;
   private body: Body;
 
   constructor(el: HTMLElement, body: Body) {
@@ -16,10 +14,10 @@ export class ModalUI {
   public render(data: ResultData): void {
     const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
-    this.title = this.item.setTitle(file.basename);
+    const title = this.item.setTitle(file.basename);
 
     if (typeIcon) {
-      this.title.addTypeIcon(typeIcon);
+      title.addTypeIcon(typeIcon);
     }
 
     this.item.setMetadata(

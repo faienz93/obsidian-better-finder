@@ -8,8 +8,8 @@ export interface MetadataPair {
 }
 
 /**
- * Strategy sui metadati frontmatter: author:rossi, status:draft, ecc.
- * Match case-insensitive per substring; supporta valori array (es. lista autori).
+ * Frontmatter properties: author:rossi, status:draft, etc.
+ * Case-insensitive substring match; array values (e.g. a list of authors) are supported.
  */
 export class MetadataFilter extends SearchFilter<'metadataFilters'> {
   readonly label = 'author:';
@@ -40,7 +40,7 @@ export class MetadataFilter extends SearchFilter<'metadataFilters'> {
   }
 
   private matches(frontmatter: Record<string, unknown>, pair: MetadataPair): boolean {
-    // Lookup case-insensitive della chiave
+    // The key is looked up case-insensitively.
     const key = Object.keys(frontmatter).find(k => k.toLowerCase() === pair.key);
 
     if (!key) return false;

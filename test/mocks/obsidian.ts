@@ -1,7 +1,6 @@
 /**
- * Mock minimale del modulo "obsidian" per i test unitari.
- * Solo le superfici toccate dalla logica pura: le classi sono stub vuoti,
- * getAllTags legge il campo `tags` della cache finta.
+ * Minimal mock of the "obsidian" module for unit tests. Only the surface the pure logic touches:
+ * classes are empty stubs, and getAllTags reads the `tags` field of the fake cache.
  */
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

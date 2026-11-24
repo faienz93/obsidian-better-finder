@@ -9,7 +9,7 @@ import {
   NegationFilter, MetadataFilter,
 } from "./search-filters";
 
-// Re-export per compatibilità con i file che importano da qui
+// Re-exported for the files that import them from here.
 export type { ParsedQuery, DateRange, TaskStatus } from "./search-filters";
 export { SearchFilter } from "./search-filters";
 
@@ -140,8 +140,8 @@ export class SearchStrategyFactory {
     const hasExplicitFileTypes = parsed.fileTypes.length > 0;
     const freeTextWords = [...new Set(parsed.freeText.toLowerCase().split(/\s+/))];
 
-    // No explicit file type filter: use MiniSearch (markdown + documenti esterni
-    // tipo PDF/OCR) + basename search per i file non indicizzati
+    // No explicit file type filter: MiniSearch (markdown plus external documents such as
+    // PDF/OCR), plus a basename search for the files it did not index.
     if (!hasExplicitFileTypes && searchIndex.isIndexReady()) {
       const candidatePaths = new Set(files.map(f => f.path));
       const indexResults = searchIndex.search(parsed.freeText).filter(r => candidatePaths.has(r.file.path));

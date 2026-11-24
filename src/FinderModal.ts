@@ -1,4 +1,4 @@
-import { App, Component, SuggestModal, TFile } from "obsidian";
+import { App, Component, SuggestModal } from "obsidian";
 import { Finder, SearchOutcome, SearchResult, isCommand } from "./Finder";
 import { ModalUI } from "./component/Modal/ModalUI";
 import { SearchUIHelper } from "./SearchUIHelper";
@@ -85,15 +85,14 @@ class FinderModal extends SuggestModal<SearchResult> {
 
     if (!this.outcome) return;
 
-    new ModalUI(el, this.body).render(buildResultData(this.app, result as TFile, this.outcome));
+    new ModalUI(el, this.body).render(buildResultData(this.app, result, this.outcome));
   }
 
   private appendToQuery(token: string): void {
-    const current = this.inputEl.value.split(' ').filter((w, i, arr) => w || i < arr.length - 1).join(' ');
-    const alreadyPresent = current.toLowerCase().includes(token.toLowerCase());
+    const appended = SearchUIHelper.appendToken(this.inputEl.value, token);
 
-    if (!alreadyPresent) {
-      this.inputEl.value = current ? `${current} ${token} ` : `${token} `;
+    if (appended !== null) {
+      this.inputEl.value = appended;
     }
 
     this.inputEl.dispatchEvent(new Event('input'));

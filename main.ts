@@ -35,7 +35,7 @@ export default class ObsidianBetterFinder extends Plugin {
 
     await this.loadSettings();
 
-    // Cronologia ricerche: carica le voci salvate e collega la persistenza
+    // Search history: load the saved entries and wire up persistence.
     SearchHistory.getInstance().init(this.settings.searchHistory, (entries) => {
       this.settings.searchHistory = entries;
       this.saveSettings().catch(console.error);
@@ -72,13 +72,13 @@ export default class ObsidianBetterFinder extends Plugin {
       this.searchIndex = SearchIndex.getInstance(this.app);
       await this.searchIndex.buildIndex();
 
-      // Cache dei tag nei canvas (non passano dal metadataCache)
+      // Tags inside canvases, which never reach the metadataCache.
       const canvasTagCache = CanvasTagCache.getInstance(this.app);
 
       await canvasTagCache.buildCache();
 
-      // Estrazione PDF/OCR via Xberg: parte in background, non blocca l'avvio.
-      // Se il binario non è installato l'extractor si disattiva da solo.
+      // PDF/OCR extraction through Xberg runs in the background and does not block startup.
+      // Without the binary installed, the extractor disables itself.
       const xbergExtractor = XbergExtractor.getInstance(this.app);
 
       xbergExtractor.indexAll().catch(console.error);

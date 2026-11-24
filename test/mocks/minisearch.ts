@@ -1,6 +1,6 @@
 /**
- * Mock minimale di MiniSearch: il costruttore va soddisfatto per istanziare
- * SearchIndex nei test, ma i test del fallback non usano l'indice full-text.
+ * Minimal MiniSearch mock: SearchIndex needs the constructor to exist in tests, but the fallback
+ * tests never use the full-text index.
  */
 export default class MiniSearch {
   constructor(_options?: unknown) { /* stub */ }

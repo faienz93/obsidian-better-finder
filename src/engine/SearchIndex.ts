@@ -2,12 +2,15 @@ import { App, TFile, Notice } from "obsidian";
 import MiniSearch from 'minisearch';
 import { CommonCache } from "./CommonCache";
 
+// The first 10 000 characters are enough to find most notes, and keep indexing fast.
+const MAX_CONTENT_LENGTH = 10000;
+
 interface IndexedDocument {
   id: string;           // file.path
-  basename: string;     // file.basename (peso alto nel ranking)
-  content: string;      // contenuto del file (primi N caratteri)
-  mtime: number;        // per tracking modifiche
-  extension: string;    // per filtri futuri
+  basename: string;     // file.basename (weighted high in the ranking)
+  content: string;      // file content (first MAX_CONTENT_LENGTH characters)
+  mtime: number;        // to track changes
+  extension: string;    // for future filters
 }
 
 /** A file the Index found, with the document terms MiniSearch matched in it. */
@@ -26,19 +29,18 @@ export class SearchIndex implements CommonCache {
   private constructor(app: App) {
     this.app = app;
 
-    // Configurazione MiniSearch
     this.miniSearch = new MiniSearch({
-      fields: ['basename', 'content'],  // Campi indicizzati per ricerca
-      storeFields: ['id', 'mtime', 'extension'],  // Campi salvati per retrieval
+      fields: ['basename', 'content'],
+      storeFields: ['id', 'mtime', 'extension'],
       searchOptions: {
-        boost: { basename: 5 },         // Titolo pesa 5x più del contenuto
-        // Fuzzy solo su termini lunghi: su parole corte produce falsi positivi
-        // (es. "Bacca" → "becca"). Vedi bug B1.
+        boost: { basename: 5 },         // The title weighs 5x the content
+        // Fuzzy only on long terms: on short words it gives false positives
+        // ("Bacca" → "becca"). See bug B1.
         fuzzy: (term) => term.length >= 6 ? 0.2 : false,
-        // Prefix solo sull'ultimo token: è quello che l'utente sta ancora
-        // digitando; i precedenti sono parole complete.
+        // Prefix only on the last token: the user is still typing it; the
+        // previous ones are complete words.
         prefix: (term, index, terms) => index === terms.length - 1,
-        combineWith: 'AND'              // Tutte le parole devono essere presenti
+        combineWith: 'AND'              // Every word must be present
       }
     });
   }
@@ -51,18 +53,14 @@ export class SearchIndex implements CommonCache {
     return SearchIndex._instance;
   }
 
-  /**
-   * Costruisce l'indice iniziale di tutti i file markdown
-   * Usa batching per non bloccare l'UI
-   */
+  /** Builds the initial index of every markdown file, in batches so the UI is not blocked. */
   async buildIndex(): Promise<void> {
     const files = this.app.vault.getMarkdownFiles();
-    const BATCH_SIZE = 100; // Processa 100 file alla volta
+    const BATCH_SIZE = 100;
 
     console.log(`[SearchIndex] Building index for ${files.length} markdown files...`);
     const startTime = Date.now();
 
-    // Mostra notice all'utente
     const notice = new Notice(`Indexing ${files.length} files...`, 0);
 
     try {
@@ -84,10 +82,9 @@ export class SearchIndex implements CommonCache {
           this.miniSearch.addAll(docs);
         }
 
-        // Aggiorna progress
         notice.setMessage(`Indexing... ${Math.min(i + BATCH_SIZE, files.length)}/${files.length}`);
 
-        // Yield all'event loop per non bloccare UI
+        // Yield to the event loop so the UI stays responsive.
         await new Promise(resolve => setTimeout(resolve, 0));
       }
 
@@ -106,26 +103,15 @@ export class SearchIndex implements CommonCache {
     }
   }
 
-  /**
-   * Indicizza un singolo file
-   */
   private async indexFile(file: TFile): Promise<IndexedDocument | null> {
     if (file.extension !== 'md') return null;
 
     try {
       const content = await this.app.vault.cachedRead(file);
-
-      // Limita contenuto per performance
-      // Primi 10.000 caratteri sono sufficienti per la maggior parte dei casi
-      const MAX_CONTENT_LENGTH = 10000;
-      const truncatedContent = content.length > MAX_CONTENT_LENGTH
-        ? content.slice(0, MAX_CONTENT_LENGTH)
-        : content;
-
       const doc: IndexedDocument = {
         id: file.path,
         basename: file.basename,
-        content: truncatedContent,
+        content: content.slice(0, MAX_CONTENT_LENGTH),
         mtime: file.stat.mtime,
         extension: file.extension
       };
@@ -140,9 +126,7 @@ export class SearchIndex implements CommonCache {
     }
   }
 
-  /**
-   * Ricerca full-text veloce usando l'indice
-   */
+  /** Fast full-text search through the index. */
   search(query: string, maxResults?: number): IndexResult[] {
     if (!this.isReady) {
       console.warn('[SearchIndex] Index not ready yet');
@@ -160,10 +144,9 @@ export class SearchIndex implements CommonCache {
       // MiniSearch reports terms as they appear in the document, so fuzzy and prefix matches give the full word.
       const indexResults: IndexResult[] = [];
 
-      for (const result of (maxResults !== undefined ? results.slice(0, maxResults) : results)) {
+      for (const result of results.slice(0, maxResults)) {
         const file = this.app.vault.getAbstractFileByPath(result.id);
 
-        // files[0].stat.ctime
         if (file instanceof TFile) {
           indexResults.push({ file, terms: result.terms });
         }
@@ -177,19 +160,15 @@ export class SearchIndex implements CommonCache {
     }
   }
 
-  /**
-   * Aggiorna un singolo file nell'indice (chiamato quando un file cambia)
-   */
+  /** Re-indexes one file when it changes. */
   async updateFile(file: TFile): Promise<void> {
     if (file.extension !== 'md') return;
 
     try {
-      // Rimuovi vecchia versione se esiste
       if (this.indexedPaths.has(file.path)) {
         this.miniSearch.discard(file.path);
       }
 
-      // Aggiungi nuova versione
       const doc = await this.indexFile(file);
 
       if (doc) {
@@ -200,15 +179,9 @@ export class SearchIndex implements CommonCache {
     }
   }
 
-  /**
-   * Aggiunge/aggiorna un documento con testo estratto esternamente
-   * (es. PDF o OCR immagini via XbergExtractor)
-   */
+  /** Adds or replaces a document whose text was extracted elsewhere (PDF or image OCR via XbergExtractor). */
   addExternalDocument(file: TFile, text: string): void {
-    if (this.indexedPaths.has(file.path)) {
-      this.miniSearch.discard(file.path);
-    }
-
+    this.discardPath(file.path);
     this.miniSearch.add({
       id: file.path,
       basename: file.basename,
@@ -219,21 +192,13 @@ export class SearchIndex implements CommonCache {
     this.indexedPaths.add(file.path);
   }
 
-  /**
-   * Rimuove un file dall'indice (chiamato quando un file viene cancellato)
-   */
+  /** Removes a deleted file from the index. */
   removeFile(file: TFile): void {
     this.discardPath(file.path);
   }
 
-  /**
-   * Gestisce il rename di un file
-   */
   async renameFile(file: TFile, oldPath: string): Promise<void> {
-    // Rimuovi vecchio path
     this.discardPath(oldPath);
-
-    // Aggiungi con nuovo path
     await this.updateFile(file);
   }
 
@@ -285,16 +250,10 @@ export class SearchIndex implements CommonCache {
     }
   }
 
-  /**
-   * Verifica se l'indice è pronto
-   */
   isIndexReady(): boolean {
     return this.isReady;
   }
 
-  /**
-   * Ottieni statistiche sull'indice
-   */
   getStats(): { total: number; ready: boolean } {
     return {
       total: this.indexedPaths.size,
@@ -302,9 +261,7 @@ export class SearchIndex implements CommonCache {
     };
   }
 
-  /**
-   * Ricostruisce l'indice da zero (per debug o reset)
-   */
+  /** Rebuilds the index from scratch, for debugging or a reset. */
   async rebuild(): Promise<void> {
     this.miniSearch.removeAll();
     this.indexedPaths.clear();
@@ -323,14 +280,12 @@ export class SearchIndex implements CommonCache {
     }
 
     const searchText = freeText.toLowerCase();
-    // searchText va escapato: senza escape termini con metacaratteri (c++,
-    // report(2024), 3.5) o rompono il regex (throw silenzioso → match di
-    // contenuto perso) o fanno da wildcard.
+    // Escaped, or terms with metacharacters (c++, report(2024), 3.5) either break the regex,
+    // losing the content match silently, or act as wildcards.
     const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const contentRegex = new RegExp(escaped, 'g');
 
-    // Legge i file in parallelo a batch: la versione seriale (await in for-loop)
-    // scandiva centinaia di file uno alla volta bloccando la ricerca su vault grandi.
+    // Reads files in parallel batches: one at a time blocked the search on large vaults.
     const BATCH_SIZE = 50;
     const scoredFiles: Array<{ file: TFile; score: number }> = [];
 

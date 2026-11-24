@@ -1,6 +1,6 @@
 import { App, TFile } from "obsidian";
 import { i18n } from "src/const";
-import { isExcalidraw } from "./ExcalidrawFilter";
+import { isExcalidraw } from "../excalidraw";
 import { Narrowing, QueryReader, QueryToken } from "./types";
 
 export abstract class FileTypeFilter extends QueryReader<'fileTypes'> {
@@ -22,7 +22,7 @@ export class FileTypeGroup implements Narrowing<'fileTypes'> {
   readonly field = 'fileTypes';
 
   filter(files: TFile[], types: string[], app: App): TFile[] {
-    const results = types.includes('excalidraw') ? files.filter(file => isExcalidraw(file, app)) : files;
+    const results = types.includes('excalidraw') ? files.filter(file => isExcalidraw(app, file)) : files;
     const extensions = types.filter(t => t !== 'excalidraw');
 
     if (extensions.length === 0) {

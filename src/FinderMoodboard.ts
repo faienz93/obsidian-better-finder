@@ -28,8 +28,7 @@ export class FinderMoodboard extends ItemView {
     super(leaf);
     this.core = new Finder(this.app);
     this.latestSearch = new LatestSearch(this.core);
-    // Registra la view nella history di navigazione: aprendo un file dalla
-    // stessa leaf, il pulsante "indietro" riporta al finder.
+    // Joins the navigation history: after a file opens in the same leaf, "back" returns here.
     this.navigation = true;
   }
 
@@ -72,7 +71,7 @@ export class FinderMoodboard extends ItemView {
 
     this.cardContainer = new CardUI(this.searchBar.containerEl, toggle, this.app, this);
     this.searchBar.onInput((event) => {
-      // La digitazione manuale (evento trusted) esce dalla navigazione cronologia
+      // Typing by hand (a trusted event) leaves history navigation.
       if (event?.isTrusted) {
         this.historyIndex = -1;
       }
@@ -82,7 +81,7 @@ export class FinderMoodboard extends ItemView {
     this.attachHistoryNavigation();
   }
 
-  /** ↑/↓ navigano la cronologia ricerche, stile terminale */
+  /** ↑/↓ walk the search history, terminal style. */
   private attachHistoryNavigation(): void {
     this.searchBar.getInputEl().addEventListener('keydown', (event) => {
       if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
@@ -155,15 +154,13 @@ export class FinderMoodboard extends ItemView {
 
     if (!this.outcome) return;
 
-    const file = result as TFile;
-
     this.cardContainer.render(
-      buildResultData(this.app, file, this.outcome),
+      buildResultData(this.app, result, this.outcome),
       () => {
         SearchHistory.getInstance().add(this.searchBar.getValue());
-        this.core.openResult(file);
+        this.core.openResult(result);
       },
-      (event) => this.showContextMenu(event, file)
+      (event) => this.showContextMenu(event, result)
     );
   }
 
@@ -186,12 +183,10 @@ export class FinderMoodboard extends ItemView {
   }
 
   private appendToQuery(token: string): void {
-    const raw = this.searchBar.getValue();
-    const current = raw.split(' ').filter((w, i, arr) => w || i < arr.length - 1).join(' ');
-    const alreadyPresent = current.toLowerCase().includes(token.toLowerCase());
+    const appended = SearchUIHelper.appendToken(this.searchBar.getValue(), token);
 
-    if (!alreadyPresent) {
-      this.searchBar.setValue(current ? `${current} ${token} ` : `${token} `);
+    if (appended !== null) {
+      this.searchBar.setValue(appended);
     }
   }
 

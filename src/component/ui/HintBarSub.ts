@@ -1,9 +1,8 @@
 import "./HintBarSub.css";
 
 /**
- * Barra dei sub-hint (chip di valori per un filtro, es. le date).
- * Componente di solo rendering: i valori da mostrare arrivano dal chiamante
- * via setContent(), il componente non conosce la logica dei filtri.
+ * The sub-hint bar: chips of values for one Filter, such as dates. It only draws: the values come
+ * from the caller through setContent(), and it knows nothing of the Filter logic.
  */
 export class HintBarSub {
   private container: HTMLElement;

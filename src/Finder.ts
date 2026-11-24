@@ -24,9 +24,8 @@ export class Finder {
   allFiles: TFile[];
   private app: App;
   private factory = SearchStrategyFactory.getInstance();
-  // La lista file cambia solo su create/delete/rename: ricostruirla con
-  // getFiles() ad ogni ricerca (ad ogni tasto) è lavoro sprecato che contribuisce
-  // al freeze con vault grandi. La teniamo in cache e la invalidiamo sugli eventi.
+  // The file list changes only on create/delete/rename: rebuilding it on every keystroke
+  // froze large vaults, so it is cached and invalidated by those events.
   private filesDirty = false;
   private readonly vaultEventRefs: EventRef[] = [];
 
@@ -34,7 +33,7 @@ export class Finder {
 
   constructor(app: App) {
     this.app = app;
-    this.allFiles = app.vault.getFiles(); // Tutti i file, non solo markdown
+    this.allFiles = app.vault.getFiles(); // Every file, not only markdown
 
     const markDirty = () => { this.filesDirty = true; };
 
@@ -45,7 +44,7 @@ export class Finder {
     );
   }
 
-  /** Rilascia i listener vault. Chiamare quando l'owner (modal/view) viene chiuso. */
+  /** Releases the vault listeners. Call it when the owning Modal or Moodboard closes. */
   dispose(): void {
     for (const ref of this.vaultEventRefs) {
       this.app.vault.offref(ref);
@@ -90,17 +89,13 @@ export class Finder {
       return { parsed, results: this.getCommandSuggestions(parsed.commandText || ''), matchedWords: new Map() };
     }
 
-    // Lista file dalla cache (invalidata sugli eventi vault, vedi costruttore)
-    const allFiles = this.getAllFiles();
-
-    // Apply all filters
-    const filtered = this.factory.filter(allFiles, parsed, this.app);
+    const filtered = this.factory.filter(this.getAllFiles(), parsed, this.app);
     const { files, matchedWords } = await this.factory.filterFreeText(filtered, parsed, this.app);
 
     return { parsed, results: this.dedupeByPath(files), matchedWords };
   }
 
-  /** Rimuove i duplicati mantenendo la prima occorrenza (= ranking più alto) */
+  /** Drops duplicates, keeping the first one, which ranks highest. */
   private dedupeByPath(files: TFile[]): TFile[] {
     const seen = new Set<string>();
 
@@ -140,7 +135,7 @@ export class Finder {
     }
   }
 
-  /** Serializza i risultati correnti in una nota markdown (wikilink + metadati) */
+  /** Writes the current results to a markdown note (wikilinks plus metadata). */
   async exportResults(results: SearchResult[], query: string): Promise<void> {
     const files = results.filter((r): r is TFile => !isCommand(r));
 
@@ -178,7 +173,7 @@ export class Finder {
       return;
     }
 
-    // 'tab' apre sempre in una nuova tab invece di sostituire quella corrente.
+    // 'tab' always opens a new tab instead of replacing the current one.
     this.app.workspace.getLeaf('tab').openFile(result);
   }
 }

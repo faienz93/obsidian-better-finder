@@ -2,11 +2,11 @@ import { ResultData } from "../../engine/ResultData";
 import { Body } from "../ui/Body";
 import { Metadata } from "../ui/Metadata";
 import { Tags } from "../ui/Tags";
+import { TaskBadge } from "../ui/TaskBadge";
 import { Title } from "../ui/Title";
 
 export class GridCard {
   private card: HTMLElement;
-  private title!: Title;
   private body: Body;
 
   constructor(parentEl: HTMLElement, body: Body) {
@@ -21,10 +21,10 @@ export class GridCard {
   public render(data: ResultData): void {
     const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
-    this.title = new Title(this.card, file.basename);
+    const title = new Title(this.card, file.basename);
 
     if (typeIcon) {
-      this.title.addTypeIcon(typeIcon);
+      title.addTypeIcon(typeIcon);
     }
 
     this.body.drawInCard(data, this.card);
@@ -41,7 +41,7 @@ export class GridCard {
     }
 
     if (taskInfo && taskInfo.total > 0) {
-      this.renderTaskBadge(taskInfo.done, taskInfo.total);
+      new TaskBadge(this.card).setContent(taskInfo.done, taskInfo.total);
     }
   }
 
@@ -51,12 +51,5 @@ export class GridCard {
 
   public onContextMenu(fn: (event: MouseEvent) => void): void {
     this.card.addEventListener('contextmenu', (event) => fn(event));
-  }
-
-  private renderTaskBadge(done: number, total: number): void {
-    const badge = this.card.createDiv();
-
-    badge.setCssStyles({ marginTop: '6px', fontSize: '11px', color: 'var(--text-muted)' });
-    badge.setText(`✓ ${done}/${total} tasks completed`);
   }
 }

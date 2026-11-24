@@ -7,10 +7,9 @@ interface CanvasTagEntry {
 }
 
 /**
- * Cache dei tag contenuti nei nodi testo dei file .canvas.
- * I canvas non passano dal metadataCache di Obsidian, quindi i tag vanno
- * estratti dal JSON: la cache rende la lookup sincrona per TagsFilter.
- * Popolata all'avvio (main.ts) e tenuta viva dagli eventi vault.
+ * Tags found in the text nodes of .canvas files. Canvases never reach Obsidian's metadataCache,
+ * so the tags are read from the JSON; the cache makes the lookup synchronous for TagsFilter.
+ * Built at startup (main.ts) and kept current by vault events.
  */
 export class CanvasTagCache implements CommonCache {
   private static _instance: CanvasTagCache | null;
@@ -93,8 +92,8 @@ export class CanvasTagCache implements CommonCache {
   }
 
   /**
-   * Tag del canvas, lookup sincrona. Se la voce è stantia (mtime cambiato)
-   * parte un refresh in background: la ricerca successiva vede i tag aggiornati.
+   * The canvas tags, synchronously. A stale entry (mtime changed) starts a background refresh,
+   * so the next search sees the new tags.
    */
   getTags(file: TFile): string[] {
     const entry = this.cache.get(file.path);

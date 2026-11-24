@@ -3,20 +3,20 @@ import { App, FileSystemAdapter, TFile } from "obsidian";
 import { SearchIndex } from "./SearchIndex";
 import { CommonCache } from "./CommonCache";
 
-// Estensioni gestite dall'extractor: PDF (testo nativo), immagini (OCR), office
+// Extensions the extractor handles: PDF (native text), images (OCR), office documents.
 const PDF_EXTENSIONS = ['pdf'];
 const IMAGE_EXTENSIONS = ['png', 'jpg', 'jpeg', 'webp'];
 const OFFICE_EXTENSIONS = ['docx', 'xlsx'];
 
 export const XBERG_EXTENSIONS = [...PDF_EXTENSIONS, ...IMAGE_EXTENSIONS, ...OFFICE_EXTENSIONS];
 
-// Il progetto è in transizione kreuzberg→xberg: proviamo entrambi i nomi.
+// The project is moving from kreuzberg to xberg: try both names.
 const BINARY_CANDIDATES = ['xberg', 'kreuzberg'];
 
 const EXTRACT_TIMEOUT_MS = 60_000;
 const MAX_TEXT_LENGTH = 10_000;
 
-// Cache persistente (path relativo alla root del vault)
+// Persistent cache, relative to the vault root.
 const CACHE_PATH = '.obsidian/plugins/obsidian-better-finder/xberg-cache.json';
 
 interface CacheEntry {
@@ -25,14 +25,14 @@ interface CacheEntry {
 }
 
 /**
- * Estrazione contenuti via CLI Xberg (sidecar): testo dai PDF, OCR dalle immagini.
- * Il testo estratto entra nell'indice MiniSearch come documento esterno.
- * Se il binario non è installato il plugin degrada con grazia (nessuna estrazione).
+ * Extraction through the Xberg CLI (sidecar): text from PDFs, OCR from images.
+ * The extracted text enters the MiniSearch index as an external document.
+ * Without the binary installed the plugin degrades gracefully: nothing is extracted.
  */
 export class XbergExtractor implements CommonCache {
   private static _instance: XbergExtractor | null;
   private app: App;
-  private binary: string | null | undefined; // undefined = non ancora rilevato
+  private binary: string | null | undefined; // undefined = not detected yet
   private cache = new Map<string, CacheEntry>();
   // In-flight extractions by path: saving a file twice in a row must not spawn
   // two OCR processes (the mtime cache only helps once the first one is done).
@@ -51,7 +51,7 @@ export class XbergExtractor implements CommonCache {
     return XbergExtractor._instance;
   }
 
-  /** Rileva il binario CLI (una volta sola). null = non disponibile. */
+  /** Detects the CLI binary, once. null = not available. */
   async detectBinary(): Promise<string | null> {
     if (this.binary !== undefined) return this.binary;
 
@@ -75,8 +75,8 @@ export class XbergExtractor implements CommonCache {
   }
 
   /**
-   * Indicizza tutti i PDF/immagini del vault (lazy, in background).
-   * Da chiamare dopo il build dell'indice markdown.
+   * Indexes every PDF and image of the vault, lazily in the background.
+   * Call it after the markdown index is built.
    */
   async indexAll(): Promise<void> {
     const binary = await this.detectBinary();
@@ -100,7 +100,7 @@ export class XbergExtractor implements CommonCache {
     console.log(`[XbergExtractor] Indexed ${files.length} PDF/image files`);
   }
 
-  /** (Re)indicizza un singolo file, chiamato dagli eventi vault. */
+  /** (Re)indexes one file, from the vault events. */
   async indexFile(file: TFile): Promise<void> {
     if (!this.handles(file)) return;
 
@@ -169,8 +169,8 @@ export class XbergExtractor implements CommonCache {
   }
 
   /**
-   * Testo estratto di un file (per preview testuali).
-   * null se il binario manca o l'estensione non è supportata.
+   * A file's extracted text, for text Previews.
+   * null if the binary is missing or the extension is not supported.
    */
   async getText(file: TFile): Promise<string | null> {
     if (!this.handles(file)) return null;
@@ -211,8 +211,8 @@ export class XbergExtractor implements CommonCache {
     if (!fullPath || !this.binary) return null;
 
     const text = await new Promise<string | null>((resolve) => {
-      // NOTA: flag CLI da riconfermare sulla doc Xberg al primo utilizzo reale
-      // (progetto in transizione kreuzberg→xberg)
+      // NOTE: confirm the CLI flags against the Xberg docs on first real use
+      // (the project is moving from kreuzberg to xberg).
       execFile(this.binary as string, ['extract', fullPath, '--format', 'json'],
         { timeout: EXTRACT_TIMEOUT_MS, maxBuffer: 16 * 1024 * 1024 },
         (error, stdout) => {
@@ -234,7 +234,7 @@ export class XbergExtractor implements CommonCache {
     return text;
   }
 
-  /** Output JSON se possibile (campo text/content), altrimenti stdout grezzo. */
+  /** JSON output when possible (its text/content field), otherwise the raw stdout. */
   private parseOutput(stdout: string): string | null {
     const raw = stdout.trim();
 

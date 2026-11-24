@@ -4,7 +4,7 @@ import { SearchUIHelper } from "../src/SearchUIHelper";
 describe('SearchStrategyFactory.parse', () => {
   const factory = SearchStrategyFactory.getInstance();
 
-  it('separa tag, data e testo libero', () => {
+  it('separates tags, date and free text', () => {
     const parsed = factory.parse('#spring created:today architettura');
 
     expect(parsed.tags).toEqual(['#spring']);
@@ -12,8 +12,8 @@ describe('SearchStrategyFactory.parse', () => {
     expect(parsed.freeText).toBe('architettura');
   });
 
-  it('le negazioni non vengono scambiate per filtri positivi', () => {
-    // "-image" non deve attivare il filtro immagini (bug d\'ordine di parsing)
+  it('does not mistake negations for positive filters', () => {
+    // "-image" must not switch on the image filter (a parsing order bug).
     const parsed = factory.parse('spring -image');
 
     expect(parsed.fileTypes).toHaveLength(0);
@@ -21,20 +21,20 @@ describe('SearchStrategyFactory.parse', () => {
     expect(parsed.freeText).toBe('spring');
   });
 
-  it('-#tag è una negazione, non un tag cercato', () => {
+  it('reads -#tag as a negation, not a searched tag', () => {
     const parsed = factory.parse('#keep -#draft');
 
     expect(parsed.tags).toEqual(['#keep']);
     expect(parsed.negations?.tags).toEqual(['#draft']);
   });
 
-  it('command mode con >', () => {
+  it('enters command mode with >', () => {
     const parsed = factory.parse('> toggle');
 
     expect(parsed.isCommandMode).toBe(true);
   });
 
-  it('metadata dopo le chiavi riservate: created: non è un metadato', () => {
+  it('reads reserved keys before metadata: created: is not a property', () => {
     const parsed = factory.parse('created:today author:rossi');
 
     expect(parsed.dateFilter).toEqual({ field: 'created', value: 'today' });
@@ -42,7 +42,7 @@ describe('SearchStrategyFactory.parse', () => {
     expect(parsed.freeText).toBe('');
   });
 
-  it('task: con spazio dal click su hint (B4)', () => {
+  it('reads task: followed by the space a hint click adds (B4)', () => {
     const parsed = factory.parse('task: ');
 
     expect(parsed.taskFilter).toBe('all');
@@ -51,25 +51,25 @@ describe('SearchStrategyFactory.parse', () => {
 });
 
 describe('SearchUIHelper.toggleDateValue', () => {
-  it('imposta il valore senza spazio dopo i due punti', () => {
+  it('sets the value with no space after the colon', () => {
     expect(SearchUIHelper.toggleDateValue('created:', 'today')).toBe('created:today');
     expect(SearchUIHelper.toggleDateValue('created: ', 'today')).toBe('created:today ');
   });
 
-  it('sostituisce il valore precedente (selezione mutuamente esclusiva)', () => {
+  it('replaces the previous value (mutually exclusive selection)', () => {
     expect(SearchUIHelper.toggleDateValue('created:yesterday', 'today')).toBe('created:today');
   });
 
-  it('ricliccando il valore attivo lo rimuove (deselezione)', () => {
+  it('removes the active value when clicked again (deselection)', () => {
     expect(SearchUIHelper.toggleDateValue('created:today', 'today')).toBe('created:');
   });
 
-  it('non tocca il testo libero attorno al token', () => {
+  it('leaves the free text around the token alone', () => {
     expect(SearchUIHelper.toggleDateValue('spring created:today note', 'yesterday'))
       .toBe('spring created:yesterday note');
   });
 
-  it('senza campo data la query resta invariata', () => {
+  it('leaves a query without a date field unchanged', () => {
     expect(SearchUIHelper.toggleDateValue('solo testo', 'today')).toBe('solo testo');
   });
 });

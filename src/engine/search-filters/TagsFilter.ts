@@ -23,8 +23,8 @@ export class TagsFilter extends SearchFilter<'tags'> {
   static readonly ARCHIVE_TAG = '#archive';
 
   /**
-   * I file archiviati (#archive) sono esclusi dai risultati di default;
-   * tornano visibili solo se la query contiene esplicitamente #archive.
+   * Archived files (#archive) are left out of the results by default; they come back only when
+   * the query asks for #archive explicitly.
    */
   excludeArchived(files: TFile[], searchedTags: string[], app: App): TFile[] {
     const archiveRequested = searchedTags.some(t => matchesTag(t, TagsFilter.ARCHIVE_TAG));
@@ -55,8 +55,8 @@ export class TagsFilter extends SearchFilter<'tags'> {
     return kept.filter(file => {
       const fileTags = getFileTags(file, app);
 
-      // Match esatto o gerarchico (#tag/figlio). Il vecchio startsWith(tag + '-')
-      // faceva matchare tag "cugini" (#prompt pigliava #prompt-engineering): bug B2.
+      // Exact or nested (#tag/child) match: a prefix match also caught sibling tags such as
+      // #prompt-engineering for #prompt (bug B2).
       return tags.every(tag => fileTags.some(ft => matchesTag(ft, tag)));
     });
   }

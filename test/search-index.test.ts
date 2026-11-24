@@ -1,31 +1,10 @@
-import { App, TFile } from "obsidian";
 import { SearchIndex } from "../src/engine/SearchIndex";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
-function fakeFile(path: string, extension = 'md'): TFile {
-  const basename = path.split('/').pop()?.replace(/\.\w+$/, '') ?? path;
-
-  return { path, basename, extension, stat: { mtime: 0, ctime: 0 } } as unknown as TFile;
-}
-
-/** App con contenuti file finti per cachedRead */
-function fakeApp(contentByPath: Record<string, string>): App {
-  return {
-    vault: {
-      cachedRead: (file: TFile) => Promise.resolve(contentByPath[(file as any).path] ?? ''),
-    },
-  } as unknown as App;
-}
+import { fakeApp, fakeFile, resetCommonCaches } from "./helpers/fakeVault";
 
 describe('SearchIndex.searchFilesWithoutIndex (fallback)', () => {
-  // SearchIndex è un singleton: azzeriamo l'istanza tra i test così ognuno
-  // usa la propria fakeApp (altrimenti resta bindato al primo app).
-  beforeEach(() => {
-    (SearchIndex as any)._instance = null;
-  });
+  beforeEach(resetCommonCaches);
 
-  it('trova il termine nel contenuto anche con metacaratteri regex (c++)', async () => {
+  it('finds the term in the content even with regex metacharacters (c++)', async () => {
     const app = fakeApp({
       'cpp.md': 'Guida al linguaggio c++ e alla STL',
       'altro.md': 'Contenuto senza il termine cercato',
@@ -35,12 +14,11 @@ describe('SearchIndex.searchFilesWithoutIndex (fallback)', () => {
 
     const result = await idx.searchFilesWithoutIndex('c++', files);
 
-    // Il file con "c++" nel contenuto DEVE comparire: con un regex non escapato
-    // "c++" è invalido ("Nothing to repeat") e il match nel contenuto va perso.
+    // Unescaped, "c++" is an invalid regex ("Nothing to repeat") and the content match is lost.
     expect(result.map(f => f.path)).toContain('cpp.md');
   });
 
-  it('non interpreta il punto come wildcard (3.5 ≠ 315)', async () => {
+  it('does not read the dot as a wildcard (3.5 ≠ 315)', async () => {
     const app = fakeApp({
       'esatto.md': 'versione 3.5 stabile',
       'falso.md': 'codice 315 di errore',
@@ -50,11 +28,10 @@ describe('SearchIndex.searchFilesWithoutIndex (fallback)', () => {
 
     const result = await idx.searchFilesWithoutIndex('3.5', files);
 
-    // "." non deve fare da wildcard: solo "3.5" letterale deve matchare.
     expect(result.map(f => f.path)).toEqual(['esatto.md']);
   });
 
-  it('gestisce parentesi/graffe senza perdere i match di contenuto', async () => {
+  it('handles parentheses without losing the content match', async () => {
     const app = fakeApp({
       'note.md': 'funzione report(2024) chiamata qui',
     });

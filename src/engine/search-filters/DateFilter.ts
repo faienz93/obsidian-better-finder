@@ -1,15 +1,15 @@
 import { App, TFile } from "obsidian";
 import { i18n } from "src/const";
-import { DateRange, DateValue, QueryToken, SearchFilter } from "./types";
+import { DateField, DateRange, DateValue, QueryToken, SearchFilter } from "./types";
 
-// Valori relativi supportati: unica fonte di verità, usata anche dalla sub-hint bar.
+// Supported relative values: the single source of truth, also used by the sub-hint bar.
 export const DATE_VALUES = ['today', 'yesterday', 'this-week', 'last-week', 'this-month', 'last-month'] as const;
 
-// Pattern dei valori data riconosciuti: keyword relative, YYYY-MM-DD / YYYY/MM/DD, YYYY.
+// Recognised date values: relative keywords, YYYY-MM-DD / YYYY/MM/DD, YYYY.
 export const DATE_VALUE_PATTERN = `(?:${DATE_VALUES.join('|')}|\\d{4}[-/]\\d{2}[-/]\\d{2}|\\d{4})`;
 
+/** Reads YYYY-MM-DD and YYYY/MM/DD. */
 function parseAbsoluteDate(value: string): Date | null {
-  // Supporta YYYY-MM-DD e YYYY/MM/DD
   const match = /^(\d{4})[-/](\d{2})[-/](\d{2})$/.exec(value);
 
   if (!match) return null;
@@ -79,7 +79,7 @@ function getDateRange(value: DateValue): { start: Date; end: Date } | null {
     }
 
     default: {
-      // Anno secco (es. "2026") → intero anno solare
+      // A bare year (e.g. "2026") covers the whole calendar year.
       const yearMatch = /^(\d{4})$/.exec(value);
 
       if (yearMatch) {
@@ -106,7 +106,7 @@ const DATE_VALUE = new RegExp(`^${DATE_VALUE_PATTERN}$`, 'i');
 abstract class DateFilter extends SearchFilter<'dateFilter'> {
   readonly field = 'dateFilter';
   readonly takesValue = true;
-  protected abstract readonly dateField: 'created' | 'modified';
+  protected abstract readonly dateField: DateField;
 
   /** Only a date is read, so `created: banana` leaves "banana" in the free text. */
   accepts(value: string): boolean {

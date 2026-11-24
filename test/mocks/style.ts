@@ -1,2 +1,2 @@
-// Stub per gli import CSS nei test
+// Stub for CSS imports in tests
 export default {};

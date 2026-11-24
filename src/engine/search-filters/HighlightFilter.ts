@@ -16,8 +16,7 @@ export class HighlightFilter extends QueryReader<'highlightFilter'> {
   async filterAsync(files: TFile[], term: string | undefined, app: App): Promise<TFile[]> {
     if (!term) return files;
 
-    // Match a confine di parola: il vecchio includes() (substring) faceva
-    // matchare troppe evidenziazioni (bug B5)
+    // Word-boundary match: a plain substring match caught too many highlights (bug B5).
     const escaped = term.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
     const wordPattern = new RegExp(`\\b${escaped}\\b`, 'i');
     const pattern = /==([^=]+)==/g;
@@ -40,7 +39,7 @@ export class HighlightFilter extends QueryReader<'highlightFilter'> {
               }
             }
           } catch {
-            // file non leggibile, skip
+            // Unreadable file: skip it.
           }
         })
     );

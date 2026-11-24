@@ -19,7 +19,7 @@ function appWithCaches(cacheByPath: Record<string, any>): App {
 describe('TaskFilter', () => {
   const filter = new TaskFilter();
 
-  it('filtra i file con task nello stato richiesto', () => {
+  it('keeps the files with tasks in the requested status', () => {
     const files = [fakeFile('con-todo.md'), fakeFile('senza-task.md'), fakeFile('done.md')];
     const app = appWithCaches({
       'con-todo.md': { listItems: [{ task: ' ' }] },
@@ -38,7 +38,7 @@ describe('TaskFilter', () => {
 describe('TagsFilter', () => {
   const filter = new TagsFilter();
 
-  it('NON matcha tag cugini con trattino (B2: #prompt ≠ #prompt-engineering)', () => {
+  it('does NOT match sibling tags with a hyphen (B2: #prompt ≠ #prompt-engineering)', () => {
     const files = [fakeFile('a.md'), fakeFile('b.md')];
     const app = appWithCaches({
       'a.md': { tags: ['#prompt'] },
@@ -48,21 +48,21 @@ describe('TagsFilter', () => {
     expect(filter.filter(files, ['#prompt'], app).map(f => f.path)).toEqual(['a.md']);
   });
 
-  it('matcha la gerarchia con lo slash (#tag/figlio)', () => {
+  it('matches the hierarchy with a slash (#tag/child)', () => {
     const files = [fakeFile('a.md')];
     const app = appWithCaches({ 'a.md': { tags: ['#prompt/tecniche'] } });
 
     expect(filter.filter(files, ['#prompt'], app)).toHaveLength(1);
   });
 
-  it('matcha tag maiuscoli nei file (B3: #WAF)', () => {
+  it('matches uppercase tags in files (B3: #WAF)', () => {
     const files = [fakeFile('waf.md')];
     const app = appWithCaches({ 'waf.md': { tags: ['#WAF'] } });
 
     expect(filter.filter(files, ['#waf'], app)).toHaveLength(1);
   });
 
-  it('esclude gli archiviati salvo richiesta esplicita (#archive)', () => {
+  it('leaves archived notes out unless asked for explicitly (#archive)', () => {
     const files = [fakeFile('vivo.md'), fakeFile('archiviato.md')];
     const app = appWithCaches({
       'vivo.md': { tags: ['#x'] },
@@ -79,7 +79,7 @@ describe('TagsFilter', () => {
 describe('NegationFilter', () => {
   const filter = new NegationFilter();
 
-  it('esclude i file per estensione e per tag', () => {
+  it('excludes files by extension and by tag', () => {
     const files = [fakeFile('img.png'), fakeFile('nota.md'), fakeFile('draft.md')];
     const app = appWithCaches({
       'nota.md': { tags: ['#x'] },
@@ -97,7 +97,7 @@ describe('NegationFilter', () => {
 describe('MetadataFilter', () => {
   const filter = new MetadataFilter();
 
-  it('matcha frontmatter con valori stringa e array', () => {
+  it('matches frontmatter with string and array values', () => {
     const files = [fakeFile('a.md'), fakeFile('b.md'), fakeFile('c.md')];
     const app = appWithCaches({
       'a.md': { frontmatter: { author: 'Mario Rossi' } },

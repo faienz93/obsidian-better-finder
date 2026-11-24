@@ -9,7 +9,7 @@ export interface ParsedQuery {
   dateFilter?: DateRange;
   fileTypes: string[];
   scope?: 'title' | 'content';
-  taskFilter?: 'all' | 'todo' | 'done';
+  taskFilter?: TaskStatus;
   pathFilter?: string;
   highlightFilter?: string;
   negations?: { extensions: string[]; tags: string[] };

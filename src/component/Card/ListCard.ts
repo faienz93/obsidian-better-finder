@@ -1,12 +1,10 @@
 import { ResultData } from "../../engine/ResultData";
 import { ModalItem } from "../Modal/ModalItem";
 import { Body } from "../ui/Body";
-import { Title } from "../ui/Title";
 
 export class ListCard {
   private item: ModalItem;
   private card: HTMLElement;
-  private title!: Title;
   private body: Body;
 
   constructor(parentEl: HTMLElement, body: Body) {
@@ -22,10 +20,10 @@ export class ListCard {
   public render(data: ResultData): void {
     const { file, tags, searchedTags, typeIcon, taskInfo } = data;
 
-    this.title = this.item.setTitle(file.basename);
+    const title = this.item.setTitle(file.basename);
 
     if (typeIcon) {
-      this.title.addTypeIcon(typeIcon);
+      title.addTypeIcon(typeIcon);
     }
 
     this.item.setMetadata(

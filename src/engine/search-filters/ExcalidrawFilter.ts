@@ -1,11 +1,6 @@
-import { App, TFile } from "obsidian";
 import { QueryReader, QueryToken } from "./types";
 
 /** Excalidraw drawings are markdown files the Excalidraw plugin flags in their frontmatter. */
-export function isExcalidraw(file: TFile, app: App): boolean {
-  return app.metadataCache.getFileCache(file)?.frontmatter?.['excalidraw-plugin'] === 'parsed';
-}
-
 export class ExcalidrawFilter extends QueryReader<'fileTypes'> {
   readonly label = 'excalidraw';
   readonly desc = 'Excalidraw';

@@ -36,8 +36,8 @@ export class SearchUIHelper {
     this.subHintBar = new HintBarSub(containerEl, (value) => {
       callbacks.onDateFilterClick?.(value);
     });
-    // I valori mostrati arrivano dalla logica (DateFilter), non dal componente:
-    // keyword relative + anno corrente, più il placeholder del formato assoluto.
+    // The values come from the logic (DateFilter), not from the component: relative keywords and
+    // the current year, plus the placeholder of the absolute format.
     this.subHintBar.setContent(
       [...DATE_VALUES, String(new Date().getFullYear())],
       i18n.dateFormatPlaceholder
@@ -45,10 +45,10 @@ export class SearchUIHelper {
   }
 
   /**
-   * Applica un valore data alla query in modo idempotente:
-   * - sostituisce l'eventuale valore precedente (selezione mutuamente esclusiva)
-   * - ricliccando il valore attivo lo rimuove (deselezione)
-   * - non introduce mai lo spazio tra "campo:" e valore
+   * Applies a date value to the query idempotently:
+   * - it replaces any previous value (mutually exclusive selection)
+   * - clicking the active value again removes it (deselection)
+   * - it never puts a space between "field:" and the value
    */
   static toggleDateValue(query: string, value: string): string {
     const pattern = new RegExp(`\\b(created|modified):(?:\\s?(${DATE_VALUE_PATTERN}))?(?=\\s|$)`, 'i');
@@ -61,6 +61,15 @@ export class SearchUIHelper {
     const newToken = current.toLowerCase() === value.toLowerCase() ? `${field}:` : `${field}:${value}`;
 
     return query.replace(match[0], newToken);
+  }
+
+  /** The query with `token` appended after its last word, or null when the query already holds it. */
+  static appendToken(query: string, token: string): string | null {
+    const current = query.split(' ').filter((w, i, arr) => w || i < arr.length - 1).join(' ');
+
+    if (current.toLowerCase().includes(token.toLowerCase())) return null;
+
+    return current ? `${current} ${token} ` : `${token} `;
   }
 
   onInput(query: string, inputEl: HTMLInputElement) {
