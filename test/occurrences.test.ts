@@ -255,6 +255,31 @@ describe('bodyText: Highlights under the highlight filter', () => {
     expect(body.highlights).toEqual([]);
   });
 
+  it('leaves == inside inline code or a fenced code block as it is, as Obsidian draws it', () => {
+    const note = [
+      '`a == b == c` ==real==',
+      '```js',
+      'x ==not one== y',
+      '```',
+      '~~~~',
+      '```',
+      '==still code==',
+      '~~~~',
+      '==after==',
+    ].join('\n');
+
+    expect(bodyText(note, [], [], ANY).highlights.map(showHighlights)).toEqual([
+      '`a == b == c` [real]',
+      '[after]',
+    ]);
+  });
+
+  it('keeps a Highlight that holds inline code', () => {
+    expect(bodyText('see ==run `npm test`== now', [], [], ANY).highlights.map(showHighlights)).toEqual([
+      'see [run `npm test`] now',
+    ]);
+  });
+
   it('shows no Highlight without an emoji under a colour key', () => {
     expect(bodyText('a ==kafka== note', [], [], { colours: ['red'] }).highlights).toEqual([]);
   });

@@ -47,15 +47,56 @@ function colourOf(text: string): { colour?: HighlightColour; text: string } {
 // Opens and closes on the same line, as Obsidian draws it: a stray `==` never spans paragraphs.
 const HIGHLIGHT = /==([^\n]+?)==/g;
 
-/** Every Highlight in a note's content, in reading order. `== ==` marks nothing, so it is none. */
+// A fence opens with three or more backticks or tildes and closes with at least as many of the same.
+const FENCE = /^\s*(`{3,}|~{3,})/;
+
+// A run of backticks opens inline code, closed by the next run of the same length.
+const INLINE_CODE = /(?<!`)(`+)(?!`)[^]*?(?<!`)\1(?!`)/g;
+
+/** The line with its inline code hidden, offsets unchanged: a Highlight around inline code is still one. */
+function withoutInlineCode(lineText: string): string {
+  return lineText.replace(INLINE_CODE, code => 'x'.repeat(code.length));
+}
+
+/** Each line of the content with its code blanked out: whole lines of a fenced block, inline code elsewhere. */
+function linesOutsideCode(content: string): string[] {
+  let fence: string | null = null;
+
+  return content.split('\n').map(lineText => {
+    const run = FENCE.exec(lineText)?.[1];
+
+    if (fence) {
+      if (run && run[0] === fence[0] && run.length >= fence.length && lineText.trim() === run) fence = null;
+
+      return '';
+    }
+
+    if (run) {
+      fence = run;
+
+      return '';
+    }
+
+    return withoutInlineCode(lineText);
+  });
+}
+
+/**
+ * Every Highlight in a note's content, in reading order. `== ==` marks nothing, so it is none; nor
+ * does `==` inside inline code or a fenced code block, as Obsidian draws them.
+ */
 export function highlightsIn(content: string): Highlight[] {
-  return content.split('\n').flatMap((lineText, line) =>
-    [...lineText.matchAll(HIGHLIGHT)]
+  const lines = content.split('\n');
+
+  return linesOutsideCode(content).flatMap((outsideCode, line) =>
+    [...outsideCode.matchAll(HIGHLIGHT)]
       .filter(match => match[1].trim().length > 0)
       .map(match => {
         const start = match.index ?? 0;
+        const end = start + match[0].length;
 
-        return { line, ...colourOf(match[1]), start, end: start + match[0].length };
+        // The text comes from the line itself: inline code inside a Highlight stays.
+        return { line, ...colourOf(lines[line].slice(start + 2, end - 2)), start, end };
       }));
 }
 

@@ -103,6 +103,16 @@ describe('Finder.getResults: highlight filter', () => {
     expect(await search(vault, 'highlight:kafka')).toEqual(['note.md']);
   });
 
+  it('never matches == inside inline code or a fenced code block', async () => {
+    const vault = {
+      'inline.md': 'compare `a ==kafka== b` here',
+      'fenced.md': '```\nx ==kafka== y\n```',
+      'real.md': 'a ==kafka== note',
+    };
+
+    expect(await search(vault, 'highlight:')).toEqual(['real.md']);
+  });
+
   it('matches a note whose extension is in capitals, as the Body shows it', async () => {
     expect(await search({ 'NOTE.MD': '==kafka== notes' }, 'highlight:kafka')).toEqual(['NOTE.MD']);
   });
