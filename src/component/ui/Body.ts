@@ -1,7 +1,7 @@
 import { App, Component, setIcon } from "obsidian";
 import { i18n } from "../../const";
 import { ResultData } from "../../engine/ResultData";
-import { bodyText, HighlightPassage, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
+import { bodyText, HighlightPassage, MAX_HIGHLIGHTS, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
 import { ModalItem } from "../Modal/ModalItem";
 import { ImagePreview } from "./ImagePreview";
 import { VisibilityWatcher } from "./VisibilityWatcher";
@@ -43,7 +43,7 @@ export class Body {
   public drawInCard(data: ResultData, cardEl: HTMLElement): void {
     const textEl = hasText(data) ? cardEl.createDiv({ cls: 'body-card-text' }) : null;
     const previewEl = data.renderPreview ? cardEl.createDiv({ cls: 'finder-view-preview' }) : null;
-    const onOccurrencesDrawn = textEl && data.offersPreview ? () => this.addPreviewToggle(data, cardEl, textEl) : undefined;
+    const onOccurrencesOrHighlightsDrawn = textEl && data.offersPreview ? () => this.addPreviewToggle(data, cardEl, textEl) : undefined;
 
     this.drawWhenVisible(cardEl, data, 'card', textEl, previewEl, (emptyEl) => {
       const el = createDiv({ cls: 'finder-view-preview' });
@@ -51,7 +51,7 @@ export class Body {
       emptyEl.replaceWith(el);
 
       return el;
-    }, onOccurrencesDrawn);
+    }, onOccurrencesOrHighlightsDrawn);
   }
 
   /** The Preview is drawn on the first click and kept; the Card is rebuilt, so reset, by the next search. */
@@ -92,13 +92,13 @@ export class Body {
     textEl: HTMLElement | null,
     previewEl: HTMLElement | null,
     previewInsteadOf: (emptyEl: HTMLElement) => HTMLElement,
-    onOccurrencesDrawn?: () => void
+    onOccurrencesOrHighlightsDrawn?: () => void
   ): void {
     if (!textEl && !previewEl) return;
 
     this.visibility.watch(watchedEl, () => {
       if (textEl) {
-        this.drawTextOrPreview(data, textEl, layout, previewEl ? null : previewInsteadOf, onOccurrencesDrawn).catch(console.error);
+        this.drawTextOrPreview(data, textEl, layout, previewEl ? null : previewInsteadOf, onOccurrencesOrHighlightsDrawn).catch(console.error);
       }
 
       if (previewEl) this.drawPreview(data, previewEl).catch(console.error);
@@ -111,11 +111,11 @@ export class Body {
     textEl: HTMLElement,
     layout: BodyLayout,
     previewInsteadOf: ((emptyEl: HTMLElement) => HTMLElement) | null,
-    onOccurrencesDrawn?: () => void
+    onOccurrencesOrHighlightsDrawn?: () => void
   ): Promise<void> {
-    const { drawn, occurrences } = await this.drawText(data, textEl, layout);
+    const { drawn, occurrencesOrHighlights } = await this.drawText(data, textEl, layout);
 
-    if (occurrences) onOccurrencesDrawn?.();
+    if (occurrencesOrHighlights) onOccurrencesOrHighlightsDrawn?.();
 
     if (!drawn && previewInsteadOf && ImagePreview.hasPreview(this.app, data.file, { hasSnippet: false })) {
       await this.drawPreview(data, previewInsteadOf(textEl));
@@ -128,13 +128,13 @@ export class Body {
 
   /**
    * `drawn` is false when the note holds none of the Highlights, task lines or Occurrences the Data
-   * asked for; `occurrences` is true when Highlights or Occurrences were drawn.
+   * asked for; `occurrencesOrHighlights` is true when Highlights or Occurrences were drawn.
    */
   private async drawText(
     data: ResultData,
     el: HTMLElement,
     layout: BodyLayout
-  ): Promise<{ drawn: boolean; occurrences: boolean }> {
+  ): Promise<{ drawn: boolean; occurrencesOrHighlights: boolean }> {
     let content: string;
 
     try {
@@ -142,17 +142,17 @@ export class Body {
     } catch {
       // An unreadable file keeps its title and metadata: the result is still valid. No Preview
       // either, since it would read the same file.
-      return { drawn: true, occurrences: false };
+      return { drawn: true, occurrencesOrHighlights: false };
     }
 
     // A Card scrolls, so it leaves no Highlight or task line out.
-    const cap = layout === 'card' ? Infinity : MAX_TASK_LINES;
+    const scrolls = layout === 'card';
     const { highlights, hiddenHighlights, passages, tasks, hiddenTasks } = bodyText(
       content,
       data.snippetWords,
       data.taskLines,
       data.highlightCriterion,
-      { maxTasks: cap, maxHighlights: cap }
+      { maxTasks: scrolls ? Infinity : MAX_TASK_LINES, maxHighlights: scrolls ? Infinity : MAX_HIGHLIGHTS }
     );
 
     if (highlights.length > 0) {
@@ -173,7 +173,7 @@ export class Body {
 
     const occurrencesOrHighlights = highlights.length > 0 || passages.length > 0;
 
-    return { drawn: occurrencesOrHighlights || tasks.length > 0, occurrences: occurrencesOrHighlights };
+    return { drawn: occurrencesOrHighlights || tasks.length > 0, occurrencesOrHighlights };
   }
 
   /** One Highlight passage per line, then the count of those left out. */

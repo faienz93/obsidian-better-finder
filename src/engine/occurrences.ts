@@ -9,6 +9,9 @@ export const OCCURRENCE_CONTEXT_WORDS = 5;
 /** Task lines a Body shows before counting the others. */
 export const MAX_TASK_LINES = 3;
 
+/** Highlights a Body shows before counting the others. */
+export const MAX_HIGHLIGHTS = 3;
+
 /** One passage of a note around one or more searched words, never longer than its line. */
 export interface Passage {
   /** Zero-based line of the note the passage comes from. */
@@ -81,7 +84,7 @@ export function bodyText(
   words: string[],
   taskLines: TaskLine[],
   highlight?: HighlightCriterion,
-  { maxTasks = MAX_TASK_LINES, maxHighlights = MAX_TASK_LINES }: { maxTasks?: number; maxHighlights?: number } = {}
+  { maxTasks = MAX_TASK_LINES, maxHighlights = MAX_HIGHLIGHTS }: { maxTasks?: number; maxHighlights?: number } = {}
 ): BodyText {
   const lines = content.split('\n');
   const pattern = wordsPattern(words);
