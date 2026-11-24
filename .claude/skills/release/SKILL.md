@@ -2,7 +2,7 @@
 name: release
 description: Cut a release or a hotfix of the plugin with a manual git flow — branch, bump, merge into master and develop, tag, build and create a draft GitHub release with the three Obsidian assets.
 disable-model-invocation: true
-argument-hint: "[hotfix] patch | minor | major | x.y.z"
+argument-hint: '[hotfix] patch | minor | major | x.y.z'
 ---
 
 Arguments: `$ARGUMENTS`.
@@ -17,10 +17,10 @@ that invariant.
 
 The flow is git flow done by hand with plain `git` commands. Do not use `git flow …`.
 
-| Branch            | Comes from | Goes back into                                         |
-| ----------------- | ---------- | ------------------------------------------------------ |
-| `feature/*`       | `develop`  | `develop`                                              |
-| `release/<x.y.z>` | `develop`  | `master` (tagged) and `develop`                        |
+| Branch            | Comes from | Goes back into                                           |
+| ----------------- | ---------- | -------------------------------------------------------- |
+| `feature/*`       | `develop`  | `develop`                                                |
+| `release/<x.y.z>` | `develop`  | `master` (tagged) and `develop`                          |
 | `hotfix/<x.y.z>`  | `master`   | `master` (tagged) and `develop`, or the open `release/*` |
 
 This skill checks out branches in the main working tree, which is the one exception to "inspect
@@ -80,7 +80,12 @@ npm version <version> --no-git-tag-version
 `version` script still runs `version-bump.mjs`, which writes `manifest.json` and `versions.json`.
 
 Then run `npm run build`, `npm test` and `npm run lint` on this branch; all three must pass.
-Fixes found here are `fix:` commits on the release or hotfix branch, never on `develop` directly.
+
+The release or hotfix branch is the release environment: everything that prepares this version
+happens here, never on `develop` or a `feature/*` branch. That covers the manual check in Obsidian
+(Modal and Moodboard, see `CLAUDE.md`), the fixes it turns up, code cleanups such as a simplify
+pass, and `manifest.json` or docs touch-ups. Each is its own commit on this branch, per
+`.claude/rules/commit.md`. New features never go here: they wait for the next release.
 
 Show the user the diff of `package.json`, `package-lock.json`, `manifest.json`, `versions.json`.
 
