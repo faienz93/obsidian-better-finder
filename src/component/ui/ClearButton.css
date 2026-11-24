@@ -1,0 +1,5 @@
+/* Obsidian positions its clear button absolutely; here it sits in the input row like the count */
+.finder-view-clear.search-input-clear-button {
+  position: static;
+  flex-shrink: 0;
+}
