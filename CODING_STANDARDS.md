@@ -17,6 +17,7 @@ Each question about a file has one function that answers it, and every caller as
 | Does this tag match the query tag? | `matchesTag` |
 | Is this task done? | `isDoneTask` |
 | Is this `.md` an Excalidraw drawing? | `isExcalidraw` |
+| Is this file a note (markdown, not a drawing)? | `isNote` |
 
 A filter exports the predicate it owns (`isDoneTask` from `TaskFilter.ts`, `matchesTag` from `TagsFilter.ts`) and other modules import it from there. A copy of the check inline, or a list of extensions kept by a caller, is a finding.
 

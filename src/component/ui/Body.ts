@@ -1,7 +1,7 @@
 import { App, Component, setIcon } from "obsidian";
 import { i18n } from "../../const";
 import { ResultData } from "../../engine/ResultData";
-import { bodyText, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
+import { bodyText, HighlightPassage, MAX_HIGHLIGHTS, MAX_TASK_LINES, Passage, TaskText } from "../../engine/occurrences";
 import { ModalItem } from "../Modal/ModalItem";
 import { ImagePreview } from "./ImagePreview";
 import { VisibilityWatcher } from "./VisibilityWatcher";
@@ -11,8 +11,8 @@ import "./Body.css";
 type BodyLayout = 'item' | 'card';
 
 /**
- * Draws what the Data chose for a result below its title: Occurrences, task lines, Preview or
- * nothing. The file is read only once the result becomes visible.
+ * Draws what the Data chose for a result below its title: Highlights, task lines, Occurrences,
+ * Preview or nothing. The file is read only once the result becomes visible.
  */
 export class Body {
   private visibility = new VisibilityWatcher();
@@ -24,7 +24,7 @@ export class Body {
     this.visibility.reset();
   }
 
-  /** Occurrences and task lines under the metadata, the Preview beside the text. */
+  /** Highlights, task lines and Occurrences under the metadata, the Preview beside the text. */
   public drawInItem(data: ResultData, item: ModalItem): void {
     const textEl = hasText(data) ? item.setSnippet() : null;
     const previewEl = data.renderPreview ? item.setPreview() : null;
@@ -37,13 +37,13 @@ export class Body {
   }
 
   /**
-   * Every passage and every task line, scrolling inside the Card's fixed height; or the Preview.
-   * Drawn Occurrences get the button that switches to the Preview when the Data offers it.
+   * Every Highlight, task line and passage, scrolling inside the Card's fixed height; or the Preview.
+   * Drawn Highlights or Occurrences get the button that switches to the Preview when the Data offers it.
    */
   public drawInCard(data: ResultData, cardEl: HTMLElement): void {
     const textEl = hasText(data) ? cardEl.createDiv({ cls: 'body-card-text' }) : null;
     const previewEl = data.renderPreview ? cardEl.createDiv({ cls: 'finder-view-preview' }) : null;
-    const onOccurrencesDrawn = textEl && data.offersPreview ? () => this.addPreviewToggle(data, cardEl, textEl) : undefined;
+    const onOccurrencesOrHighlightsDrawn = textEl && data.offersPreview ? () => this.addPreviewToggle(data, cardEl, textEl) : undefined;
 
     this.drawWhenVisible(cardEl, data, 'card', textEl, previewEl, (emptyEl) => {
       const el = createDiv({ cls: 'finder-view-preview' });
@@ -51,7 +51,7 @@ export class Body {
       emptyEl.replaceWith(el);
 
       return el;
-    }, onOccurrencesDrawn);
+    }, onOccurrencesOrHighlightsDrawn);
   }
 
   /** The Preview is drawn on the first click and kept; the Card is rebuilt, so reset, by the next search. */
@@ -92,13 +92,13 @@ export class Body {
     textEl: HTMLElement | null,
     previewEl: HTMLElement | null,
     previewInsteadOf: (emptyEl: HTMLElement) => HTMLElement,
-    onOccurrencesDrawn?: () => void
+    onOccurrencesOrHighlightsDrawn?: () => void
   ): void {
     if (!textEl && !previewEl) return;
 
     this.visibility.watch(watchedEl, () => {
       if (textEl) {
-        this.drawTextOrPreview(data, textEl, layout, previewEl ? null : previewInsteadOf, onOccurrencesDrawn).catch(console.error);
+        this.drawTextOrPreview(data, textEl, layout, previewEl ? null : previewInsteadOf, onOccurrencesOrHighlightsDrawn).catch(console.error);
       }
 
       if (previewEl) this.drawPreview(data, previewEl).catch(console.error);
@@ -111,11 +111,11 @@ export class Body {
     textEl: HTMLElement,
     layout: BodyLayout,
     previewInsteadOf: ((emptyEl: HTMLElement) => HTMLElement) | null,
-    onOccurrencesDrawn?: () => void
+    onOccurrencesOrHighlightsDrawn?: () => void
   ): Promise<void> {
-    const { drawn, occurrences } = await this.drawText(data, textEl, layout);
+    const { drawn, occurrencesOrHighlights } = await this.drawText(data, textEl, layout);
 
-    if (occurrences) onOccurrencesDrawn?.();
+    if (occurrencesOrHighlights) onOccurrencesOrHighlightsDrawn?.();
 
     if (!drawn && previewInsteadOf && ImagePreview.hasPreview(this.app, data.file, { hasSnippet: false })) {
       await this.drawPreview(data, previewInsteadOf(textEl));
@@ -126,12 +126,15 @@ export class Body {
     return new ImagePreview(this.app, this.component).load(data.file, el);
   }
 
-  /** `drawn` is false when the note holds none of the Occurrences or task lines the Data asked for. */
+  /**
+   * `drawn` is false when the note holds none of the Highlights, task lines or Occurrences the Data
+   * asked for; `occurrencesOrHighlights` is true when Highlights or Occurrences were drawn.
+   */
   private async drawText(
     data: ResultData,
     el: HTMLElement,
     layout: BodyLayout
-  ): Promise<{ drawn: boolean; occurrences: boolean }> {
+  ): Promise<{ drawn: boolean; occurrencesOrHighlights: boolean }> {
     let content: string;
 
     try {
@@ -139,13 +142,26 @@ export class Body {
     } catch {
       // An unreadable file keeps its title and metadata: the result is still valid. No Preview
       // either, since it would read the same file.
-      return { drawn: true, occurrences: false };
+      return { drawn: true, occurrencesOrHighlights: false };
     }
 
-    const { passages, tasks, hiddenTasks } = bodyText(content, data.snippetWords, data.taskLines, {
-      // A Card scrolls, so it leaves no task line out.
-      maxTasks: layout === 'card' ? Infinity : MAX_TASK_LINES,
-    });
+    // A Card scrolls, so it leaves no Highlight or task line out.
+    const scrolls = layout === 'card';
+    const { highlights, hiddenHighlights, passages, tasks, hiddenTasks } = bodyText(
+      content,
+      data.snippetWords,
+      data.taskLines,
+      data.highlightCriterion,
+      { maxTasks: scrolls ? Infinity : MAX_TASK_LINES, maxHighlights: scrolls ? Infinity : MAX_HIGHLIGHTS }
+    );
+
+    if (highlights.length > 0) {
+      this.drawHighlights(el, highlights, hiddenHighlights);
+    }
+
+    if (tasks.length > 0) {
+      this.drawTasks(el, tasks, hiddenTasks);
+    }
 
     if (passages.length > 0) {
       if (layout === 'card') {
@@ -155,11 +171,22 @@ export class Body {
       }
     }
 
-    if (tasks.length > 0) {
-      this.drawTasks(el, tasks, hiddenTasks);
+    const occurrencesOrHighlights = highlights.length > 0 || passages.length > 0;
+
+    return { drawn: occurrencesOrHighlights || tasks.length > 0, occurrencesOrHighlights };
+  }
+
+  /** One Highlight passage per line, then the count of those left out. */
+  private drawHighlights(el: HTMLElement, highlights: HighlightPassage[], hiddenHighlights: number): void {
+    const highlightsEl = el.createDiv({ cls: 'body-highlights' });
+
+    for (const passage of highlights) {
+      appendHighlightPassage(highlightsEl.createDiv({ cls: 'body-highlight' }), passage);
     }
 
-    return { drawn: passages.length > 0 || tasks.length > 0, occurrences: passages.length > 0 };
+    if (hiddenHighlights > 0) {
+      highlightsEl.createDiv({ cls: 'body-highlights-more', text: `+${hiddenHighlights}` });
+    }
   }
 
   /** The passages that fit in two lines, then the count of those left out. */
@@ -201,7 +228,7 @@ export class Body {
 }
 
 function hasText(data: ResultData): boolean {
-  return data.snippetWords.length > 0 || data.taskLines.length > 0;
+  return data.snippetWords.length > 0 || data.taskLines.length > 0 || data.highlightCriterion !== undefined;
 }
 
 function appendPassage(el: HTMLElement, passage: Passage): HTMLElement {
@@ -224,4 +251,35 @@ function appendHighlighted(el: HTMLElement, text: string, highlights: Array<[num
   }
 
   el.appendText(text.slice(pos));
+}
+
+/**
+ * Each Highlight is marked in its Obsidian colour; one without a colour in the accent colour, like a
+ * searched word. The searched words are marked as in an Occurrence, inside a Highlight too.
+ */
+function appendHighlightPassage(el: HTMLElement, passage: HighlightPassage): void {
+  const appendText = (parentEl: HTMLElement, from: number, to: number) => {
+    const occurrences = passage.occurrences
+      .filter(([start, end]) => start < to && end > from)
+      .map(([start, end]): [number, number] => [Math.max(start, from) - from, Math.min(end, to) - from]);
+
+    appendHighlighted(parentEl, passage.text.slice(from, to), occurrences);
+  };
+
+  let pos = 0;
+
+  if (passage.cutStart) el.appendText('… ');
+
+  for (const highlight of passage.highlights) {
+    appendText(el, pos, highlight.start);
+    appendText(el.createEl('mark', {
+      cls: ['snippet-highlight', 'body-highlight-text'],
+      attr: highlight.colour ? { 'data-highlight': highlight.colour } : {},
+    }), highlight.start, highlight.end);
+    pos = highlight.end;
+  }
+
+  appendText(el, pos, passage.text.length);
+
+  if (passage.cutEnd) el.appendText(' …');
 }

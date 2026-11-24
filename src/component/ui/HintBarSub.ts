@@ -9,8 +9,9 @@ export class HintBarSub {
   private chips: Map<string, HTMLElement> = new Map();
   private onClick: (value: string) => void;
 
-  constructor(parentEl: HTMLElement, onClick: (value: string) => void) {
-    this.container = parentEl.createDiv({ cls: 'sub-hint-bar is-hidden' });
+  /** `cls` names the Filter whose values the bar holds, for its own styling. */
+  constructor(parentEl: HTMLElement, onClick: (value: string) => void, cls?: string) {
+    this.container = parentEl.createDiv({ cls: ['sub-hint-bar', 'is-hidden', ...(cls ? [cls] : [])] });
     this.onClick = onClick;
   }
 
@@ -22,6 +23,7 @@ export class HintBarSub {
       const chip = this.container.createSpan({ cls: 'hint-chip hint-chip-sub' });
 
       chip.setText(value);
+      chip.dataset.value = value;
       chip.addEventListener('click', () => this.onClick(value));
       this.chips.set(value, chip);
     }
@@ -31,10 +33,11 @@ export class HintBarSub {
     }
   }
 
-  public show(activeValue?: string): void {
+  /** Shows the bar with the chips of `activeValues` lit: one for a date, several for colours. */
+  public show(...activeValues: string[]): void {
     this.container.removeClass('is-hidden');
     this.chips.forEach((chip, value) => {
-      chip.toggleClass('hint-chip-active', value === activeValue);
+      chip.toggleClass('hint-chip-active', activeValues.includes(value));
     });
   }
 

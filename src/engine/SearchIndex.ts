@@ -1,6 +1,7 @@
 import { App, TFile, Notice } from "obsidian";
 import MiniSearch from 'minisearch';
 import { CommonCache } from "./CommonCache";
+import { escapeRegExp } from "./escapeRegExp";
 
 // The first 10 000 characters are enough to find most notes, and keep indexing fast.
 const MAX_CONTENT_LENGTH = 10000;
@@ -282,7 +283,7 @@ export class SearchIndex implements CommonCache {
     const searchText = freeText.toLowerCase();
     // Escaped, or terms with metacharacters (c++, report(2024), 3.5) either break the regex,
     // losing the content match silently, or act as wildcards.
-    const escaped = searchText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const escaped = escapeRegExp(searchText);
     const contentRegex = new RegExp(escaped, 'g');
 
     // Reads files in parallel batches: one at a time blocked the search on large vaults.

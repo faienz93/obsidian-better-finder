@@ -22,3 +22,50 @@
   font-style: italic;
   cursor: default;
 }
+
+/* Highlight colour chips: tinted with Obsidian's highlight colours, solid when lit. */
+.highlight-value-chips .hint-chip-sub {
+  background: var(--chip-highlight-background);
+  color: var(--text-normal);
+}
+
+.highlight-value-chips .hint-chip-sub:hover,
+.highlight-value-chips .hint-chip-sub.hint-chip-active {
+  background: var(--chip-highlight-colour);
+  color: var(--text-on-accent);
+}
+
+.highlight-value-chips .hint-chip-sub.hint-chip-active {
+  opacity: 1;
+  font-weight: var(--font-semibold);
+}
+
+.highlight-value-chips .hint-chip-sub[data-value="red"] {
+  --chip-highlight-colour: var(--color-red);
+  --chip-highlight-background: var(--highlight-background-red, rgba(var(--color-red-rgb), 0.3));
+}
+
+.highlight-value-chips .hint-chip-sub[data-value="orange"] {
+  --chip-highlight-colour: var(--color-orange);
+  --chip-highlight-background: var(--highlight-background-orange, rgba(var(--color-orange-rgb), 0.3));
+}
+
+.highlight-value-chips .hint-chip-sub[data-value="yellow"] {
+  --chip-highlight-colour: var(--color-yellow);
+  --chip-highlight-background: var(--highlight-background-yellow, rgba(var(--color-yellow-rgb), 0.3));
+}
+
+.highlight-value-chips .hint-chip-sub[data-value="green"] {
+  --chip-highlight-colour: var(--color-green);
+  --chip-highlight-background: var(--highlight-background-green, rgba(var(--color-green-rgb), 0.3));
+}
+
+.highlight-value-chips .hint-chip-sub[data-value="blue"] {
+  --chip-highlight-colour: var(--color-blue);
+  --chip-highlight-background: var(--highlight-background-blue, rgba(var(--color-blue-rgb), 0.3));
+}
+
+.highlight-value-chips .hint-chip-sub[data-value="purple"] {
+  --chip-highlight-colour: var(--color-purple);
+  --chip-highlight-background: var(--highlight-background-purple, rgba(var(--color-purple-rgb), 0.3));
+}
