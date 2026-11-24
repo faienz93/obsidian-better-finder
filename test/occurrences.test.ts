@@ -223,6 +223,38 @@ describe('bodyText: Highlights under the highlight filter', () => {
     expect(body.highlights.flatMap(h => h.highlights.map(highlight => highlight.colour))).toEqual(['red', 'green']);
   });
 
+  /** A Highlight passage with only its searched words in [brackets]. */
+  function showOccurrences(passage: HighlightPassage): string {
+    return show({ ...passage, highlights: passage.occurrences });
+  }
+
+  it('marks the searched words on a Highlight line, beside and inside the Highlight', () => {
+    const body = bodyText('read ==kafka streams== in docker today', ['docker', 'streams'], [], { colours: [], word: 'kafka' });
+
+    expect(body.highlights.map(showHighlights)).toEqual(['read [kafka streams] in docker today']);
+    expect(body.highlights.map(showOccurrences)).toEqual(['read kafka [streams] in [docker] today']);
+    expect(body.passages).toEqual([]);
+  });
+
+  it('shows a searched word far from the Highlight on its line, in a passage of its own', () => {
+    const note = '==kafka== uno due tre quattro cinque sei sette otto nove dieci undici dodici docker end';
+
+    const body = bodyText(note, ['docker'], [], { colours: [], word: 'kafka' });
+
+    expect(body.highlights.map(showOccurrences)).toEqual([
+      'kafka uno due tre quattro cinque …',
+      '… otto nove dieci undici dodici [docker] end',
+    ]);
+    expect(body.hiddenHighlights).toBe(0);
+    expect(body.passages).toEqual([]);
+  });
+
+  it('shows no Highlight passage for a searched word on a line whose Highlights do not match', () => {
+    const body = bodyText('==other== and docker', ['docker'], [], { colours: [], word: 'kafka' });
+
+    expect(body.highlights).toEqual([]);
+  });
+
   it('shows no Highlight without an emoji under a colour key', () => {
     expect(bodyText('a ==kafka== note', [], [], { colours: ['red'] }).highlights).toEqual([]);
   });

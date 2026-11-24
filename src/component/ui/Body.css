@@ -159,6 +159,12 @@
   background: var(--highlight-background-purple, rgba(var(--color-purple-rgb), 0.3));
 }
 
+/* A searched word inside a Highlight: underlined too, or it vanishes in a Highlight drawn in the accent colour */
+.body-highlight-text .snippet-highlight {
+  padding: 0;
+  text-decoration: underline;
+}
+
 .body-highlights-more {
   font-size: 11px;
   color: var(--text-faint);

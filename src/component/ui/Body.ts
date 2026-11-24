@@ -253,23 +253,33 @@ function appendHighlighted(el: HTMLElement, text: string, highlights: Array<[num
   el.appendText(text.slice(pos));
 }
 
-/** Each Highlight is marked in its Obsidian colour; one without a colour in the accent colour, like a searched word. */
+/**
+ * Each Highlight is marked in its Obsidian colour; one without a colour in the accent colour, like a
+ * searched word. The searched words are marked as in an Occurrence, inside a Highlight too.
+ */
 function appendHighlightPassage(el: HTMLElement, passage: HighlightPassage): void {
+  const appendText = (parentEl: HTMLElement, from: number, to: number) => {
+    const occurrences = passage.occurrences
+      .filter(([start, end]) => start < to && end > from)
+      .map(([start, end]): [number, number] => [Math.max(start, from) - from, Math.min(end, to) - from]);
+
+    appendHighlighted(parentEl, passage.text.slice(from, to), occurrences);
+  };
+
   let pos = 0;
 
   if (passage.cutStart) el.appendText('… ');
 
   for (const highlight of passage.highlights) {
-    el.appendText(passage.text.slice(pos, highlight.start));
-    el.createEl('mark', {
+    appendText(el, pos, highlight.start);
+    appendText(el.createEl('mark', {
       cls: ['snippet-highlight', 'body-highlight-text'],
-      text: passage.text.slice(highlight.start, highlight.end),
       attr: highlight.colour ? { 'data-highlight': highlight.colour } : {},
-    });
+    }), highlight.start, highlight.end);
     pos = highlight.end;
   }
 
-  el.appendText(passage.text.slice(pos));
+  appendText(el, pos, passage.text.length);
 
   if (passage.cutEnd) el.appendText(' …');
 }

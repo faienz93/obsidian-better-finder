@@ -50,6 +50,8 @@ export interface HighlightPassage {
   text: string;
   /** The Highlights in `text`, in order. */
   highlights: HighlightSpan[];
+  /** Start and end offsets in `text` of each searched word, in order, inside a Highlight or beside it. */
+  occurrences: Array<[number, number]>;
   /** The line goes on before the passage. */
   cutStart: boolean;
   /** The line goes on after the passage. */
@@ -88,7 +90,7 @@ export function bodyText(
 ): BodyText {
   const lines = content.split('\n');
   const pattern = wordsPattern(words);
-  const allHighlights = highlight ? highlightPassagesIn(lines, highlight) : [];
+  const allHighlights = highlight ? highlightPassagesIn(lines, highlight, pattern) : [];
   const shownHighlights = firstHighlights(allHighlights, maxHighlights);
   const highlightLineNumbers = new Set(shownHighlights.map(passage => passage.line));
   // A line shown as a Highlight is never repeated as a task line.
@@ -134,8 +136,16 @@ function countHighlights(passages: HighlightPassage[]): number {
   return passages.reduce((sum, passage) => sum + passage.highlights.length, 0);
 }
 
-/** The Highlights the criterion asks for, with context, in reading order. */
-function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): HighlightPassage[] {
+/** A span of a Highlight line: a Highlight the criterion asks for, or a searched word. */
+interface LineSpan extends HighlightSpan {
+  occurrence?: boolean;
+}
+
+/**
+ * The Highlights the criterion asks for, with context, in reading order. The searched words on their
+ * lines come along, marked as Occurrences: the line is never shown again as one.
+ */
+function highlightPassagesIn(lines: string[], criterion: HighlightCriterion, pattern: RegExp | null): HighlightPassage[] {
   const byLine = new Map<number, Highlight[]>();
 
   for (const found of highlightsIn(lines.join('\n'))) {
@@ -162,10 +172,18 @@ function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): Hi
 
     text += lines[line].slice(pos);
 
-    return windowsAround(text, spans).map(window => ({
+    if (spans.length === 0) return [];
+
+    const words: LineSpan[] = pattern ? matchSpans(text, pattern).map(span => ({ ...span, occurrence: true })) : [];
+    const lineSpans: LineSpan[] = [...spans, ...words].sort((a, b) => a.start - b.start);
+
+    return windowsAround(text, lineSpans).map(window => ({
       line,
       text: window.text,
-      highlights: window.spans,
+      highlights: window.spans
+        .filter(span => !span.occurrence)
+        .map(span => ({ start: span.start, end: span.end, colour: span.colour })),
+      occurrences: window.spans.filter(span => span.occurrence).map((span): [number, number] => [span.start, span.end]),
       cutStart: window.cutStart,
       cutEnd: window.cutEnd,
     }));
