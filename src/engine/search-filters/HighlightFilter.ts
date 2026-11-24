@@ -1,5 +1,6 @@
 import { App, TFile } from "obsidian";
-import { isExcalidraw } from "../excalidraw";
+import { escapeRegExp } from "../escapeRegExp";
+import { isNote } from "../excalidraw";
 import { HighlightColour, HighlightCriterion, QueryReader, QueryToken } from "./types";
 
 /** One Highlight of a note: the line it sits on and the text between its `==` marks. */
@@ -24,6 +25,11 @@ const COLOUR_BY_EMOJI: Record<string, HighlightColour> = {
 /** The highlight colours, in the order Obsidian offers them. */
 export const COLOURS: HighlightColour[] = ['red', 'orange', 'yellow', 'green', 'blue', 'purple'];
 
+/** Whether `value` names one of the highlight colours. */
+export function isHighlightColour(value: string): value is HighlightColour {
+  return (COLOURS as string[]).includes(value);
+}
+
 // `highlight:` asks for any colour; each `highlight-<colour>:` adds its colour.
 const COLOUR_BY_KEY: Record<string, HighlightColour | undefined> = {
   highlight: undefined,
@@ -41,20 +47,57 @@ function colourOf(text: string): { colour?: HighlightColour; text: string } {
 // Opens and closes on the same line, as Obsidian draws it: a stray `==` never spans paragraphs.
 const HIGHLIGHT = /==([^\n]+?)==/g;
 
-/** Every Highlight in a note's content, in reading order. `== ==` marks nothing, so it is none. */
+// A fence opens with three or more backticks or tildes and closes with at least as many of the same.
+const FENCE = /^\s*(`{3,}|~{3,})/;
+
+// A run of backticks opens inline code, closed by the next run of the same length.
+const INLINE_CODE = /(?<!`)(`+)(?!`)[^]*?(?<!`)\1(?!`)/g;
+
+/** The line with its inline code hidden, offsets unchanged: a Highlight around inline code is still one. */
+function withoutInlineCode(lineText: string): string {
+  return lineText.replace(INLINE_CODE, code => 'x'.repeat(code.length));
+}
+
+/** Each line of the content with its code blanked out: whole lines of a fenced block, inline code elsewhere. */
+function linesOutsideCode(content: string): string[] {
+  let fence: string | null = null;
+
+  return content.split('\n').map(lineText => {
+    const run = FENCE.exec(lineText)?.[1];
+
+    if (fence) {
+      if (run && run[0] === fence[0] && run.length >= fence.length && lineText.trim() === run) fence = null;
+
+      return '';
+    }
+
+    if (run) {
+      fence = run;
+
+      return '';
+    }
+
+    return withoutInlineCode(lineText);
+  });
+}
+
+/**
+ * Every Highlight in a note's content, in reading order. `== ==` marks nothing, so it is none; nor
+ * does `==` inside inline code or a fenced code block, as Obsidian draws them.
+ */
 export function highlightsIn(content: string): Highlight[] {
-  return content.split('\n').flatMap((lineText, line) =>
-    [...lineText.matchAll(HIGHLIGHT)]
+  const lines = content.split('\n');
+
+  return linesOutsideCode(content).flatMap((outsideCode, line) =>
+    [...outsideCode.matchAll(HIGHLIGHT)]
       .filter(match => match[1].trim().length > 0)
       .map(match => {
         const start = match.index ?? 0;
+        const end = start + match[0].length;
 
-        return { line, ...colourOf(match[1]), start, end: start + match[0].length };
+        // The text comes from the line itself: inline code inside a Highlight stays.
+        return { line, ...colourOf(lines[line].slice(start + 2, end - 2)), start, end };
       }));
-}
-
-function escapeRegExp(text: string): string {
-  return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 /**
@@ -96,7 +139,7 @@ export class HighlightFilter extends QueryReader<'highlightFilter'> {
   async filterAsync(files: TFile[], criterion: HighlightCriterion | undefined, app: App): Promise<TFile[]> {
     if (!criterion) return files;
 
-    const notes = files.filter(file => file.extension === 'md' && !isExcalidraw(app, file));
+    const notes = files.filter(file => isNote(app, file));
     const kept = await Promise.all(notes.map(async (file) => {
       try {
         const content = await app.vault.cachedRead(file);

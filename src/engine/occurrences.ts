@@ -1,3 +1,4 @@
+import { escapeRegExp } from "./escapeRegExp";
 import { TaskLine } from "./ResultData";
 import { Highlight, highlightsIn, matchesHighlight } from "./search-filters/HighlightFilter";
 import { HighlightColour, HighlightCriterion } from "./search-filters/types";
@@ -7,6 +8,9 @@ export const OCCURRENCE_CONTEXT_WORDS = 5;
 
 /** Task lines a Body shows before counting the others. */
 export const MAX_TASK_LINES = 3;
+
+/** Highlights a Body shows before counting the others. */
+export const MAX_HIGHLIGHTS = 3;
 
 /** One passage of a note around one or more searched words, never longer than its line. */
 export interface Passage {
@@ -29,7 +33,7 @@ export interface TaskText {
 }
 
 /** A Highlight the Body marks, by its offsets in the passage text. */
-export interface HighlightMark {
+export interface HighlightSpan {
   start: number;
   end: number;
   /** None: the Highlight has no colour emoji and takes the theme's default. */
@@ -45,7 +49,9 @@ export interface HighlightPassage {
   line: number;
   text: string;
   /** The Highlights in `text`, in order. */
-  marks: HighlightMark[];
+  highlights: HighlightSpan[];
+  /** Start and end offsets in `text` of each searched word, in order, inside a Highlight or beside it. */
+  occurrences: Array<[number, number]>;
   /** The line goes on before the passage. */
   cutStart: boolean;
   /** The line goes on after the passage. */
@@ -58,7 +64,7 @@ export interface HighlightPassage {
  */
 export interface BodyText {
   highlights: HighlightPassage[];
-  /** Highlight passages left out after the first `maxHighlights`. */
+  /** Highlights left out after the first `maxHighlights`, counted one by one, not by passage. */
   hiddenHighlights: number;
   passages: Passage[];
   tasks: TaskText[];
@@ -80,14 +86,14 @@ export function bodyText(
   words: string[],
   taskLines: TaskLine[],
   highlight?: HighlightCriterion,
-  { maxTasks = MAX_TASK_LINES, maxHighlights = MAX_TASK_LINES }: { maxTasks?: number; maxHighlights?: number } = {}
+  { maxTasks = MAX_TASK_LINES, maxHighlights = MAX_HIGHLIGHTS }: { maxTasks?: number; maxHighlights?: number } = {}
 ): BodyText {
   const lines = content.split('\n');
   const pattern = wordsPattern(words);
-  const allHighlights = highlight ? highlightPassagesIn(lines, highlight) : [];
-  const shownHighlights = allHighlights.slice(0, maxHighlights);
+  const allHighlights = highlight ? highlightPassagesIn(lines, highlight, pattern) : [];
+  const shownHighlights = firstHighlights(allHighlights, maxHighlights);
   const highlightLineNumbers = new Set(shownHighlights.map(passage => passage.line));
-  // A line shown as a Highlight carries its own mark: it is never repeated as a task line.
+  // A line shown as a Highlight is never repeated as a task line.
   const taskLinesLeft = taskLines.filter(task => !highlightLineNumbers.has(task.line));
   const shown = taskLinesLeft.slice(0, maxTasks);
   // Every matching Highlight line, shown or counted in "+N": an Occurrence there would show it raw, `==` and all.
@@ -103,16 +109,43 @@ export function bodyText(
 
   return {
     highlights: shownHighlights,
-    hiddenHighlights: allHighlights.length - shownHighlights.length,
-    // A line shown above carries its own mark: it is never repeated as an Occurrence.
+    hiddenHighlights: countHighlights(allHighlights) - countHighlights(shownHighlights),
+    // A line shown above is never repeated as an Occurrence.
     passages: passagesIn(lines, pattern).filter(p => !shownLineNumbers.has(p.line)),
     tasks,
     hiddenTasks: taskLinesLeft.length - shown.length,
   };
 }
 
-/** The Highlights the criterion asks for, with context, in reading order. */
-function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): HighlightPassage[] {
+/** The passages that start before `max` Highlights are shown: the last one may hold a few more. */
+function firstHighlights(passages: HighlightPassage[], max: number): HighlightPassage[] {
+  const shown: HighlightPassage[] = [];
+  let count = 0;
+
+  for (const passage of passages) {
+    if (count >= max) break;
+
+    shown.push(passage);
+    count += passage.highlights.length;
+  }
+
+  return shown;
+}
+
+function countHighlights(passages: HighlightPassage[]): number {
+  return passages.reduce((sum, passage) => sum + passage.highlights.length, 0);
+}
+
+/** A span of a Highlight line: a Highlight the criterion asks for, or a searched word. */
+interface LineSpan extends HighlightSpan {
+  occurrence?: boolean;
+}
+
+/**
+ * The Highlights the criterion asks for, with context, in reading order. The searched words on their
+ * lines come along, marked as Occurrences: the line is never shown again as one.
+ */
+function highlightPassagesIn(lines: string[], criterion: HighlightCriterion, pattern: RegExp | null): HighlightPassage[] {
   const byLine = new Map<number, Highlight[]>();
 
   for (const found of highlightsIn(lines.join('\n'))) {
@@ -123,7 +156,7 @@ function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): Hi
     // The line as the note reads it: every Highlight on it loses its `==` marks, only the matching ones are marked.
     let text = '';
     let pos = 0;
-    const marks: HighlightMark[] = [];
+    const spans: HighlightSpan[] = [];
 
     for (const found of onLine) {
       text += lines[line].slice(pos, found.start);
@@ -132,17 +165,25 @@ function highlightPassagesIn(lines: string[], criterion: HighlightCriterion): Hi
 
       text += found.text;
 
-      if (matchesHighlight(found, criterion)) marks.push({ start, end: text.length, colour: found.colour });
+      if (matchesHighlight(found, criterion)) spans.push({ start, end: text.length, colour: found.colour });
 
       pos = found.end;
     }
 
     text += lines[line].slice(pos);
 
-    return windowsAround(text, marks).map(window => ({
+    if (spans.length === 0) return [];
+
+    const words: LineSpan[] = pattern ? matchSpans(text, pattern).map(span => ({ ...span, occurrence: true })) : [];
+    const lineSpans: LineSpan[] = [...spans, ...words].sort((a, b) => a.start - b.start);
+
+    return windowsAround(text, lineSpans).map(window => ({
       line,
       text: window.text,
-      marks: window.spans,
+      highlights: window.spans
+        .filter(span => !span.occurrence)
+        .map(span => ({ start: span.start, end: span.end, colour: span.colour })),
+      occurrences: window.spans.filter(span => span.occurrence).map((span): [number, number] => [span.start, span.end]),
       cutStart: window.cutStart,
       cutEnd: window.cutEnd,
     }));
@@ -224,7 +265,7 @@ function wordsPattern(words: string[]): RegExp | null {
   const alternatives = words
     .filter(word => word.length > 0)
     .sort((a, b) => b.length - a.length)
-    .map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'));
+    .map(escapeRegExp);
 
   return alternatives.length > 0 ? new RegExp(alternatives.join('|'), 'gi') : null;
 }

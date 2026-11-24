@@ -2,8 +2,7 @@ export { QueryReader, SearchFilter } from './types';
 export type {
   Narrowing, QueryField, QueryToken, ParsedQuery, DateRange, DateField, DateValue, TaskStatus, HighlightCriterion, HighlightColour,
 } from './types';
-export { HighlightFilter, highlightsIn, matchesHighlight } from './HighlightFilter';
-export type { Highlight } from './HighlightFilter';
+export { HighlightFilter } from './HighlightFilter';
 
 export { TagsFilter } from './TagsFilter';
 export { ModifiedFilter, CreatedFilter } from './DateFilter';

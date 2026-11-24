@@ -115,14 +115,14 @@ describe('bodyText: Highlights under the highlight filter', () => {
   const ANY: HighlightCriterion = { colours: [] };
 
   /** A Highlight passage as the user reads it: each Highlight in [brackets], cut context as an ellipsis. */
-  function showMarked(passage: HighlightPassage): string {
-    return show({ ...passage, highlights: passage.marks.map((m): [number, number] => [m.start, m.end]) });
+  function showHighlights(passage: HighlightPassage): string {
+    return show({ ...passage, highlights: passage.highlights.map((h): [number, number] => [h.start, h.end]) });
   }
 
   it('shows each Highlight of the note without its == marks', () => {
     const body = bodyText('intro\nsome ==important== text\nplain line', [], [], ANY);
 
-    expect(body.highlights.map(showMarked)).toEqual(['some [important] text']);
+    expect(body.highlights.map(showHighlights)).toEqual(['some [important] text']);
     expect(body.highlights.map(h => h.line)).toEqual([1]);
   });
 
@@ -131,19 +131,19 @@ describe('bodyText: Highlights under the highlight filter', () => {
 
     const body = bodyText(note, [], [], { colours: [], word: 'kafka' });
 
-    expect(body.highlights.map(showMarked)).toEqual(['read [Kafka streams] and Docker today']);
+    expect(body.highlights.map(showHighlights)).toEqual(['read [Kafka streams] and Docker today']);
   });
 
   it('keeps five words of context on each side of a Highlight', () => {
     const note = 'uno due tre quattro cinque sei sette ==otto ciao== nove dieci undici dodici tredici quattordici';
 
-    expect(bodyText(note, [], [], ANY).highlights.map(showMarked)).toEqual([
+    expect(bodyText(note, [], [], ANY).highlights.map(showHighlights)).toEqual([
       '… tre quattro cinque sei sette [otto ciao] nove dieci undici dodici tredici …',
     ]);
   });
 
   it('merges Highlights whose context touches into one passage', () => {
-    expect(bodyText('==a== b c ==d== e', [], [], ANY).highlights.map(showMarked)).toEqual(['[a] b c [d] e']);
+    expect(bodyText('==a== b c ==d== e', [], [], ANY).highlights.map(showHighlights)).toEqual(['[a] b c [d] e']);
   });
 
   it('shows the first Highlight passages and counts the others', () => {
@@ -151,8 +151,17 @@ describe('bodyText: Highlights under the highlight filter', () => {
 
     const body = bodyText(note, [], [], ANY);
 
-    expect(body.highlights.map(showMarked)).toEqual(['line [mark 0]', 'line [mark 1]', 'line [mark 2]']);
+    expect(body.highlights.map(showHighlights)).toEqual(['line [mark 0]', 'line [mark 1]', 'line [mark 2]']);
     expect(body.hiddenHighlights).toBe(2);
+  });
+
+  it('caps and counts Highlights, not passages, when a passage holds several', () => {
+    const note = ['==a== and ==b==', '==c==', '==d==', '==e==', 'two ==f== and ==g=='].join('\n');
+
+    const body = bodyText(note, [], [], ANY);
+
+    expect(body.highlights.map(showHighlights)).toEqual(['[a] and [b]', '[c]']);
+    expect(body.hiddenHighlights).toBe(4);
   });
 
   it('shows every Highlight on a Card, which scrolls instead of counting', () => {
@@ -190,7 +199,7 @@ describe('bodyText: Highlights under the highlight filter', () => {
   });
 
   it('skips a Highlight with nothing but spaces in it', () => {
-    expect(bodyText('==   ==\nsome ==important== text', [], [], ANY).highlights.map(showMarked)).toEqual([
+    expect(bodyText('==   ==\nsome ==important== text', [], [], ANY).highlights.map(showHighlights)).toEqual([
       'some [important] text',
     ]);
   });
@@ -202,16 +211,73 @@ describe('bodyText: Highlights under the highlight filter', () => {
   it('gives each Highlight its colour and leaves the colour emoji out of the text', () => {
     const body = bodyText('a ==🔴red one== and ==🔵blue one== and ==plain one==', [], [], ANY);
 
-    expect(body.highlights.map(showMarked)).toEqual(['a [red one] and [blue one] and [plain one]']);
-    expect(body.highlights[0].marks.map(mark => mark.colour)).toEqual(['red', 'blue', undefined]);
+    expect(body.highlights.map(showHighlights)).toEqual(['a [red one] and [blue one] and [plain one]']);
+    expect(body.highlights[0].highlights.map(highlight => highlight.colour)).toEqual(['red', 'blue', undefined]);
   });
 
   it('marks only the Highlights of the colours asked for, the others without == or emoji', () => {
     const note = ['a ==🔴kafka== and ==🔵kafka== here', '==🟢kafka== alone', '==🔵other== too'].join('\n');
     const body = bodyText(note, [], [], { colours: ['red', 'green'], word: 'kafka' });
 
-    expect(body.highlights.map(showMarked)).toEqual(['a [kafka] and kafka here', '[kafka] alone']);
-    expect(body.highlights.flatMap(h => h.marks.map(mark => mark.colour))).toEqual(['red', 'green']);
+    expect(body.highlights.map(showHighlights)).toEqual(['a [kafka] and kafka here', '[kafka] alone']);
+    expect(body.highlights.flatMap(h => h.highlights.map(highlight => highlight.colour))).toEqual(['red', 'green']);
+  });
+
+  /** A Highlight passage with only its searched words in [brackets]. */
+  function showOccurrences(passage: HighlightPassage): string {
+    return show({ ...passage, highlights: passage.occurrences });
+  }
+
+  it('marks the searched words on a Highlight line, beside and inside the Highlight', () => {
+    const body = bodyText('read ==kafka streams== in docker today', ['docker', 'streams'], [], { colours: [], word: 'kafka' });
+
+    expect(body.highlights.map(showHighlights)).toEqual(['read [kafka streams] in docker today']);
+    expect(body.highlights.map(showOccurrences)).toEqual(['read kafka [streams] in [docker] today']);
+    expect(body.passages).toEqual([]);
+  });
+
+  it('shows a searched word far from the Highlight on its line, in a passage of its own', () => {
+    const note = '==kafka== uno due tre quattro cinque sei sette otto nove dieci undici dodici docker end';
+
+    const body = bodyText(note, ['docker'], [], { colours: [], word: 'kafka' });
+
+    expect(body.highlights.map(showOccurrences)).toEqual([
+      'kafka uno due tre quattro cinque …',
+      '… otto nove dieci undici dodici [docker] end',
+    ]);
+    expect(body.hiddenHighlights).toBe(0);
+    expect(body.passages).toEqual([]);
+  });
+
+  it('shows no Highlight passage for a searched word on a line whose Highlights do not match', () => {
+    const body = bodyText('==other== and docker', ['docker'], [], { colours: [], word: 'kafka' });
+
+    expect(body.highlights).toEqual([]);
+  });
+
+  it('leaves == inside inline code or a fenced code block as it is, as Obsidian draws it', () => {
+    const note = [
+      '`a == b == c` ==real==',
+      '```js',
+      'x ==not one== y',
+      '```',
+      '~~~~',
+      '```',
+      '==still code==',
+      '~~~~',
+      '==after==',
+    ].join('\n');
+
+    expect(bodyText(note, [], [], ANY).highlights.map(showHighlights)).toEqual([
+      '`a == b == c` [real]',
+      '[after]',
+    ]);
+  });
+
+  it('keeps a Highlight that holds inline code', () => {
+    expect(bodyText('see ==run `npm test`== now', [], [], ANY).highlights.map(showHighlights)).toEqual([
+      'see [run `npm test`] now',
+    ]);
   });
 
   it('shows no Highlight without an emoji under a colour key', () => {
